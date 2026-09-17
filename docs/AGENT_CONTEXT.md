@@ -47,12 +47,13 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 01 — PASS:** Production architecture selected; eight architecture documents.
 - **PHASE 02 — PASS:** Database/domain architecture designed; seven design documents.
 - **PHASE 03 — PASS:** Security Foundation + Actual Application Implementation Start. Real monorepo codebase created (`apps/web`, `apps/api`), JDK 25 installed, PostgreSQL 18 migrations applied, security foundation & RLS implemented, cross-tenant isolation tests PASSED, Next.js build PASSED.
+- **PHASE 04 — PASS:** Global Design System (Actual UI Implementation — Mobile-First). Complete reusable UI library created in `apps/web/src/components/`, locked palette tokens with WCAG 2.2 AA (5.35:1) compliance, responsive layout primitives, feedback/alerts/dialogs/sheets, media components (BeforeAfterSlider, BeforeAiReality with mandatory AI disclaimer badge, WatermarkPreview), interactive showcase route `/design-system` (marked `noindex`), Vitest test suite (20 tests passed), TypeScript and Next.js Turbopack build PASSED.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3, TypeScript 6.0.3, App Router, design tokens with locked palette, security headers, mobile-first 360px-430px base, health diagnostic, API client foundation. Next.js build validated clean.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1), Spring Boot 3.4.3 / 4.1.1, Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, authorization service, RLS defense-in-depth. Maven test suite passed with 8 tests (0 failures, 0 errors).
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with locked platform palette (`#B88A5A`, `#1F1F1F`, `#FAF9F5`, `#F5F2EB`, `#4D7C67`, `#C2614B`), mobile-first 360px-430px base, health diagnostic, full component library (buttons, inputs, cards, badges, overlays, sheets, navigation, sliders, watermark engine, data tables), showcase route `/design-system` (`noindex`). Next.js build and test suite validated clean.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3 (parent POM), Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, authorization service, RLS defense-in-depth. Maven test suite passed with 8 tests (0 failures, 0 errors).
   - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql` and `V002__pg_rls_policies.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
 
@@ -61,8 +62,8 @@ Paths below are relative to this document; filenames are the canonical repositor
 | Area | Selected baseline |
 |---|---|
 | Frontend | Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3; App Router/server-first |
-| Web tooling | Node 24.19.0 LTS; native npm workspaces; CSS variables/CSS Modules |
-| Backend | Java 25 (Temurin 25.0.4.1), Spring Boot 3.4.3 / 4.1.1; modular monolith |
+| Web tooling | Node 22.18.0 / npm 10.9.3; CSS variables + Tailwind; Vitest 5.0.1; ESLint 9 |
+| Backend | Java 25 (Temurin 25.0.4.1), Spring Boot 3.4.3; modular monolith |
 | Java tooling | Maven 3.9.9 checked-in wrapper (`mvnw.cmd`); separate native build |
 | Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()` |
 | Cache | No initial Redis; PostgreSQL authoritative for sessions, quotas and sensitive counters |
@@ -83,13 +84,14 @@ Paths below are relative to this document; filenames are the canonical repositor
 
 ## RECENT VERIFICATION EVIDENCE
 
-- `npm run typecheck` (apps/web): **PASS**
-- `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded in 9.6s)
-- `./mvnw clean test` (apps/api): **PASS** (8 tests run, 0 failures, 0 errors)
-- `TenantIsolationTest`: **PASS** (Verified Studio A member denied access to Studio B resource)
-- PostgreSQL 18 Migrations: `V001` and `V002` applied cleanly on port 5433 (PASS)
+- `npm run test` (apps/web): **PASS** (5 test files, 20 tests run, 0 failures, 2.79s)
+- `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
+- `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
+- `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, `/design-system` prerendered static)
+- `mvnw test` (apps/api): **PASS** (8 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25)
+- Contrast Audit: `#B88A5A` + `#1F1F1F` = **5.35:1** (exceeds WCAG 2.2 AA 4.5:1 requirement)
 
 ## NEXT PHASE
 
-**PHASE 04 — GLOBAL DESIGN SYSTEM.**
-Phase 03 completed successfully. Await Phase 04 prompt.
+**PHASE 05 — 3D VIEWER / WEBGL FOUNDATION OR HOMEPAGE ARCHITECTURE.**
+Phase 04 completed successfully. Await Phase 05 prompt.

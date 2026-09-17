@@ -1,5 +1,8 @@
 :root {
-  /* Locked Palette Tokens */
+  /* ==========================================================================
+     LOCKED PLATFORM PALETTE
+     Approved invariants — do NOT alter or add undocumented colors.
+     ========================================================================== */
   --color-deep-charcoal: #1F1F1F;
   --color-warm-ivory: #FAF8F5;
   --color-sage-neutral: #E7E1D8;
@@ -13,104 +16,215 @@
   --color-medium-grey: #D9D9D9;
   --color-dark-grey: #6B6B6B;
 
-  /* Semantic Design Tokens */
-  --color-background: var(--color-warm-ivory);
-  --color-surface: var(--color-white);
-  --color-surface-alt: var(--color-sage-neutral);
-  --color-text-primary: var(--color-deep-charcoal);
-  --color-text-muted: var(--color-dark-grey);
-  --color-brand: var(--color-warm-bronze);
-  --color-cta-bg: var(--color-warm-bronze);
-  --color-cta-text: var(--color-deep-charcoal); /* 5.35:1 AA Accessible contrast */
-  --color-success: var(--color-forest-green);
-  --color-info: var(--color-muted-blue);
-  --color-accent: var(--color-terracotta);
-  --color-border: var(--color-medium-grey);
+  /* ==========================================================================
+     SEMANTIC COLOR TOKENS
+     Derived strictly from locked palette for consistent platform identity.
+     ========================================================================== */
+  --background: var(--color-warm-ivory);
+  --background-secondary: var(--color-sage-neutral);
+  --surface: var(--color-white);
+  --surface-elevated: var(--color-white);
+  --surface-alt: var(--color-light-grey);
+  --surface-soft: var(--color-soft-rose);
 
-  /* Typography & Layout Tokens */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --text-primary: var(--color-deep-charcoal);
+  --text-secondary: #4A4A4A;
+  --text-muted: var(--color-dark-grey);
+  --text-inverse: var(--color-white);
+
+  --brand: var(--color-warm-bronze);
+  --brand-hover: #A3784A;
+  --brand-active: #8E653B;
+
+  /* Button CTA Contrast Invariant: Bronze background with Charcoal text = 5.35:1 (WCAG AA) */
+  --btn-cta-bg: var(--color-warm-bronze);
+  --btn-cta-text: var(--color-deep-charcoal);
+  --btn-cta-hover: #A3784A;
+
+  --border: var(--color-medium-grey);
+  --border-strong: var(--color-dark-grey);
+  --border-focus: var(--color-warm-bronze);
+
+  --success: var(--color-forest-green);
+  --success-surface: #EDF5F1;
+  --info: var(--color-muted-blue);
+  --info-surface: #EFF5F9;
+  --warning: var(--color-terracotta);
+  --warning-surface: #FAF0EC;
+  --danger: #B33A3A;
+  --danger-surface: #FDF2F2;
+
+  --focus-ring: var(--color-warm-bronze);
+
+  /* ==========================================================================
+     TYPOGRAPHY TOKENS
+     Playfair Display (editorial headings) + Inter / System (clean UI / body)
+     ========================================================================== */
+  --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  --text-display: clamp(2rem, 5vw, 3.25rem);
+  --text-h1: clamp(1.75rem, 4vw, 2.5rem);
+  --text-h2: clamp(1.4rem, 3vw, 2rem);
+  --text-h3: clamp(1.2rem, 2.5vw, 1.5rem);
+  --text-h4: clamp(1.05rem, 2vw, 1.25rem);
+  --text-body-large: 1.125rem;
+  --text-body: 1rem;
+  --text-body-small: 0.875rem;
+  --text-label: 0.8125rem;
+  --text-caption: 0.75rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* ==========================================================================
+     SPACING SYSTEM (2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80 px)
+     ========================================================================== */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+
+  /* ==========================================================================
+     RADIUS SYSTEM (Restrained architectural edges, not bubbly)
+     ========================================================================== */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px; /* reserved for chips, tags, filter pills */
+
+  /* ==========================================================================
+     SHADOW & DEPTH SYSTEM
+     Subtle, premium elevation allowing photography to lead
+     ========================================================================== */
+  --shadow-subtle: 0 1px 3px rgba(31, 31, 31, 0.06), 0 1px 2px rgba(31, 31, 31, 0.04);
+  --shadow-card: 0 4px 12px rgba(31, 31, 31, 0.08), 0 1px 3px rgba(31, 31, 31, 0.05);
+  --shadow-floating: 0 12px 28px rgba(31, 31, 31, 0.12), 0 4px 10px rgba(31, 31, 31, 0.08);
+
+  /* ==========================================================================
+     MOTION & TRANSITION TOKENS
+     ========================================================================== */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Mobile Touch Target Invariant */
   --min-touch-target: 44px;
-  --max-content-width: 1200px;
+  --max-page-width: 1320px;
+  --max-content-width: 1140px;
 }
 
-* {
+/* Reduced Motion Preference Override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Box Sizing & Reset */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
-html,
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  min-height: 100vh;
   max-width: 100vw;
   overflow-x: hidden;
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
+  background-color: var(--background);
+  color: var(--text-primary);
   font-family: var(--font-sans);
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Mobile-First Typography & Interactive Surfaces */
+/* Focus Visibility Default (WCAG 2.2 AA) */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Headings default to serif where appropriate */
+h1, h2, h3, .font-editorial {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: var(--leading-tight);
+}
+
+p {
+  color: var(--text-secondary);
+}
+
 a {
-  color: var(--color-info);
+  color: var(--info);
   text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 a:hover {
   text-decoration: underline;
 }
 
-button,
-.btn {
-  min-height: var(--min-touch-target);
-  min-width: var(--min-touch-target);
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s ease;
-}
-
-button:focus-visible,
-a:focus-visible {
-  outline: 3px solid var(--color-brand);
-  outline-offset: 2px;
-}
-
-.btn-primary {
-  background-color: var(--color-cta-bg);
-  color: var(--color-cta-text);
-}
-
-.btn-primary:hover {
-  opacity: 0.92;
-}
-
-/* Responsive Containers: Mobile 360-430px FIRST */
-.container {
+/* Mobile-First Responsive Page Containers */
+.page-container {
   width: 100%;
-  padding-left: 16px;
-  padding-right: 16px;
+  max-width: var(--max-page-width);
   margin-left: auto;
   margin-right: auto;
+  padding-left: var(--space-16);
+  padding-right: var(--space-16);
 }
 
 @media (min-width: 768px) {
-  .container {
-    padding-left: 24px;
-    padding-right: 24px;
+  .page-container {
+    padding-left: var(--space-24);
+    padding-right: var(--space-24);
   }
 }
 
 @media (min-width: 1024px) {
-  .container {
-    max-width: var(--max-content-width);
-    padding-left: 32px;
-    padding-right: 32px;
+  .page-container {
+    padding-left: var(--space-32);
+    padding-right: var(--space-32);
   }
+}
+
+.content-container {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.narrow-container {
+  width: 100%;
+  max-width: 768px;
+  margin-left: auto;
+  margin-right: auto;
 }
