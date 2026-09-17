@@ -11,10 +11,10 @@ export interface NavLinkItem {
 }
 
 const defaultNavLinks: NavLinkItem[] = [
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'Designers', href: '/designers' },
-  { label: 'AI Studio', href: '/ai-studio' },
-  { label: 'Pricing', href: '/pricing' },
+  { label: 'Portfolio', href: '#portfolio-builder' },
+  { label: 'Discovery', href: '#discover-projects' },
+  { label: 'AI Visualizer', href: '#ai-visualizer' },
+  { label: 'Transformation', href: '#transformation-experience' },
 ];
 
 export interface PublicHeaderProps {
@@ -70,17 +70,21 @@ export function PublicHeader({
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onSignInClick}>
-            Sign In
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onGetStartedClick}
-            rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-          >
-            Get Started
-          </Button>
+          <Link href="#portfolio-builder">
+            <Button variant="ghost" size="sm" onClick={onSignInClick}>
+              Sign In
+            </Button>
+          </Link>
+          <Link href="#portfolio-builder">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onGetStartedClick}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+            >
+              Get Started
+            </Button>
+          </Link>
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -114,7 +118,7 @@ export function PublicHeader({
             ))}
             <div className="pt-2">
               <Link
-                href="/ai-studio"
+                href="#ai-visualizer"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-3 rounded-xl bg-[var(--brand-muted)] border border-[var(--brand)]/20 text-[var(--brand)] text-base font-medium flex items-center gap-2.5"
               >
@@ -125,28 +129,26 @@ export function PublicHeader({
           </nav>
 
           <div className="pt-6 border-t border-[var(--border)] flex flex-col gap-3 mb-6">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full justify-center"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onSignInClick?.();
-              }}
-            >
-              Sign In
-            </Button>
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full justify-center"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onGetStartedClick?.();
-              }}
-            >
-              Get Started Free
-            </Button>
+            <Link href="#portfolio-builder" onClick={() => setMobileMenuOpen(false)} className="w-full">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full justify-center"
+                onClick={onSignInClick}
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href="#portfolio-builder" onClick={() => setMobileMenuOpen(false)} className="w-full">
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full justify-center"
+                onClick={onGetStartedClick}
+              >
+                Get Started Free
+              </Button>
+            </Link>
           </div>
         </div>
       )}

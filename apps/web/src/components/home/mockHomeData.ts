@@ -354,7 +354,7 @@ export const howItWorksSteps = [
   {
     step: '01',
     title: 'Create Your Studio Profile',
-    desc: 'Claim your studio username, upload your emblem, and establish your verified presence in your city.',
+    desc: 'Claim your studio handle, upload your emblem, and establish your professional presence in your city.',
   },
   {
     step: '02',

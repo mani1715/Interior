@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'Elégance — Interior Designer Portfolio, Discovery & AI Visualizer',
     description:
       'Turn beautiful interiors into a business people can discover. Build your studio portfolio, get found on Google, and visualize client ideas with AI.',
@@ -49,21 +49,13 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebSite',
-      '@id': 'https://elegance.interior/#website',
-      url: 'https://elegance.interior',
       name: 'Elégance Interior Platform',
       description: 'The digital portfolio, discovery, and AI visualization platform for interior professionals.',
-      publisher: {
-        '@id': 'https://elegance.interior/#organization',
-      },
     },
     {
       '@type': 'Organization',
-      '@id': 'https://elegance.interior/#organization',
       name: 'Elégance',
-      url: 'https://elegance.interior',
-      logo: 'https://elegance.interior/logo.png',
-      description: 'Platform connecting verified interior designers, studios, and architects with homeowners through real projects.',
+      description: 'Platform connecting interior designers, studios, and architects with homeowners through real projects.',
     },
   ],
 };

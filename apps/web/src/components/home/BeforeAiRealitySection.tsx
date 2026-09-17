@@ -12,7 +12,7 @@ export function BeforeAiRealitySection() {
             <SectionEyebrow>05 / Signature Differentiator</SectionEyebrow>
             <SectionTitle>Site Condition → AI Concept → Handcrafted Reality</SectionTitle>
             <SectionDescription>
-              Build unmatched credibility with clients by showcasing the full story: from the raw unfinished site to the initial photorealistic AI visualization, and finally the executed space delivered on-site.
+              Build credibility with clients by documenting the full journey: from the raw unfinished site to the initial AI concept visualization, and finally the handcrafted space delivered on-site.
             </SectionDescription>
           </div>
         </SectionHeader>

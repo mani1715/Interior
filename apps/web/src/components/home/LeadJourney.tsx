@@ -67,8 +67,8 @@ export function LeadJourney() {
                     <p className="text-[10px] text-[var(--muted)]">Automated Context Link</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--surface-alt)] text-[var(--success)] font-semibold">
-                  Verified Studio
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--surface-alt)] text-[var(--muted)] font-semibold">
+                  Studio Profile
                 </span>
               </div>
 

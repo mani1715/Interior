@@ -26,7 +26,7 @@ export function ProjectInspiration() {
             <SectionEyebrow>07 / Inspiration Gallery</SectionEyebrow>
             <SectionTitle>Curated Interior Work Across India</SectionTitle>
             <SectionDescription>
-              Explore real spatial transformations designed and built by verified architects, interior studios, and cabinetry professionals.
+              Explore spatial transformations designed and built by architects, interior studios, and cabinetry professionals.
             </SectionDescription>
           </div>
         </SectionHeader>

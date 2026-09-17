@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { Globe, Shield, Sparkles, Sliders, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SectionHeader, SectionTitle, SectionEyebrow, SectionDescription } from '@/components/layout/Section';
-import { VerifiedBadge } from '@/components/ui/Badge';
 
 export function PortfolioSection() {
   const features = [
@@ -20,7 +19,7 @@ export function PortfolioSection() {
     {
       icon: Sliders,
       title: 'Detailed Project Case Studies',
-      desc: 'Publish comprehensive stories: floor plans, 3D renderings, material boards, budgets, and verified client testimonials.',
+      desc: 'Publish comprehensive stories: floor plans, concept renderings, material boards, scopes, and client testimonials.',
     },
     {
       icon: Sparkles,
@@ -63,7 +62,7 @@ export function PortfolioSection() {
             </div>
 
             <div className="pt-2">
-              <Link href="/register">
+              <Link href="#how-it-works">
                 <Button
                   variant="primary"
                   size="md"
@@ -89,7 +88,9 @@ export function PortfolioSection() {
                       <h4 className="font-serif text-base font-bold text-[var(--foreground)]">
                         Studio Elégance
                       </h4>
-                      <VerifiedBadge label="Verified" />
+                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--muted)]">
+                        Architecture Studio
+                      </span>
                     </div>
                     <p className="text-xs text-[var(--muted)]">
                       Turnkey Architecture & Interiors • Guntur & Amaravati

@@ -16,13 +16,13 @@ export function DiscoverySection() {
   const discoverySteps = [
     {
       num: '01',
-      title: 'Discover Real Work',
+      title: 'Real Project Discovery',
       desc: 'Homeowners search for specific spaces, materials, and city locations rather than vague directory listings.',
     },
     {
       num: '02',
       title: 'Explore Case Study',
-      desc: 'They see authentic photos, site context, materials used, and the verified designer who executed it.',
+      desc: 'They see authentic photos, site context, materials used, and the designer or studio that executed it.',
     },
     {
       num: '03',

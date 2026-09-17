@@ -24,12 +24,12 @@ export function Hero() {
             </h1>
 
             <p className="text-sm sm:text-base md:text-lg text-[var(--muted)] leading-relaxed max-w-2xl mb-6 sm:mb-8">
-              Build your professional portfolio. Get discovered on Google with structured project pages. Visualize ideas on real site photos with AI. Turn client admiration into verified enquiries.
+              Build your professional portfolio. Built to be discoverable on Google with structured project pages. Visualize ideas on real site photos with AI. Turn client admiration into direct project inquiries.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-6 sm:mb-8">
-              <Link href="/register" className="w-full sm:w-auto">
+              <Link href="#portfolio-builder" className="w-full sm:w-auto">
                 <Button
                   variant="primary"
                   size="lg"
@@ -54,7 +54,7 @@ export function Hero() {
             {/* Trust Statement */}
             <div className="flex items-center gap-2.5 text-xs text-[var(--muted)] pt-2 border-t border-[var(--border)] w-full sm:w-auto">
               <ShieldCheck className="w-4 h-4 text-[var(--brand)] flex-shrink-0" />
-              <span>Architectural copyright protection • Native watermark engine • Built for India</span>
+              <span>Built for interior professionals and homeowners across India&apos;s growing design communities.</span>
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export function Hero() {
                 </div>
                 <div className="flex items-center gap-1 text-[var(--brand)] font-semibold text-[11px]">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>AI Studied</span>
+                  <span>AI Concept Preview</span>
                 </div>
               </div>
             </div>

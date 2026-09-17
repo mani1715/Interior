@@ -36,7 +36,7 @@ export function AiVisualizerSection() {
             <SectionEyebrow>04 / AI Spatial Diffusion</SectionEyebrow>
             <SectionTitle>Visualize Client Ideas on Real Site Photos</SectionTitle>
             <SectionDescription>
-              Don’t start from a blank canvas. Snap a photo of an unfinished room, add your instructions and reference swatches, and generate realistic spatial concepts to align with your client.
+              Explore spatial design directions directly on site photos. Capture an unfinished room, specify reference materials and style swatches, and create realistic AI concept visualizations to align with your client.
             </SectionDescription>
           </div>
         </SectionHeader>
@@ -72,7 +72,7 @@ export function AiVisualizerSection() {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">
                 Step 4: Output
               </span>
-              <p className="text-xs font-semibold text-[var(--brand)]">AI Concept Study</p>
+              <p className="text-xs font-semibold text-[var(--brand)]">AI Concept Output</p>
               <p className="text-[11px] text-[var(--muted)]">Tagged with disclaimer</p>
             </div>
           </div>
@@ -125,9 +125,9 @@ export function AiVisualizerSection() {
         <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <AIConceptBadge />
-            <div className="text-xs text-[var(--muted)]">
-              <span className="font-semibold text-[var(--foreground)]">Legal & Architectural Disclosure:</span>{' '}
-              Colours and materials shown in AI concepts are visual simulations and may differ from the final physical manufactured result.
+            <div className="text-xs text-[var(--muted)] leading-relaxed">
+              <span className="font-semibold text-[var(--foreground)]">Architectural Disclaimer:</span>{' '}
+              AI visualizations are conceptual. Colours, materials, dimensions and construction details may differ from the final result. Confirm final specifications and buildability before execution.
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-[var(--muted)] flex-shrink-0">

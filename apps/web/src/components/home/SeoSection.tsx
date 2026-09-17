@@ -17,17 +17,17 @@ export function SeoSection() {
     {
       icon: Search,
       title: 'Local Context Indexing',
-      desc: 'Structured city and neighborhood tagging ensures homeowners in your area find your projects.',
+      desc: 'Structured city and neighborhood tagging helps search engines connect local homeowner queries to your projects.',
     },
     {
       icon: Share2,
       title: 'Fast Server-Side Rendering',
-      desc: 'Instant HTML delivery with sub-second LCP so search engine bots index 100% of your photography.',
+      desc: 'Clean server-delivered HTML markup and optimized imagery designed to facilitate search engine indexing.',
     },
   ];
 
   return (
-    <section className="w-full py-12 sm:py-16 md:py-24 bg-[var(--surface-alt)] border-b border-[var(--border)]">
+    <section id="seo-discoverability" className="w-full py-12 sm:py-16 md:py-24 bg-[var(--surface-alt)] border-b border-[var(--border)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Text */}
@@ -37,7 +37,7 @@ export function SeoSection() {
                 <SectionEyebrow>06 / Organic Discovery</SectionEyebrow>
                 <SectionTitle>Built to be discoverable on Google.</SectionTitle>
                 <SectionDescription>
-                  Social algorithms bury your best work after 24 hours. On Elégance, every project you publish becomes an enduring, search-optimized web page designed to attract local clients for years to come.
+                  Social algorithms bury your best work after 24 hours. On Elégance, every project you publish becomes an enduring, structured web page designed for long-term search engine discoverability. Search engine ranking remains controlled by search engines; our architecture provides the clean technical foundation they look for.
                 </SectionDescription>
               </div>
             </SectionHeader>
@@ -64,10 +64,10 @@ export function SeoSection() {
           <div className="lg:col-span-6">
             <div className="p-5 sm:p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl space-y-5">
               <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--muted)] block">
-                Google Search Result Simulation
+                Search Result Preview (Example Appearance)
               </span>
 
-              {/* Mock Google Card */}
+              {/* Mock SERP Card */}
               <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--background)] space-y-2">
                 <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
                   <div className="w-4 h-4 rounded-full bg-[var(--brand)] flex items-center justify-center text-[8px] font-bold text-[var(--charcoal)]">
@@ -94,7 +94,7 @@ export function SeoSection() {
                     Material: Statuario & Walnut
                   </span>
                   <span className="px-2 py-0.5 rounded bg-[var(--surface-alt)] border border-[var(--border)]">
-                    Status: Verified Execution
+                    Status: Completed Project
                   </span>
                 </div>
               </div>

@@ -16,9 +16,9 @@ export function Footer() {
     {
       title: 'For Professionals',
       links: [
-        { label: 'Create Portfolio', href: '/register' },
+        { label: 'Create Portfolio', href: '#portfolio-builder' },
         { label: 'AI Spatial Visualizer', href: '#ai-visualizer' },
-        { label: 'Watermark Protection', href: '/design-system#media' },
+        { label: 'Watermark Protection', href: '#portfolio-builder' },
         { label: 'Studio Showcase', href: '#discover-projects' },
       ],
     },
@@ -26,7 +26,7 @@ export function Footer() {
       title: 'Product',
       links: [
         { label: 'How It Works', href: '#how-it-works' },
-        { label: 'Google Discoverability', href: '#discover-projects' },
+        { label: 'Google Discoverability', href: '#seo-discoverability' },
         { label: 'Transformation Craft', href: '#transformation-experience' },
         { label: 'Design System (Internal)', href: '/design-system' },
       ],
@@ -34,10 +34,10 @@ export function Footer() {
     {
       title: 'Standards & Legal',
       links: [
-        { label: 'Privacy Policy', href: '/privacy' },
-        { label: 'Terms of Service', href: '/terms' },
+        { label: 'Privacy Policy (Planned)', href: undefined },
+        { label: 'Terms of Service (Planned)', href: undefined },
         { label: 'AI Disclaimer Notice', href: '#ai-visualizer' },
-        { label: 'Copyright & Watermarks', href: '/design-system#media' },
+        { label: 'Copyright & Protection', href: '#portfolio-builder' },
       ],
     },
   ];
@@ -70,12 +70,18 @@ export function Footer() {
               <ul className="space-y-2">
                 {group.links.map((link, lIdx) => (
                   <li key={lIdx}>
-                    <Link
-                      href={link.href}
-                      className="text-xs text-[var(--muted)] hover:text-[var(--brand)] transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.href ? (
+                      <Link
+                        href={link.href}
+                        className="text-xs text-[var(--muted)] hover:text-[var(--brand)] transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-[var(--muted)] opacity-70 cursor-default">
+                        {link.label}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -87,7 +93,7 @@ export function Footer() {
         <div className="pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--muted)]">
           <p>© 2026 Elégance Interior Platform. All architectural rights reserved.</p>
           <p className="font-mono text-[11px]">
-            Mobile-First • Locked Palette • Verified Identity Architecture
+            Mobile-First • Locked Palette • Tenant Isolation Architecture
           </p>
         </div>
       </div>

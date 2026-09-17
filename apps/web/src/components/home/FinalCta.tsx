@@ -20,7 +20,7 @@ export function FinalCta() {
         </p>
 
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
-          <Link href="/register" className="w-full sm:w-auto">
+          <Link href="#portfolio-builder" className="w-full sm:w-auto">
             <Button
               variant="primary"
               size="lg"

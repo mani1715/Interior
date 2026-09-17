@@ -55,7 +55,7 @@ describe('Homepage Production Implementation', () => {
     expect(screen.getByText('AI Concept Visualization')).toBeDefined();
 
     // Legal and architectural disclosure
-    expect(screen.getByText(/Colours and materials shown in AI concepts are visual simulations/i)).toBeDefined();
+    expect(screen.getByText(/AI visualizations are conceptual/i)).toBeDefined();
   });
 
   it('renders full Homepage with structured data script and semantic main landmark', () => {
