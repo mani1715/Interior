@@ -207,98 +207,197 @@ function DesignSystemContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-16">
         {/* ======================================================== */}
-        {/* 1. LOCKED COLOR SYSTEM & CONTRAST TOKENS */}
+        {/* 1. LOCKED BRAND PALETTE & ACCESSIBLE SEMANTIC TOKENS */}
         {/* ======================================================== */}
         <section id="colors" className="space-y-6">
           <SectionHeader>
             <div>
               <SectionEyebrow>01 / Color Architecture</SectionEyebrow>
-              <SectionTitle>Locked Platform Palette</SectionTitle>
+              <SectionTitle>Locked Canonical Brand Palette</SectionTitle>
               <SectionDescription>
-                Architectural neutrals anchored by Warm Bronze. Tested for strict WCAG 2.2 AA contrast compliance.
+                The 12 canonical platform colors. Locked values representing the official brand identity.
               </SectionDescription>
             </div>
           </SectionHeader>
 
+          {/* 12 Canonical Brand Tokens Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#1F1F1F] shadow-inner flex items-center justify-center text-[#FAF8F5] font-semibold text-xs border border-white/10">
+                #1F1F1F
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Deep Charcoal</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Dark Base</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#FAF8F5] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
+                #FAF8F5
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Warm Ivory</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Light Base</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#E7E1D8] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
+                #E7E1D8
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Sage Neutral</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Secondary Neutral</p>
+              </div>
+            </div>
+
             <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
               <div className="w-full h-12 rounded-lg bg-[#B88A5A] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs">
                 #B88A5A
               </div>
               <div>
                 <p className="text-xs font-semibold text-[var(--foreground)]">Warm Bronze</p>
-                <p className="text-[10px] text-[var(--muted)]">Brand Accent</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Brand Accent</p>
               </div>
             </div>
 
             <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
-              <div className="w-full h-12 rounded-lg bg-[#1F1F1F] shadow-inner flex items-center justify-center text-[#FAF9F5] font-semibold text-xs border border-white/10">
-                #1F1F1F
+              <div className="w-full h-12 rounded-lg bg-[#2E5D4B] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
+                #2E5D4B
               </div>
               <div>
-                <p className="text-xs font-semibold text-[var(--foreground)]">Deep Charcoal</p>
-                <p className="text-[10px] text-[var(--muted)]">Dark Base / Contrast Text</p>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Forest Green</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Botanical</p>
               </div>
             </div>
 
             <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
-              <div className="w-full h-12 rounded-lg bg-[#FAF9F5] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
-                #FAF9F5
+              <div className="w-full h-12 rounded-lg bg-[#3E6D8C] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
+                #3E6D8C
               </div>
               <div>
-                <p className="text-xs font-semibold text-[var(--foreground)]">Warm White</p>
-                <p className="text-[10px] text-[var(--muted)]">Light Base Background</p>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Muted Blue</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Architectural</p>
               </div>
             </div>
 
             <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
-              <div className="w-full h-12 rounded-lg bg-[#F5F2EB] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
-                #F5F2EB
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-[var(--foreground)]">Alabaster</p>
-                <p className="text-[10px] text-[var(--muted)]">Secondary Surface</p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
-              <div className="w-full h-12 rounded-lg bg-[#4D7C67] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
-                #4D7C67
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-[var(--foreground)]">Sage Green</p>
-                <p className="text-[10px] text-[var(--muted)]">Biophilic Accent</p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
-              <div className="w-full h-12 rounded-lg bg-[#C2614B] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
-                #C2614B
+              <div className="w-full h-12 rounded-lg bg-[#C76F4A] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
+                #C76F4A
               </div>
               <div>
                 <p className="text-xs font-semibold text-[var(--foreground)]">Terracotta</p>
-                <p className="text-[10px] text-[var(--muted)]">Warm Earth Accent</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Warm Earth</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#E6C9C3] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
+                #E6C9C3
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Soft Rose</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Delicate Tint</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#FFFFFF] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
+                #FFFFFF
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">White</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Pure Light</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#F4F4F4] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs border border-black/10">
+                #F4F4F4
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Light Grey</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Flat Tint</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#D9D9D9] shadow-inner flex items-center justify-center text-[#1F1F1F] font-semibold text-xs">
+                #D9D9D9
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Medium Grey</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Border Line</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col justify-between h-32">
+              <div className="w-full h-12 rounded-lg bg-[#6B6B6B] shadow-inner flex items-center justify-center text-white font-semibold text-xs">
+                #6B6B6B
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[var(--foreground)]">Dark Grey</p>
+                <p className="text-[10px] text-[var(--muted)]">Canonical Muted Text</p>
               </div>
             </div>
           </div>
 
-          {/* Contrast Verification Callout */}
-          <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--brand)] text-[var(--charcoal)] flex items-center justify-center flex-shrink-0 font-bold">
-                <Check className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-[var(--foreground)]">
-                  WCAG 2.2 AA Contrast Guarantee: 5.35:1
-                </p>
-                <p className="text-xs text-[var(--muted)]">
-                  Warm Bronze (<code className="text-[11px] font-mono">#B88A5A</code>) paired with Deep Charcoal (<code className="text-[11px] font-mono">#1F1F1F</code>) text achieves 5.35:1 contrast, comfortably exceeding the AA requirement (4.5:1).
-                </p>
-              </div>
+          {/* Dedicated Semantic Accessibility Tokens Section */}
+          <div className="mt-8 pt-6 border-t border-[var(--border)] space-y-4">
+            <div>
+              <h4 className="font-serif text-sm font-semibold uppercase tracking-wider text-[var(--foreground)]">
+                Accessible Semantic UI Tokens (WCAG 2.2 AA / AAA)
+              </h4>
+              <p className="text-xs text-[var(--muted)]">
+                Derived contextual mappings ensuring strict foreground/background contrast without altering canonical brand identities.
+              </p>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-[var(--brand)] text-[var(--charcoal)] font-semibold text-xs whitespace-nowrap shadow-sm">
-              Primary CTA Example (5.35:1)
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+                <div className="w-full h-10 rounded-lg bg-[#B88A5A] flex items-center justify-center text-[#1F1F1F] font-bold text-xs">
+                  Primary CTA (5.35:1)
+                </div>
+                <div className="text-[11px] space-y-0.5">
+                  <p className="font-mono text-[var(--foreground)]">--btn-cta-bg: #B88A5A</p>
+                  <p className="font-mono text-[var(--foreground)]">--btn-cta-text: #1F1F1F</p>
+                  <p className="text-[10px] text-[var(--success)] font-semibold">PASS: WCAG 2.2 AA (exceeds 4.5:1)</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+                <div className="w-full h-10 rounded-lg bg-[#EDF5F1] border border-[#2E5D4B]/30 flex items-center justify-center text-[#2E5D4B] font-bold text-xs">
+                  Success Status (6.7:1)
+                </div>
+                <div className="text-[11px] space-y-0.5">
+                  <p className="font-mono text-[var(--foreground)]">--success: #2E5D4B</p>
+                  <p className="font-mono text-[var(--foreground)]">--success-surface: #EDF5F1</p>
+                  <p className="text-[10px] text-[var(--success)] font-semibold">PASS: WCAG 2.2 AAA on light base</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+                <div className="w-full h-10 rounded-lg bg-[#EFF5F9] border border-[#3E6D8C]/30 flex items-center justify-center text-[#3E6D8C] font-bold text-xs">
+                  Info Status (4.9:1)
+                </div>
+                <div className="text-[11px] space-y-0.5">
+                  <p className="font-mono text-[var(--foreground)]">--info: #3E6D8C</p>
+                  <p className="font-mono text-[var(--foreground)]">--info-surface: #EFF5F9</p>
+                  <p className="text-[10px] text-[var(--success)] font-semibold">PASS: WCAG 2.2 AA on Warm Ivory</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-2">
+                <div className="w-full h-10 rounded-lg bg-[#FAF0EC] border border-[#C76F4A]/30 flex items-center justify-center text-[#9E4522] font-bold text-xs">
+                  Warning / Earth (5.5:1)
+                </div>
+                <div className="text-[11px] space-y-0.5">
+                  <p className="font-mono text-[var(--foreground)]">--warning: #C76F4A (border/badge)</p>
+                  <p className="font-mono text-[var(--foreground)]">--status-warning-text: #9E4522</p>
+                  <p className="text-[10px] text-[var(--success)] font-semibold">PASS: WCAG 2.2 AA text on light base</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>

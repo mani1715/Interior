@@ -24,7 +24,7 @@
   --background-secondary: var(--color-sage-neutral);
   --surface: var(--color-white);
   --surface-elevated: var(--color-white);
-  --surface-alt: var(--color-light-grey);
+  --surface-alt: var(--color-sage-neutral);
   --surface-soft: var(--color-soft-rose);
 
   --text-primary: var(--color-deep-charcoal);
@@ -35,6 +35,7 @@
   --brand: var(--color-warm-bronze);
   --brand-hover: #A3784A;
   --brand-active: #8E653B;
+  --brand-muted: rgba(184, 138, 90, 0.12);
 
   /* Button CTA Contrast Invariant: Bronze background with Charcoal text = 5.35:1 (WCAG AA) */
   --btn-cta-bg: var(--color-warm-bronze);
@@ -45,6 +46,7 @@
   --border-strong: var(--color-dark-grey);
   --border-focus: var(--color-warm-bronze);
 
+  /* Status Colors (Brand Mapped) */
   --success: var(--color-forest-green);
   --success-surface: #EDF5F1;
   --info: var(--color-muted-blue);
@@ -53,6 +55,16 @@
   --warning-surface: #FAF0EC;
   --danger: #B33A3A;
   --danger-surface: #FDF2F2;
+
+  /* ==========================================================================
+     ACCESSIBLE SEMANTIC DERIVED TOKENS
+     High-contrast text tokens for specific WCAG 2.2 AA use cases where
+     canonical brand colors need specific foreground pairing.
+     ========================================================================== */
+  --status-warning-text: #9E4522; /* 5.5:1 contrast on Warm Ivory / light surfaces */
+  --status-danger-text: #B33A3A;  /* 5.2:1 contrast on light surfaces */
+  --status-info-text: var(--color-muted-blue); /* 4.9:1 on Warm Ivory */
+  --status-success-text: var(--color-forest-green); /* 6.7:1 on Warm Ivory */
 
   --focus-ring: var(--color-warm-bronze);
 

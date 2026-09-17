@@ -48,12 +48,13 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 02 — PASS:** Database/domain architecture designed; seven design documents.
 - **PHASE 03 — PASS:** Security Foundation + Actual Application Implementation Start. Real monorepo codebase created (`apps/web`, `apps/api`), JDK 25 installed, PostgreSQL 18 migrations applied, security foundation & RLS implemented, cross-tenant isolation tests PASSED, Next.js build PASSED.
 - **PHASE 04 — PASS:** Global Design System (Actual UI Implementation — Mobile-First). Complete reusable UI library created in `apps/web/src/components/`, locked palette tokens with WCAG 2.2 AA (5.35:1) compliance, responsive layout primitives, feedback/alerts/dialogs/sheets, media components (BeforeAfterSlider, BeforeAiReality with mandatory AI disclaimer badge, WatermarkPreview), interactive showcase route `/design-system` (marked `noindex`), Vitest test suite (20 tests passed), TypeScript and Next.js Turbopack build PASSED.
+- **PHASE 04.1 — PASS:** Design System Canonicalization & Runtime Decisions Locked. Restored exact 12 canonical brand tokens (`#1F1F1F`, `#FAF8F5`, `#E7E1D8`, `#B88A5A`, `#2E5D4B`, `#3E6D8C`, `#C76F4A`, `#E6C9C3`, `#FFFFFF`, `#F4F4F4`, `#D9D9D9`, `#6B6B6B`). Clearly separated brand tokens from accessible semantic derived UI tokens (`--status-warning-text: #9E4522`, etc.). Formally marked Spring Boot 3.4.3 running on JDK 25 with Java 21 compiler bytecode target as canonical backend baseline.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with locked platform palette (`#B88A5A`, `#1F1F1F`, `#FAF9F5`, `#F5F2EB`, `#4D7C67`, `#C2614B`), mobile-first 360px-430px base, health diagnostic, full component library (buttons, inputs, cards, badges, overlays, sheets, navigation, sliders, watermark engine, data tables), showcase route `/design-system` (`noindex`). Next.js build and test suite validated clean.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3 (parent POM), Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, authorization service, RLS defense-in-depth. Maven test suite passed with 8 tests (0 failures, 0 errors).
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`). Next.js build and test suite validated clean.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3 (canonical baseline superseding earlier 4.1.1 mention), Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, authorization service, RLS defense-in-depth. Maven test suite passed with 8 tests (0 failures, 0 errors).
   - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql` and `V002__pg_rls_policies.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
 
@@ -63,7 +64,7 @@ Paths below are relative to this document; filenames are the canonical repositor
 |---|---|
 | Frontend | Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3; App Router/server-first |
 | Web tooling | Node 22.18.0 / npm 10.9.3; CSS variables + Tailwind; Vitest 5.0.1; ESLint 9 |
-| Backend | Java 25 (Temurin 25.0.4.1), Spring Boot 3.4.3; modular monolith |
+| Backend | Java 25 (Temurin 25.0.4.1 runtime, compiler target Java 21), Spring Boot 3.4.3; modular monolith |
 | Java tooling | Maven 3.9.9 checked-in wrapper (`mvnw.cmd`); separate native build |
 | Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()` |
 | Cache | No initial Redis; PostgreSQL authoritative for sessions, quotas and sensitive counters |
@@ -93,5 +94,5 @@ Paths below are relative to this document; filenames are the canonical repositor
 
 ## NEXT PHASE
 
-**PHASE 05 — 3D VIEWER / WEBGL FOUNDATION OR HOMEPAGE ARCHITECTURE.**
-Phase 04 completed successfully. Await Phase 05 prompt.
+**PHASE 05 — HOMEPAGE + 3D EXPERIENCE.**
+Phase 04.1 canonicalization completed successfully. Await Phase 05 prompt.

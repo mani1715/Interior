@@ -238,7 +238,8 @@ Details and dated version sources: [production architecture](01_PRODUCTION_ARCHI
 
 - **STATUS:** Accepted; refines ADR-003/004/018.
 - **CONTEXT:** Tenant publishing, quotas and audit need consistent transactions; microservices add unjustified failure modes.
-- **DECISION:** Temurin25.0.4.1, Spring Boot4.1.1, Maven3.9.16 native build; Spring MVC/Security/JDBC modular monolith. Explicit facade/application/domain/ports/adapters boundaries and acyclic allowlist.
+- **DECISION:** Temurin25.0.4.1, Spring Boot 3.4.3 (supersedes earlier theoretical 4.1.1 mention; verified on Java 25 runtime with Java 21 compiler bytecode target), Maven 3.9.9 checked-in wrapper; Spring MVC/Security/JDBC modular monolith. Explicit facade/application/domain/ports/adapters boundaries and acyclic allowlist.
+- **CANONICALIZATION NOTE (Phase 04.1):** The actual working implementation in `apps/api/pom.xml` is Spring Boot 3.4.3 running on JDK 25 with `<maven.compiler.release>21</maven.compiler.release>` to maintain ASM bytecode compatibility with Spring Framework 6.2.x. This working configuration is canonical.
 - **ALTERNATIVES:** TypeScript-only backend; Java21 without compatibility need; independently deployed domain services.
 - **CONSEQUENCES:** One Java domain codebase with separate API/worker executable composition. Application owns transactions and policy; no random controller repository/provider calls.
 - **RISKS:** Current machine Java18/Maven absence prevents executable verification; Spring ecosystem/driver/native dependencies need pin-and-build gate. Java choice itself does not provide security.

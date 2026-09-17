@@ -97,22 +97,22 @@ export const projectImage1Svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.
   <rect width="600" height="450" fill="%231a1816"/>
   <rect x="40" y="40" width="520" height="370" fill="%232b2622" rx="12"/>
   <circle cx="300" cy="180" r="100" fill="%23B88A5A" opacity="0.35"/>
-  <text x="300" y="240" fill="%23FAF9F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Modern TV Unit & Lounge</text>
+  <text x="300" y="240" fill="%23FAF8F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Modern TV Unit & Lounge</text>
   <text x="300" y="270" fill="%23B88A5A" font-family="sans-serif" font-size="14" text-anchor="middle">Guntur, Andhra Pradesh</text>
 </svg>`;
 
 export const projectImage2Svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
   <rect width="600" height="450" fill="%23161a18"/>
   <rect x="40" y="40" width="520" height="370" fill="%23222b26" rx="12"/>
-  <circle cx="300" cy="180" r="100" fill="%234d7c67" opacity="0.4"/>
-  <text x="300" y="240" fill="%23FAF9F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Warm Oak Modular Kitchen</text>
-  <text x="300" y="270" fill="%237cb398" font-family="sans-serif" font-size="14" text-anchor="middle">Amaravati Capital District</text>
+  <circle cx="300" cy="180" r="100" fill="%232E5D4B" opacity="0.4"/>
+  <text x="300" y="240" fill="%23FAF8F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Warm Oak Modular Kitchen</text>
+  <text x="300" y="270" fill="%232E5D4B" font-family="sans-serif" font-size="14" text-anchor="middle">Amaravati Capital District</text>
 </svg>`;
 
 export const projectImage3Svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
   <rect width="600" height="450" fill="%231d1618"/>
   <rect x="40" y="40" width="520" height="370" fill="%232f2227" rx="12"/>
-  <circle cx="300" cy="180" r="100" fill="%23c2614b" opacity="0.35"/>
-  <text x="300" y="240" fill="%23FAF9F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Fluted Master Suite & Walk-in</text>
-  <text x="300" y="270" fill="%23d68370" font-family="sans-serif" font-size="14" text-anchor="middle">Banjara Hills, Hyderabad</text>
+  <circle cx="300" cy="180" r="100" fill="%23C76F4A" opacity="0.35"/>
+  <text x="300" y="240" fill="%23FAF8F5" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Fluted Master Suite & Walk-in</text>
+  <text x="300" y="270" fill="%23C76F4A" font-family="sans-serif" font-size="14" text-anchor="middle">Banjara Hills, Hyderabad</text>
 </svg>`;
