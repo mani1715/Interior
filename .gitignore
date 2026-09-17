@@ -1,0 +1,40 @@
+# Local secrets and credentials; examples must contain placeholders only.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Node and Java build output (future native toolchains).
+node_modules/
+.next/
+dist/
+out/
+target/
+*.class
+
+# Test, coverage and local runtime state.
+coverage/
+playwright-report/
+test-results/
+*.log
+logs/
+.cache/
+.local/
+.data/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Editor and operating-system files.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

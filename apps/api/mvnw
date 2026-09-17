@@ -1,0 +1,16 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Start Up Batch script
+# ----------------------------------------------------------------------------
+set -e
+DIRNAME="$(dirname "$0")"
+APP_HOME="$(cd "$DIRNAME" && pwd)"
+WRAPPER_JAR="$APP_HOME/.mvn/wrapper/maven-wrapper.jar"
+
+if [ -n "$JAVA_HOME" ]; then
+    JAVACMD="$JAVA_HOME/bin/java"
+else
+    JAVACMD="java"
+fi
+
+exec "$JAVACMD" -jar "$WRAPPER_JAR" "$@"

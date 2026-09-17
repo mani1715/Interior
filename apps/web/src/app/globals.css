@@ -1,0 +1,116 @@
+:root {
+  /* Locked Palette Tokens */
+  --color-deep-charcoal: #1F1F1F;
+  --color-warm-ivory: #FAF8F5;
+  --color-sage-neutral: #E7E1D8;
+  --color-warm-bronze: #B88A5A;
+  --color-forest-green: #2E5D4B;
+  --color-muted-blue: #3E6D8C;
+  --color-terracotta: #C76F4A;
+  --color-soft-rose: #E6C9C3;
+  --color-white: #FFFFFF;
+  --color-light-grey: #F4F4F4;
+  --color-medium-grey: #D9D9D9;
+  --color-dark-grey: #6B6B6B;
+
+  /* Semantic Design Tokens */
+  --color-background: var(--color-warm-ivory);
+  --color-surface: var(--color-white);
+  --color-surface-alt: var(--color-sage-neutral);
+  --color-text-primary: var(--color-deep-charcoal);
+  --color-text-muted: var(--color-dark-grey);
+  --color-brand: var(--color-warm-bronze);
+  --color-cta-bg: var(--color-warm-bronze);
+  --color-cta-text: var(--color-deep-charcoal); /* 5.35:1 AA Accessible contrast */
+  --color-success: var(--color-forest-green);
+  --color-info: var(--color-muted-blue);
+  --color-accent: var(--color-terracotta);
+  --color-border: var(--color-medium-grey);
+
+  /* Typography & Layout Tokens */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --min-touch-target: 44px;
+  --max-content-width: 1200px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile-First Typography & Interactive Surfaces */
+a {
+  color: var(--color-info);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+.btn {
+  min-height: var(--min-touch-target);
+  min-width: var(--min-touch-target);
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--color-cta-bg);
+  color: var(--color-cta-text);
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+/* Responsive Containers: Mobile 360-430px FIRST */
+.container {
+  width: 100%;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--max-content-width);
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
