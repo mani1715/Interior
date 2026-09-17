@@ -49,11 +49,12 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 03 — PASS:** Security Foundation + Actual Application Implementation Start. Real monorepo codebase created (`apps/web`, `apps/api`), JDK 25 installed, PostgreSQL 18 migrations applied, security foundation & RLS implemented, cross-tenant isolation tests PASSED, Next.js build PASSED.
 - **PHASE 04 — PASS:** Global Design System (Actual UI Implementation — Mobile-First). Complete reusable UI library created in `apps/web/src/components/`, locked palette tokens with WCAG 2.2 AA (5.35:1) compliance, responsive layout primitives, feedback/alerts/dialogs/sheets, media components (BeforeAfterSlider, BeforeAiReality with mandatory AI disclaimer badge, WatermarkPreview), interactive showcase route `/design-system` (marked `noindex`), Vitest test suite (20 tests passed), TypeScript and Next.js Turbopack build PASSED.
 - **PHASE 04.1 — PASS:** Design System Canonicalization & Runtime Decisions Locked. Restored exact 12 canonical brand tokens (`#1F1F1F`, `#FAF8F5`, `#E7E1D8`, `#B88A5A`, `#2E5D4B`, `#3E6D8C`, `#C76F4A`, `#E6C9C3`, `#FFFFFF`, `#F4F4F4`, `#D9D9D9`, `#6B6B6B`). Clearly separated brand tokens from accessible semantic derived UI tokens (`--status-warning-text: #9E4522`, etc.). Formally marked Spring Boot 3.4.3 running on JDK 25 with Java 21 compiler bytecode target as canonical backend baseline.
+- **PHASE 05 — PASS:** Homepage + 3D Experience (Production Implementation). Production homepage implemented in `apps/web/src/app/page.tsx` replacing the Phase 03 shell. Features 16 integrated sections communicating the unified platform: Hero (single `<h1>`, dual-audience copy, prioritized LCP visual), Core Value Strip, Signature 7-Stage Architectural Transformation Experience (interactive scrubber, accessible screen-reader fallback, layered vector compositing saving >600KB JS over WebGL and eliminating canvas crash risks), Portfolio Platform Section (watermark protection, client hub), Public Discovery Preview (search preview, trending chips, regional context), AI Concept Visualizer (4-step workflow, prompt demonstration, mandatory legal disclaimer), Before AI Reality narrative, Built for Google Discoverability Section (structured data, snippet preview), Project Inspiration Gallery (category filtering chips), Professional Practitioner Types, 6-Step Workflow, Lead Generation Engine (WhatsApp inquiry preview), Mobile-First On-Site Workflow, Final Call-To-Action, and Production Footer. Strict mobile-first design (360-430px base). WebSite and Organization JSON-LD schemas included. 27 unit tests passing across 6 test files. Next.js Turbopack build and Spring Boot backend test suite all 100% PASS.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`). Next.js build and test suite validated clean.
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), and full public homepage (`/`). Next.js Turbopack build clean (statically prerendered `/`), 27 unit tests passed across 6 test files.
   - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3 (canonical baseline superseding earlier 4.1.1 mention), Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, authorization service, RLS defense-in-depth. Maven test suite passed with 8 tests (0 failures, 0 errors).
   - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql` and `V002__pg_rls_policies.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
@@ -85,14 +86,14 @@ Paths below are relative to this document; filenames are the canonical repositor
 
 ## RECENT VERIFICATION EVIDENCE
 
-- `npm run test` (apps/web): **PASS** (5 test files, 20 tests run, 0 failures, 2.79s)
+- `npm run test` (apps/web): **PASS** (6 test files, 27 tests run, 0 failures, 3.82s)
 - `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
 - `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
-- `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, `/design-system` prerendered static)
+- `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, `/` statically prerendered in 861ms, `/design-system` prerendered static)
 - `mvnw test` (apps/api): **PASS** (8 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25)
 - Contrast Audit: `#B88A5A` + `#1F1F1F` = **5.35:1** (exceeds WCAG 2.2 AA 4.5:1 requirement)
 
 ## NEXT PHASE
 
-**PHASE 05 — HOMEPAGE + 3D EXPERIENCE.**
-Phase 04.1 canonicalization completed successfully. Await Phase 05 prompt.
+**PHASE 06 — PUBLIC DISCOVERY UI.**
+Homepage implementation and interior spatial storytelling experience completed and verified. Ready for public discovery UI implementation.
