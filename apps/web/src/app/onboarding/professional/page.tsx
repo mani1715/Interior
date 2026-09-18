@@ -1455,14 +1455,14 @@ export default function ProfessionalOnboardingPage() {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-              <Link href="/account">
+              <Link href="/workspace">
                 <Button variant="primary" size="lg">
-                  View Account Profile
+                  Continue to Professional Workspace
                 </Button>
               </Link>
-              <Link href="/projects">
+              <Link href="/account">
                 <Button variant="outline" size="lg">
-                  Explore Public Discovery
+                  View Account Profile
                 </Button>
               </Link>
             </div>
