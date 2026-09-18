@@ -17,11 +17,16 @@ public interface StudioRepository {
     void createStudio(StudioDetailRecord studio);
     void addStudioContact(UUID studioId, String kind, String value, boolean publicConsent, int sortOrder);
     void addStudioService(UUID studioId, String serviceCode, String serviceName);
+    void addStudioSpecialty(UUID studioId, String specialtyCode, String specialtyName);
     void addStudioServiceArea(UUID studioId, String cityName, String locality);
+
+    java.util.List<com.interior.platform.designers.domain.StudioSpecialtyRecord> getStudioSpecialties(UUID studioId);
 
     Optional<StudioDetailRecord> findStudioById(UUID studioId);
     Optional<StudioDetailRecord> findStudioByOwnerId(UUID ownerId);
     Optional<StudioDetailRecord> findStudioBySlug(String slug);
 
+    Optional<UUID> findInitialOnboardingStudioId(UUID userId);
+    void recordInitialOnboardingCompletion(UUID userId, UUID studioId);
     boolean hasCompletedOnboarding(UUID userId);
 }

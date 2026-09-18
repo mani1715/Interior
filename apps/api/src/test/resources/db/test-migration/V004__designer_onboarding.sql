@@ -39,9 +39,14 @@ CREATE TABLE studio_slug_claims (
     studio_id uuid NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
     slug text NOT NULL UNIQUE,
     state text NOT NULL CHECK (state IN ('RESERVED', 'CURRENT', 'ALIAS', 'RETIRED')),
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT chk_reserved_null_studio CHECK (
+        (state = 'RESERVED' AND studio_id IS NULL) OR
+        (state IN ('CURRENT', 'ALIAS', 'RETIRED') AND studio_id IS NOT NULL)
+    )
 );
 
+CREATE INDEX uq_studio_current_slug ON studio_slug_claims(studio_id);
 CREATE INDEX idx_studio_slug_claims_slug ON studio_slug_claims(slug);
 
 -- Pre-seed reserved URL namespaces

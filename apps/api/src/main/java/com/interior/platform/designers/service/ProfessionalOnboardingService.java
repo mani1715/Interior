@@ -1,9 +1,11 @@
 package com.interior.platform.designers.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interior.platform.common.exception.AccessDeniedException;
 import com.interior.platform.common.exception.BadRequestException;
 import com.interior.platform.common.exception.ConflictException;
 import com.interior.platform.common.exception.UnauthorizedException;
+import com.interior.platform.designers.domain.OnboardingDraftRecord;
 import com.interior.platform.designers.domain.ProfessionalType;
 import com.interior.platform.designers.domain.StudioDetailRecord;
 import com.interior.platform.designers.dto.OnboardingCompletionRequest;
@@ -51,6 +53,8 @@ public class ProfessionalOnboardingService {
     private final SessionSecurityService sessionSecurityService;
     private final AuditService auditService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public ProfessionalOnboardingService(
             StudioRepository studioRepository,
             SecurityRepository securityRepository,
@@ -78,19 +82,22 @@ public class ProfessionalOnboardingService {
             return OnboardingStatusResponse.blocked("Account is not active. Status: " + user.status());
         }
 
-        // Check if user already completed onboarding
-        Optional<StudioDetailRecord> existingStudio = studioRepository.findStudioByOwnerId(actor.userId());
-        if (existingStudio.isPresent()) {
-            StudioDetailRecord s = existingStudio.get();
-            return OnboardingStatusResponse.completed(new OnboardingStatusResponse.StudioSummary(
-                    s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "OWNER"
-            ));
+        // Canonical Initial Onboarding Check
+        Optional<UUID> initialStudioId = studioRepository.findInitialOnboardingStudioId(actor.userId());
+        if (initialStudioId.isPresent()) {
+            Optional<StudioDetailRecord> sOpt = studioRepository.findStudioById(initialStudioId.get());
+            if (sOpt.isPresent()) {
+                StudioDetailRecord s = sOpt.get();
+                return OnboardingStatusResponse.completed(new OnboardingStatusResponse.StudioSummary(
+                        s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "OWNER"
+                ));
+            }
         }
 
         // Check for active draft
-        var draftOpt = studioRepository.findDraftByUserId(actor.userId());
+        Optional<OnboardingDraftRecord> draftOpt = studioRepository.findDraftByUserId(actor.userId());
         if (draftOpt.isPresent()) {
-            var draft = draftOpt.get();
+            OnboardingDraftRecord draft = draftOpt.get();
             if ("COMPLETED".equalsIgnoreCase(draft.status())) {
                 // Draft marked completed, studio may be looked up
                 return OnboardingStatusResponse.completed(null);
@@ -102,7 +109,7 @@ public class ProfessionalOnboardingService {
     }
 
     /**
-     * Saves partial progress of an onboarding draft.
+     * Saves partial progress of an onboarding draft with security field stripping.
      */
     public void saveDraft(ActorContext actor, OnboardingDraftDto dto) {
         validateAuthenticatedActor(actor);
@@ -115,8 +122,26 @@ public class ProfessionalOnboardingService {
             throw new BadRequestException("Draft payload exceeds maximum allowed size of 64KB");
         }
 
+        String sanitizedPayload = sanitizeDraftPayload(dto.draftPayload());
         int step = Math.max(1, Math.min(7, dto.step()));
-        studioRepository.saveDraft(actor.userId(), step, dto.draftPayload(), "IN_PROGRESS");
+        studioRepository.saveDraft(actor.userId(), step, sanitizedPayload, "IN_PROGRESS");
+    }
+
+    private String sanitizeDraftPayload(String rawJson) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(rawJson);
+            if (root instanceof com.fasterxml.jackson.databind.node.ObjectNode obj) {
+                obj.remove(java.util.List.of(
+                        "userId", "ownerUserId", "studioId", "tenantId",
+                        "role", "roles", "permissions", "publicationStatus",
+                        "status", "verified", "isAdmin"
+                ));
+                return objectMapper.writeValueAsString(obj);
+            }
+            return rawJson;
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid draft JSON payload");
+        }
     }
 
     /**
@@ -139,16 +164,17 @@ public class ProfessionalOnboardingService {
             throw new AccessDeniedException("Only active accounts can complete professional onboarding");
         }
 
-        // Idempotency: check if onboarding already completed for this user
-        Optional<StudioDetailRecord> existingStudio = studioRepository.findStudioByOwnerId(actor.userId());
-        if (existingStudio.isPresent()) {
-            StudioDetailRecord s = existingStudio.get();
+        // Canonical Initial Onboarding Idempotency: check if initial onboarding completion record exists
+        Optional<UUID> initialStudioId = studioRepository.findInitialOnboardingStudioId(actor.userId());
+        if (initialStudioId.isPresent()) {
+            StudioDetailRecord s = studioRepository.findStudioById(initialStudioId.get())
+                    .orElseThrow(() -> new IllegalStateException("Initial onboarding studio record missing"));
             return new CompletionResult(
                     new OnboardingStatusResponse.StudioSummary(
                             s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "OWNER"
                     ),
                     null,
-                    "Onboarding was already completed. Existing studio retrieved."
+                    "Initial onboarding was already completed. Canonical initial studio retrieved."
             );
         }
 
@@ -206,6 +232,7 @@ public class ProfessionalOnboardingService {
                 now,
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of()
         );
         studioRepository.createStudio(studio);
@@ -232,34 +259,55 @@ public class ProfessionalOnboardingService {
 
         // 4. Add Normalized Services
         if (request.services() != null) {
+            Set<String> processedServices = new java.util.HashSet<>();
             for (String s : request.services()) {
                 if (s != null && !s.isBlank()) {
                     String code = s.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_");
-                    studioRepository.addStudioService(studioId, code, s.trim());
+                    if (processedServices.add(code)) {
+                        studioRepository.addStudioService(studioId, code, s.trim());
+                    }
                 }
             }
         }
 
-        // 5. Add Normalized Service Areas
+        // 5. Add Normalized Canonical Specialties
+        if (request.specialties() != null && !request.specialties().isEmpty()) {
+            Set<String> processedCodes = new java.util.HashSet<>();
+            for (String rawSpecialty : request.specialties()) {
+                if (rawSpecialty != null && !rawSpecialty.isBlank()) {
+                    var canonical = com.interior.platform.designers.domain.CanonicalSpecialty.from(rawSpecialty);
+                    if (processedCodes.add(canonical.code())) {
+                        studioRepository.addStudioSpecialty(studioId, canonical.code(), canonical.displayName());
+                    }
+                }
+            }
+        }
+
+        // 6. Add Normalized Service Areas
         if (request.serviceAreas() != null) {
+            Set<String> processedAreas = new java.util.HashSet<>();
             for (String area : request.serviceAreas()) {
                 if (area != null && !area.isBlank()) {
-                    studioRepository.addStudioServiceArea(studioId, area.trim(), null);
+                    String normalizedArea = area.trim();
+                    if (processedAreas.add(normalizedArea.toLowerCase())) {
+                        studioRepository.addStudioServiceArea(studioId, normalizedArea, null);
+                    }
                 }
             }
         }
 
-        // 6. Create Studio Membership (role: OWNER)
+        // 7. Create Studio Membership (role: OWNER)
         securityRepository.addStudioMember(UUID.randomUUID(), studioId, actor.userId(), "OWNER");
 
-        // 7. Promote Role: Grant DESIGNER Role in identity_user_roles
+        // 8. Promote Role: Grant DESIGNER Role in identity_user_roles
         Set<String> existingRoles = securityRepository.getUserRoles(actor.userId());
         if (!existingRoles.contains("DESIGNER")) {
             securityRepository.assignUserRole(UUID.randomUUID(), actor.userId(), "DESIGNER", now);
         }
 
-        // 8. Mark Onboarding Draft Completed
+        // 9. Mark Onboarding Draft Completed and Record Initial Onboarding Completion
         studioRepository.markDraftCompleted(actor.userId());
+        studioRepository.recordInitialOnboardingCompletion(actor.userId(), studioId);
 
         // 9. Record Audit Event
         auditService.record(

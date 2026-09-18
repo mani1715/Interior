@@ -31,9 +31,11 @@ public record StudioDetailRecord(
         Instant updatedAt,
         List<StudioContactItem> contacts,
         List<StudioServiceItem> services,
+        List<StudioSpecialtyItem> specialties,
         List<StudioServiceAreaItem> serviceAreas
 ) {
     public record StudioContactItem(String kind, String value, boolean publicConsent, int sortOrder) {}
     public record StudioServiceItem(String serviceCode, String serviceName) {}
+    public record StudioSpecialtyItem(String specialtyCode, String specialtyName) {}
     public record StudioServiceAreaItem(String cityName, String locality) {}
 }

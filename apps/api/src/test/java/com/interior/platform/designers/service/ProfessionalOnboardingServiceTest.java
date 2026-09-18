@@ -111,7 +111,7 @@ class ProfessionalOnboardingServiceTest {
                 true,
                 "37AAAAA0000A1Z5",
                 List.of("Modular Kitchen", "Living Room", "Full Home Interior"),
-                List.of("Modern", "Warm / Natural"),
+                List.of("MODERN_MINIMALIST", "WARM_CONTEMPORARY"),
                 List.of("Guntur", "Vijayawada", "Amaravati"),
                 "+919876543210",
                 "+919876543210",
@@ -126,7 +126,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Successful onboarding creates studio, claims slug, assigns OWNER, and grants DESIGNER role")
     void testSuccessfulOnboarding() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
         when(studioRepository.isSlugClaimed("srinivasa-interiors")).thenReturn(false);
         when(securityRepository.getUserRoles(userId)).thenReturn(Set.of("CUSTOMER"));
 
@@ -153,9 +153,11 @@ class ProfessionalOnboardingServiceTest {
         // Verify slug claimed with state CURRENT
         verify(studioRepository).claimSlug(any(), eq("srinivasa-interiors"), eq("CURRENT"));
 
-        // Verify contacts, services, service areas persisted
+        // Verify contacts, services, specialties, service areas persisted
         verify(studioRepository, atLeast(1)).addStudioContact(any(), eq("PHONE"), eq("+919876543210"), eq(true), anyInt());
         verify(studioRepository, atLeast(1)).addStudioService(any(), any(), eq("Modular Kitchen"));
+        verify(studioRepository, atLeast(1)).addStudioSpecialty(any(), eq("WARM_CONTEMPORARY"), any());
+        verify(studioRepository, atLeast(1)).addStudioSpecialty(any(), eq("MODERN_MINIMALIST"), any());
         verify(studioRepository, atLeast(1)).addStudioServiceArea(any(), eq("Guntur"), isNull());
 
         // Verify studio owner membership created
@@ -164,8 +166,9 @@ class ProfessionalOnboardingServiceTest {
         // Verify DESIGNER platform role granted
         verify(securityRepository).assignUserRole(any(), eq(userId), eq("DESIGNER"), any());
 
-        // Verify draft marked completed
+        // Verify draft marked completed and initial completion recorded
         verify(studioRepository).markDraftCompleted(userId);
+        verify(studioRepository).recordInitialOnboardingCompletion(userId, studioCaptor.getValue().id());
 
         // Verify audit event recorded
         verify(securityRepository).recordAuditEvent(any(), any(), eq(userId), eq("PROFESSIONAL_ONBOARDING_COMPLETED"), eq("STUDIO"), any(), any(), any(), any());
@@ -202,10 +205,12 @@ class ProfessionalOnboardingServiceTest {
                 Instant.now(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of()
         );
 
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.of(existingStudio));
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.of(existingStudioId));
+        when(studioRepository.findStudioById(existingStudioId)).thenReturn(Optional.of(existingStudio));
 
         HttpServletRequest req = mock(HttpServletRequest.class);
         HttpServletResponse res = mock(HttpServletResponse.class);
@@ -244,7 +249,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Duplicate or taken slug throws ConflictException (HTTP 409)")
     void testSlugConflictThrows409() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
         when(studioRepository.isSlugClaimed("srinivasa-interiors")).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> onboardingService.completeOnboarding(customerActor, createValidRequest(), null, null));
@@ -253,7 +258,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Reserved platform slug throws ConflictException")
     void testReservedSlugThrowsConflict() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
 
         OnboardingCompletionRequest reservedReq = new OnboardingCompletionRequest(
                 "INTERIOR_STUDIO", "Admin Studio", "admin", null, null, null, null, null,
@@ -268,7 +273,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Malicious URL schemes (javascript:, data:) are rejected")
     void testMaliciousUrlRejected() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
 
         OnboardingCompletionRequest evilUrlReq = new OnboardingCompletionRequest(
                 "INTERIOR_STUDIO", "Evil Studio", "evil-studio", null, null, null, null, null,
@@ -283,7 +288,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("HTML script tags in studio name and title are sanitized")
     void testHtmlSanitization() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
         when(studioRepository.isSlugClaimed("clean-studio")).thenReturn(false);
         when(securityRepository.getUserRoles(userId)).thenReturn(Set.of("CUSTOMER"));
 
@@ -310,7 +315,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Invalid Indian GST format is rejected")
     void testInvalidGstRejected() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
 
         OnboardingCompletionRequest badGstReq = new OnboardingCompletionRequest(
                 "INTERIOR_STUDIO", "Studio A", "studio-a", null, null, null, null, null,
@@ -334,7 +339,7 @@ class ProfessionalOnboardingServiceTest {
     @Test
     @DisplayName("Draft is saved and retrieved successfully")
     void testDraftSaveAndRetrieve() {
-        when(studioRepository.findStudioByOwnerId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
 
         OnboardingDraftDto dto = new OnboardingDraftDto(3, "{\"step\":3,\"city\":\"Guntur\"}");
         onboardingService.saveDraft(customerActor, dto);

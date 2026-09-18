@@ -2,6 +2,7 @@ package com.interior.platform.designers.repository;
 
 import com.interior.platform.designers.domain.OnboardingDraftRecord;
 import com.interior.platform.designers.domain.StudioDetailRecord;
+import com.interior.platform.designers.domain.StudioSpecialtyRecord;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -24,14 +25,13 @@ public class JdbcStudioRepository implements StudioRepository {
 
     @Override
     public void saveDraft(UUID userId, int step, String draftPayload, String status) {
-        String sql = "INSERT INTO designer_onboarding_drafts (id, user_id, step, draft_payload, status, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, ?, now(), now()) " +
-                     "ON CONFLICT (user_id) DO UPDATE SET " +
-                     "step = EXCLUDED.step, " +
-                     "draft_payload = EXCLUDED.draft_payload, " +
-                     "status = EXCLUDED.status, " +
-                     "updated_at = now()";
-        jdbcTemplate.update(sql, UUID.randomUUID(), userId, step, draftPayload, status);
+        String updateSql = "UPDATE designer_onboarding_drafts SET step = ?, draft_payload = ?, status = ?, updated_at = now() WHERE user_id = ?";
+        int updated = jdbcTemplate.update(updateSql, step, draftPayload, status, userId);
+        if (updated == 0) {
+            String insertSql = "INSERT INTO designer_onboarding_drafts (id, user_id, step, draft_payload, status, created_at, updated_at) " +
+                               "VALUES (?, ?, ?, ?, ?, now(), now())";
+            jdbcTemplate.update(insertSql, UUID.randomUUID(), userId, step, draftPayload, status);
+        }
     }
 
     @Override
@@ -108,22 +108,53 @@ public class JdbcStudioRepository implements StudioRepository {
     @Override
     public void addStudioContact(UUID studioId, String kind, String value, boolean publicConsent, int sortOrder) {
         String sql = "INSERT INTO studio_contacts (id, studio_id, kind, contact_value, public_consent, sort_order) " +
-                     "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (studio_id, kind, contact_value) DO NOTHING";
+                     "VALUES (?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql, UUID.randomUUID(), studioId, kind, value, publicConsent, sortOrder);
     }
 
     @Override
     public void addStudioService(UUID studioId, String serviceCode, String serviceName) {
         String sql = "INSERT INTO studio_services (id, studio_id, service_code, service_name) " +
-                     "VALUES (?, ?, ?, ?) ON CONFLICT (studio_id, service_code) DO NOTHING";
+                     "VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, UUID.randomUUID(), studioId, serviceCode, serviceName);
+    }
+
+    @Override
+    public void addStudioSpecialty(UUID studioId, String specialtyCode, String specialtyName) {
+        String sql = "INSERT INTO studio_specialties (id, studio_id, specialty_code, specialty_name) " +
+                     "VALUES (?, ?, ?, ?)";
+        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, specialtyCode, specialtyName);
+    }
+
+    @Override
+    public List<StudioSpecialtyRecord> getStudioSpecialties(UUID studioId) {
+        String sql = "SELECT id, studio_id, specialty_code, specialty_name FROM studio_specialties WHERE studio_id = ? ORDER BY specialty_name ASC";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new StudioSpecialtyRecord(
+                getUuid(rs, "id"),
+                getUuid(rs, "studio_id"),
+                rs.getString("specialty_code"),
+                rs.getString("specialty_name")
+        ), studioId);
     }
 
     @Override
     public void addStudioServiceArea(UUID studioId, String cityName, String locality) {
         String sql = "INSERT INTO studio_service_areas (id, studio_id, city_name, locality) " +
-                     "VALUES (?, ?, ?, ?) ON CONFLICT (studio_id, city_name) DO NOTHING";
+                     "VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, UUID.randomUUID(), studioId, cityName, locality);
+    }
+
+    @Override
+    public Optional<UUID> findInitialOnboardingStudioId(UUID userId) {
+        String sql = "SELECT studio_id FROM designer_onboarding_completions WHERE user_id = ?";
+        List<UUID> list = jdbcTemplate.query(sql, (rs, rowNum) -> getUuid(rs, "studio_id"), userId);
+        return list.stream().findFirst();
+    }
+
+    @Override
+    public void recordInitialOnboardingCompletion(UUID userId, UUID studioId) {
+        String sql = "INSERT INTO designer_onboarding_completions (user_id, studio_id) VALUES (?, ?)";
+        jdbcTemplate.update(sql, userId, studioId);
     }
 
     @Override
@@ -146,9 +177,7 @@ public class JdbcStudioRepository implements StudioRepository {
 
     @Override
     public boolean hasCompletedOnboarding(UUID userId) {
-        String sql = "SELECT COUNT(1) FROM designer_studios s " +
-                     "JOIN studio_members sm ON sm.studio_id = s.id " +
-                     "WHERE sm.user_id = ? AND sm.role = 'OWNER' AND s.status = 'ACTIVE'";
+        String sql = "SELECT COUNT(1) FROM designer_onboarding_completions WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return count != null && count > 0;
     }
@@ -158,6 +187,7 @@ public class JdbcStudioRepository implements StudioRepository {
             UUID id = getUuid(rs, "id");
             List<StudioDetailRecord.StudioContactItem> contacts = queryContacts(id);
             List<StudioDetailRecord.StudioServiceItem> services = queryServices(id);
+            List<StudioDetailRecord.StudioSpecialtyItem> specialties = querySpecialtyItems(id);
             List<StudioDetailRecord.StudioServiceAreaItem> serviceAreas = queryServiceAreas(id);
 
             Integer expYear = rs.getObject("experience_since_year") != null ? rs.getInt("experience_since_year") : null;
@@ -190,10 +220,19 @@ public class JdbcStudioRepository implements StudioRepository {
                     rs.getTimestamp("updated_at").toInstant(),
                     contacts,
                     services,
+                    specialties,
                     serviceAreas
             );
         }, params);
         return list.stream().findFirst();
+    }
+
+    private List<StudioDetailRecord.StudioSpecialtyItem> querySpecialtyItems(UUID studioId) {
+        String sql = "SELECT specialty_code, specialty_name FROM studio_specialties WHERE studio_id = ? ORDER BY specialty_name ASC";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new StudioDetailRecord.StudioSpecialtyItem(
+                rs.getString("specialty_code"),
+                rs.getString("specialty_name")
+        ), studioId);
     }
 
     private List<StudioDetailRecord.StudioContactItem> queryContacts(UUID studioId) {

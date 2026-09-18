@@ -71,20 +71,25 @@ Paths below are relative to this document; filenames are the canonical repositor
   15. Audit logging sanitization confirmed zero logging of tokens, codes, secrets, or PKCE verifiers.
   16. Production cookie policy: `__Host-session`, Secure, HttpOnly, Path=/, SameSite=Lax.
   17. SpringDoc OpenAPI 3.1 annotations on `AuthController`.
-- **PHASE 08 — PASS:** Designer Onboarding (Professional / Studio Creation & Role Promotion).
-  - Schema Migration: Created `V004__designer_onboarding.sql` extending `designer_studios` with normalized professional attributes (`professional_type`, `professional_title`, `tagline`, `experience_since_year`, `team_size`, `budget_range`, `address_line`, `city`, `district`, `state`, `postal_code`, `country`, `travel_available`, `gst_registered`, `gst_number`, `publication_status`='UNPUBLISHED', `onboarding_completed_at`), created unique `studio_slug_claims` with pre-seeded reserved words (`admin`, `api`, `auth`, `designer`, `studio`, etc.), normalized `studio_contacts`, `studio_services`, `studio_service_areas`, and `designer_onboarding_drafts` with jsonb storage and 64KB bounded draft size. Applied and verified across both PostgreSQL 18.3 and H2 test database.
-  - Backend Domain & Services: Implemented 7 canonical professional types (`INDIVIDUAL_DESIGNER`, `INTERIOR_STUDIO`, `ARCHITECT`, `ARCHITECTURE_STUDIO`, `CUSTOM_FURNITURE`, `WOODWORK_CABINETRY`, `TURNKEY_CONTRACTOR`). Created `StudioRepository`, `SlugValidationService` (format checking, 10-attempt deterministic suggestion loop, Unicode accent stripping, non-Latin ASCII fallback), and `ProfessionalOnboardingService` (`@Transactional` atomic creation, strict `CUSTOMER` baseline verification, active user check, mass assignment protection, script/style block and HTML sanitization, GST format validation, idempotent re-submission handling, audit logging, session rotation, and automatic `DESIGNER` platform role promotion).
-  - Backend Controller: Created SpringDoc OpenAPI 3.1 annotated `ProfessionalOnboardingController` with endpoints `GET /api/v1/designers/onboarding/status`, `GET /api/v1/designers/onboarding/check-slug`, `POST /api/v1/designers/onboarding/draft`, and `POST /api/v1/designers/onboarding/complete`.
-  - Frontend Multi-Step Wizard: Built responsive 7-step wizard (`apps/web/src/app/onboarding/professional/page.tsx`) with mobile-first design (360-430px base), auto-saving drafts, live debounced slug check, tag chips, GST format validation, review screen with jump links, truthful platform notices (operational `ACTIVE`, publication `UNPUBLISHED`), mandatory declaration checkboxes, and congratulatory Step 8 success view.
-  - Integration: Updated `PublicHeader` to render "Register as Professional" for customers and studio indicator for designers; updated `AccountPage` to show studio tenancy context and onboarding CTA.
-  - Verification: 71 backend tests (0 failures, 0 errors) in Maven; 73 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded with `/onboarding/professional` compiled.
+- **PHASE 08.1 — PASS:** Designer Onboarding Closure & Invariant Audit.
+  - Normalized Specialty Storage: Migrated schema via `V005__studio_specialties_and_onboarding_closure.sql` creating `studio_specialties` table with unique constraint `(studio_id, specialty_code)`. Implemented `CanonicalSpecialty` enum with 8 canonical design specialties (`MODERN_MINIMALIST`, `WARM_CONTEMPORARY`, `INDIAN_TRADITIONAL`, `NEO_CLASSICAL`, `SCANDINAVIAN`, `INDUSTRIAL`, `LUXURY_ECLECTIC`, `BIOPHILIC`). Non-canonical specialties rejected with HTTP 400 `BadRequestException`, inputs deduplicated before insertion, and retrieved as structured lists in studio profiles.
+  - Canonical Initial Onboarding Idempotency: Created `designer_onboarding_completions` table (`user_id` PRIMARY KEY, `studio_id`, `completed_at`). Repeated completion calls return the existing studio summary idempotently without creating duplicate studios, duplicate slug claims, or duplicate roles.
+  - Concurrency & Race Condition Guarantee: Multi-threaded test verified that concurrent near-simultaneous completions produce exactly 1 studio, 1 slug claim, 1 OWNER membership, 1 DESIGNER role, and 1 completion record, with zero orphan rows left behind.
+  - Transaction Rollback Guarantee: Integration test verified that any mid-transaction failure completely rolls back all operations across all 9 related tables (0 studios, 0 slug claims, 0 contacts, 0 services, 0 specialties, 0 areas, 0 members, 0 roles, 0 completions).
+  - Tenant Bootstrap & RLS Invariant: Verified creator gains OWNER access to the new studio while other authenticated users are strictly DENIED (HTTP 403 / `AccessDeniedException` tenant isolation violation). Tenant context is strictly derived from session/database membership, never from client-supplied IDs.
+  - Mass Assignment Defense: Verified client payload injection of `userId`, `ownerUserId`, `studioId`, `tenantId`, `role`, `roles`, `permissions`, `publicationStatus`, `status`, `verified`, and `isAdmin` is completely ignored during completion and stripped from JSON drafts.
+  - Privilege Elevation & Session Rotation: Tested full session rotation lifecycle on completion: old session invalidated (revoked in DB), new session created and attached to response cookie, CSRF token rotated, new session validates with `DESIGNER` platform role and `OWNER` studio membership, and subsequent access with old session returns 401 Unauthorized.
+  - Slug Claim Invariants: Global uniqueness enforced; partial unique index on `(studio_id)` for state `CURRENT`; check constraint `chk_reserved_null_studio` prevents reserved slugs from being claimed as current; duplicate claims rejected with HTTP 409 Conflict.
+  - Truthful Copy & Privacy Compliance: Replaced "Licensed architect" with "Architectural professional"; replaced "Verified Designer Role" with "Professional access enabled" and "DESIGNER (Role Activated)"; confirmed GSTIN format-only validation (no fake "Government Verified" claim); confirmed contact `public_consent` stored and isolated from public discovery; confirmed zero fake logo/media endpoints.
+  - PostgreSQL 18 Migration: Applied `V005__studio_specialties_and_onboarding_closure.sql` to live PostgreSQL 18.3 on port 5433 (database `interior_design_dev`), bringing schema version to `v005`.
+  - Verification Suite: 87 backend tests (0 failures, 0 errors) in Maven; 73 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), auth-aware `PublicHeader`, and zero-token client session context (`AuthProvider`). Next.js Turbopack build clean, 73 unit/integration tests passed across 9 test files.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004), Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion and slug claim registry. Maven test suite passed with 71 tests (0 failures, 0 errors).
-  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, and `V004__designer_onboarding.sql`.
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`) with hardened truthful copy, auth-aware `PublicHeader`, and zero-token client session context (`AuthProvider`). Next.js Turbopack build clean, 73 unit/integration tests passed across 9 test files.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005), Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion and slug claim registry. Maven test suite passed with 87 tests (0 failures, 0 errors).
+  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, `V004__designer_onboarding.sql`, and `V005__studio_specialties_and_onboarding_closure.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
 - **REMOTE PUSH POLICY:** Local commits only. Remote push prohibited unless explicitly requested by the user.
 
@@ -96,7 +101,7 @@ Paths below are relative to this document; filenames are the canonical repositor
 | Web tooling | Node 22.18.0 / npm 10.9.3; CSS variables + Tailwind; Vitest 5.0.1; ESLint 9 |
 | Backend | Java 25 (Temurin 25.0.4.1 runtime, compiler target Java 21), Spring Boot 3.4.3; modular monolith |
 | Java tooling | Maven 3.9.9 checked-in wrapper (`mvnw.cmd`); separate native build |
-| Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()`, durable OIDC state in `auth_oidc_transactions`, studio registry in `designer_studios` & `studio_slug_claims` |
+| Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()`, durable OIDC state in `auth_oidc_transactions`, studio registry in `designer_studios` & `studio_slug_claims`, normalized specialties in `studio_specialties`, initial onboarding completions in `designer_onboarding_completions` |
 | Cache | No initial Redis; PostgreSQL authoritative for sessions, OIDC transactions, quotas and sensitive counters |
 | Storage | Private S3-compatible abstraction, initial AWS S3 |
 | Public media / CDN | Approved watermarked derivatives only; CloudFront restricted origin/OAC |
@@ -110,7 +115,7 @@ Paths below are relative to this document; filenames are the canonical repositor
 - Windows workstation; PowerShell; shared local workspace `c:\my projects\interior design`.
 - Java 25 installed at `C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot` (Temurin 25.0.4.1+1-LTS).
 - Node 22.18.0 / npm 10.9.3 active for web execution; Node 24.19.0 LTS qualified.
-- PostgreSQL 18.3 active on port 5433; database `interior_design_dev` created and migrated to `v004`.
+- PostgreSQL 18.3 active on port 5433; database `interior_design_dev` created and migrated to `v005`.
 - Git repository initialized.
 - Standing Rule: NEVER PUSH TO REMOTE without explicit user command.
 
@@ -120,10 +125,10 @@ Paths below are relative to this document; filenames are the canonical repositor
 - `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
 - `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
 - `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, `/onboarding/professional` rendered cleanly)
-- `mvnw test` (apps/api): **PASS** (71 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25 with H2 and Flyway v004)
-- PostgreSQL 18 dev database on port 5433 migrated to `v004` cleanly via `mvnw flyway:migrate`.
+- `mvnw test` (apps/api): **PASS** (87 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25 with H2 and Flyway v005)
+- PostgreSQL 18 dev database on port 5433 migrated to `v005` cleanly via `mvnw flyway:migrate`.
 
 ## NEXT PHASE
 
 **PHASE 09 — DESIGNER DASHBOARD & WORKSPACE.**
-Professional onboarding complete. Ready to implement the designer dashboard, studio workspace overview, operational metrics shell, and navigation modules.
+Professional onboarding domain and security invariants closed. Ready to implement the designer dashboard, studio workspace overview, operational metrics shell, and navigation modules upon user approval.

@@ -63,7 +63,7 @@ const PROFESSIONAL_TYPES: ProfessionalTypeOption[] = [
     type: 'ARCHITECT',
     title: 'Individual Architect',
     badge: 'Architectural Design',
-    description: 'Licensed architect offering residential, spatial planning, and interior architectural services.',
+    description: 'Architectural professional offering spatial planning, structural coordination, and interior architectural design.',
     icon: Compass,
   },
   {
@@ -1390,13 +1390,13 @@ export default function ProfessionalOnboardingPage() {
 
             <div>
               <span className="text-xs font-mono uppercase tracking-widest text-bronze-700 font-semibold">
-                Onboarding Complete
+                Professional Access Enabled
               </span>
               <h2 className="font-serif text-3xl font-bold text-charcoal-900 mt-1">
                 Welcome to Elégance Professional
               </h2>
               <p className="text-sm text-charcoal-600 max-w-md mx-auto mt-2">
-                Your professional studio workspace has been created and your account has been promoted to DESIGNER status.
+                Your professional studio workspace has been created and your Designer account role has been activated.
               </p>
             </div>
 
@@ -1434,7 +1434,7 @@ export default function ProfessionalOnboardingPage() {
                 <div>
                   <dt className="text-charcoal-500">Platform Role</dt>
                   <dd className="font-semibold text-charcoal-900 mt-0.5">
-                    DESIGNER
+                    DESIGNER (Role Activated)
                   </dd>
                 </div>
                 <div>
