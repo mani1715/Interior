@@ -75,6 +75,13 @@ export function PublicHeader({
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3">
+              {!user.roles.includes('DESIGNER') && user.studios.length === 0 && (
+                <Link href="/onboarding/professional">
+                  <Button variant="outline" size="sm" className="text-xs border-bronze-300 text-bronze-800 hover:bg-bronze-50">
+                    Register as Professional
+                  </Button>
+                </Link>
+              )}
               <Link
                 href="/account"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-raised)] transition-colors text-xs font-medium text-[var(--foreground)]"
@@ -82,7 +89,7 @@ export function PublicHeader({
                 <span className="w-2 h-2 rounded-full bg-forest-600" />
                 <span>{user.displayName}</span>
                 <span className="text-[10px] text-bronze-800 bg-sand-200/60 px-1.5 py-0.5 rounded font-mono">
-                  {user.roles[0] || 'CUSTOMER'}
+                  {user.roles.includes('DESIGNER') ? 'DESIGNER' : user.roles[0] || 'CUSTOMER'}
                 </span>
               </Link>
               <Button variant="ghost" size="sm" onClick={() => logout()}>
@@ -154,6 +161,16 @@ export function PublicHeader({
           <div className="pt-6 border-t border-[var(--border)] flex flex-col gap-3 mb-6">
             {isAuthenticated && user ? (
               <>
+                {!user.roles.includes('DESIGNER') && user.studios.length === 0 && (
+                  <Link
+                    href="/onboarding/professional"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-3 bg-bronze-50 border border-bronze-200 rounded-xl flex items-center justify-between text-bronze-900"
+                  >
+                    <span className="text-sm font-semibold">Register as Professional</span>
+                    <ArrowRight className="w-4 h-4 text-bronze-700" />
+                  </Link>
+                )}
                 <Link
                   href="/account"
                   onClick={() => setMobileMenuOpen(false)}
@@ -161,7 +178,7 @@ export function PublicHeader({
                 >
                   <div>
                     <p className="text-sm font-medium text-[var(--foreground)]">{user.displayName}</p>
-                    <p className="text-xs text-[var(--muted)] font-mono">{user.roles[0] || 'CUSTOMER'}</p>
+                    <p className="text-xs text-[var(--muted)] font-mono">{user.roles.includes('DESIGNER') ? 'DESIGNER' : user.roles[0] || 'CUSTOMER'}</p>
                   </div>
                   <span className="text-xs font-medium text-[var(--brand)]">Account →</span>
                 </Link>

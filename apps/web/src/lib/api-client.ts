@@ -52,6 +52,10 @@ export function resetCsrfToken() {
   cachedCsrfToken = null;
 }
 
+export function setCachedCsrfToken(token: string) {
+  cachedCsrfToken = token;
+}
+
 /**
  * Standardized API client fetching backend REST endpoints (/api/v1).
  * Credentials (cookies) are automatically included for secure session auth.

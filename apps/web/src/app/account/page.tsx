@@ -2,6 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export default function AccountPage() {
@@ -77,23 +79,51 @@ export default function AccountPage() {
               Studio Tenancy Context
             </h2>
             {user.studios.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {user.studios.map((s) => (
-                  <div key={s.studioId} className="flex items-center justify-between p-3.5 bg-sand-50/70 border border-sand-200 rounded-xl">
-                    <div>
-                      <h3 className="text-sm font-medium text-charcoal-900">{s.studioName}</h3>
-                      <p className="text-xs font-mono text-charcoal-500 mt-0.5">slug: {s.studioSlug}</p>
+                  <div key={s.studioId} className="p-4 bg-sand-50/70 border border-sand-200 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-serif font-bold text-charcoal-900">{s.studioName}</h3>
+                        <p className="text-xs font-mono text-bronze-800 mt-0.5">@{s.studioSlug}</p>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-bronze-50 text-bronze-800 border border-bronze-200 rounded-lg">
+                        Role: {s.role}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-bronze-50 text-bronze-800 border border-bronze-200 rounded-lg">
-                      Role: {s.role}
-                    </span>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-sand-200/60 text-[11px]">
+                      <div>
+                        <span className="text-charcoal-500">Operational Status:</span>
+                        <span className="font-semibold text-forest-700 ml-1">ACTIVE</span>
+                      </div>
+                      <div>
+                        <span className="text-charcoal-500">Publication Status:</span>
+                        <span className="font-semibold text-charcoal-700 ml-1">UNPUBLISHED</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
+                <div className="p-3 bg-bronze-50/50 rounded-xl border border-bronze-200 text-xs text-bronze-900">
+                  <p className="font-medium">Designer Workspace</p>
+                  <p className="text-[11px] text-bronze-800 mt-0.5">
+                    Studio management, portfolio building, and publication workflows will activate in Phase 09.
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="p-4 bg-sand-50 rounded-xl text-xs text-charcoal-600 border border-sand-200">
-                <p className="font-medium text-charcoal-800 mb-0.5">No Studio Association</p>
-                <p>This account operates under the public Customer boundary. Studio registration opens in Phase 08.</p>
+              <div className="p-5 bg-sand-50/80 rounded-xl border border-sand-200 space-y-3">
+                <div>
+                  <p className="font-medium text-charcoal-900 text-sm">Customer Account Boundary</p>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    Are you an interior designer, architect, cabinetry specialist, or turnkey contractor?
+                    Register your professional studio to unlock professional capabilities.
+                  </p>
+                </div>
+                <Link href="/onboarding/professional">
+                  <Button variant="primary" size="sm" className="mt-1">
+                    Register Studio as Professional
+                  </Button>
+                </Link>
               </div>
             )}
           </div>
