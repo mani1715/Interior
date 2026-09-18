@@ -24,15 +24,27 @@ public class WorkspaceService {
     private final SecurityRepository securityRepository;
     private final StudioRepository studioRepository;
     private final AuthorizationService authorizationService;
+    private final com.interior.platform.portfolio.service.PortfolioService portfolioService;
 
     public WorkspaceService(
             SecurityRepository securityRepository,
             StudioRepository studioRepository,
             AuthorizationService authorizationService
     ) {
+        this(securityRepository, studioRepository, authorizationService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public WorkspaceService(
+            SecurityRepository securityRepository,
+            StudioRepository studioRepository,
+            AuthorizationService authorizationService,
+            com.interior.platform.portfolio.service.PortfolioService portfolioService
+    ) {
         this.securityRepository = securityRepository;
         this.studioRepository = studioRepository;
         this.authorizationService = authorizationService;
+        this.portfolioService = portfolioService;
     }
 
     /**
@@ -85,14 +97,19 @@ public class WorkspaceService {
                 ))
                 .toList();
 
+        // Portfolio readiness
+        String portfolioStatus = portfolioService != null
+                ? portfolioService.getPortfolioReadinessStatus(studio.id())
+                : "NOT_CONFIGURED";
+
         // Completeness calculation
-        WorkspaceSummaryResponse.CompletenessDto completeness = calculateCompleteness(studio);
+        WorkspaceSummaryResponse.CompletenessDto completeness = calculateCompleteness(studio, portfolioStatus);
 
         // Dynamic setup checklist
-        List<WorkspaceSummaryResponse.SetupChecklistItemDto> checklist = buildSetupChecklist(studio);
+        List<WorkspaceSummaryResponse.SetupChecklistItemDto> checklist = buildSetupChecklist(studio, portfolioStatus);
 
         // Module readiness
-        List<WorkspaceSummaryResponse.ModuleReadinessDto> modules = deriveModuleReadiness(studio);
+        List<WorkspaceSummaryResponse.ModuleReadinessDto> modules = deriveModuleReadiness(studio, portfolioStatus);
 
         // Truthful activity feed (derived strictly from business lifecycle timestamps; NEVER from raw audit events)
         List<WorkspaceSummaryResponse.ActivityItemDto> activityFeed = buildActivityFeed(studio);
@@ -265,10 +282,50 @@ public class WorkspaceService {
 
         int profileScore = identityScore + locationScore + servicesScore + specialtiesScore + contactsScore;
 
-        // Platform Launch Readiness (Portfolio and Projects are future phases and not configured yet)
-        int portfolioScore = 0; // Phase 10
+        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, "NOT_CONFIGURED");
+    }
+
+    public WorkspaceSummaryResponse.CompletenessDto calculateCompleteness(StudioDetailRecord studio, String portfolioStatus) {
+        int identityScore = 0;
+        if (studio.name() != null && !studio.name().isBlank() &&
+            studio.slug() != null && !studio.slug().isBlank() &&
+            studio.professionalType() != null && !studio.professionalType().isBlank() &&
+            studio.professionalTitle() != null && !studio.professionalTitle().isBlank()) {
+            identityScore = 20;
+        }
+
+        int locationScore = 0;
+        if (studio.city() != null && !studio.city().isBlank() &&
+            studio.state() != null && !studio.state().isBlank()) {
+            locationScore += 10;
+        }
+        if (studio.serviceAreas() != null && !studio.serviceAreas().isEmpty()) {
+            locationScore += 10;
+        }
+
+        int servicesScore = (studio.services() != null && !studio.services().isEmpty()) ? 20 : 0;
+        int specialtiesScore = (studio.specialties() != null && !studio.specialties().isEmpty()) ? 20 : 0;
+        int contactsScore = (studio.contacts() != null && !studio.contacts().isEmpty()) ? 20 : 0;
+
+        int profileScore = identityScore + locationScore + servicesScore + specialtiesScore + contactsScore;
+
+        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, portfolioStatus);
+    }
+
+    private WorkspaceSummaryResponse.CompletenessDto calculateCompletenessWithScores(
+            StudioDetailRecord studio,
+            int profileScore,
+            int identityScore,
+            int locationScore,
+            int servicesScore,
+            int specialtiesScore,
+            int contactsScore,
+            String portfolioStatus
+    ) {
+        // Platform Launch Readiness (Portfolio contributes 25% when READY; Projects is Phase 18)
+        int portfolioScore = "READY".equalsIgnoreCase(portfolioStatus) ? 25 : 0;
         int projectsScore = 0;  // Phase 18
-        int platformReadiness = Math.round(profileScore * 0.5f); // 50% max when profile is 100% complete
+        int platformReadiness = Math.round(profileScore * 0.5f) + portfolioScore; // Up to 75% when profile + portfolio are complete
 
         String status = (profileScore == 100) ? "PROFILE_COMPLETED" : "IN_PROGRESS";
 
@@ -288,7 +345,7 @@ public class WorkspaceService {
         );
     }
 
-    private List<WorkspaceSummaryResponse.SetupChecklistItemDto> buildSetupChecklist(StudioDetailRecord studio) {
+    private List<WorkspaceSummaryResponse.SetupChecklistItemDto> buildSetupChecklist(StudioDetailRecord studio, String portfolioStatus) {
         List<WorkspaceSummaryResponse.SetupChecklistItemDto> items = new ArrayList<>();
 
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
@@ -345,12 +402,13 @@ public class WorkspaceService {
                 "/workspace/business"
         ));
 
+        boolean portfolioReady = "READY".equalsIgnoreCase(portfolioStatus);
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
                 "portfolio",
                 "Configure Portfolio Website",
-                "Select portfolio theme layout and structure. Available in Portfolio Builder (Upcoming).",
-                false,
-                "Prepare Portfolio",
+                portfolioReady ? "Portfolio configured with required structural sections." : "Select portfolio theme layout and structure in Portfolio Builder.",
+                portfolioReady,
+                portfolioReady ? "Manage Portfolio" : "Prepare Portfolio",
                 "/workspace/portfolio"
         ));
 
@@ -366,15 +424,16 @@ public class WorkspaceService {
         return items;
     }
 
-    private List<WorkspaceSummaryResponse.ModuleReadinessDto> deriveModuleReadiness(StudioDetailRecord studio) {
+    private List<WorkspaceSummaryResponse.ModuleReadinessDto> deriveModuleReadiness(StudioDetailRecord studio, String portfolioStatus) {
+        String portfolioAction = "READY".equalsIgnoreCase(portfolioStatus) ? "Manage Portfolio" : "Configure Portfolio";
         return List.of(
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "portfolio",
                         "Portfolio",
                         "Build your professional portfolio website to showcase your style and identity.",
-                        "NOT_CONFIGURED",
+                        portfolioStatus,
                         "/workspace/portfolio",
-                        "Prepare Portfolio"
+                        portfolioAction
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "projects",

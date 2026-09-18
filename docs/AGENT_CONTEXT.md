@@ -130,12 +130,40 @@ Paths below are relative to this document; filenames are the canonical repositor
     * Activity feed copy updated to user-friendly "Professional workspace enabled" (removing internal role terminology).
   - Comprehensive Verification: 108 backend tests (0 failures, 0 errors) in Maven; 81 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded with dynamic rendering. Terminology audit confirmed 0 occurrences of wedding/event terminology.
 
+- **PHASE 10: PORTFOLIO BUILDER ENGINE (COMPLETED):**
+  - Shared Portfolio Engine decoupling content from presentation (`CONTENT != TEMPLATE`).
+  - Strict scope boundaries preserved: No final theme designs (reserved for Astra in Phases 11-16), no `POST /publish` or client-controlled live publishing, no fake media uploads, no fake project CMS, no AI generation, no fake reviews, no dangerous raw HTML injection.
+  - Database Schema (`V006__portfolio_engine.sql`):
+    * `portfolios`: Primary studio portfolio record with tenant foreign key `studio_id REFERENCES designer_studios(id) ON DELETE CASCADE`, template key enum, aggregate version counter, editorial content fields, color tokens, font pairing, and status (`DRAFT`, `READY`, `UNPUBLISHED`).
+    * `portfolio_sections`: Normalized 18 modular section types (`HERO`, `ABOUT`, `SERVICES`, `FEATURED_PROJECTS`, `PROJECT_GALLERY`, `BEFORE_AFTER`, `DESIGN_PHILOSOPHY`, `PROCESS`, `TESTIMONIALS`, `PRESS`, `AWARDS`, `TEAM`, `FAQ`, `CONTACT_FORM`, `LOCATION_MAP`, `INSTAGRAM_FEED`, `CONSULTATION_CTA`, `FOOTER`). Unique composite tenant foreign key `(portfolio_id, studio_id)` ensuring strict multi-tenant isolation.
+    * `portfolio_versions`: Immutable JSONB snapshot history with max 10 version retention per studio.
+  - Concurrency & Ordering:
+    * Optimistic concurrency control via aggregate version checks on all write operations.
+    * Accessible, two-pass reordering with non-negative offset preventing display order check constraint and uniqueness collisions.
+  - Privacy & Security:
+    * Strict privacy filtering on `/api/v1/portfolio/preview` ensuring only contacts with `public_consent == true` are exposed.
+    * Section content payload validation rejecting HTML tags, script tags, iframes, and JS event handler patterns (`\bon[a-z]{3,20}\s*=`). Payload bounded to 32 KB per section; snapshot bounded to 64 KB.
+    * Private caching headers (`Cache-Control: private, no-store, max-age=0, must-revalidate`).
+  - Template Engine Contract & Scaffolds:
+    * Formal `PortfolioTemplateProps` contract defined in `apps/web/src/lib/portfolio/template-contract.ts` and documented in `docs/PORTFOLIO_TEMPLATE_CONTRACT.md`.
+    * Six aesthetic themes registered in `TEMPLATE_REGISTRY` with `SCAFFOLD` status for Astra's upcoming implementations (Basic, Modern, Luxury, Architectural, Warm/Natural, Dark Cinematic).
+    * Neutral `ReferenceTemplate` component safely tolerates 0 projects and 0 testimonials with elegant editorial empty states.
+  - Interactive Workspace Builder UI & Private Preview:
+    * Full builder page `/workspace/portfolio` featuring tabbed interface (Content, Sections, Design & Themes, Snapshots), live saving indicator, accessible Move Up/Down controls, visibility toggles, and live desktop/mobile preview frame.
+    * Dedicated private preview route `/workspace/portfolio/preview` with `<meta name="robots" content="noindex, nofollow" />`.
+  - Comprehensive Verification:
+    * Backend: 118 Maven tests passing (0 failures, 0 errors), including `PortfolioIntegrationTest` and `PortfolioServiceTest`.
+    * Frontend: 89 Vitest tests passing across 11 test files, including `PortfolioBuilder.test.tsx`.
+    * Typecheck & Lint: `tsc --noEmit` exit 0, `eslint .` exit 0.
+    * Build: Next.js Turbopack production build succeeded.
+    * Terminology audit: 0 occurrences of wedding/event/photography terms.
+
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), authenticated professional workspace (`/workspace` and 9 sub-routes) with responsive mobile bottom navigation, accessible bottom sheet, truthful module readiness states, and unpublished profile safeguards. Next.js Turbopack build clean, 81 unit/integration tests passed across 10 test files.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005), Maven wrapper checked in. Canonical RFC 9562 UUIDv7 generator (`UuidV7`), opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion, and workspace service with truthful module readiness, owner-scoped GSTIN confidentiality, and private caching. Maven test suite passed with 108 tests (0 failures, 0 errors).
-  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, `V004__designer_onboarding.sql`, and `V005__studio_specialties_and_onboarding_closure.sql`.
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), authenticated professional workspace (`/workspace` and 9 sub-routes) with responsive mobile bottom navigation, accessible bottom sheet, truthful module readiness states, and unpublished profile safeguards. Full Portfolio Builder workspace (`/workspace/portfolio`) with live preview, accessible section reordering, template switching, version snapshot restore, and private preview route (`/workspace/portfolio/preview` with `noindex, nofollow`). Next.js Turbopack build clean, 89 unit/integration tests passed across 11 test files.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005, V006), Maven wrapper checked in. Canonical RFC 9562 UUIDv7 generator (`UuidV7`), opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion, workspace service with truthful module readiness and owner-scoped GSTIN confidentiality, and complete portfolio engine service, validation, repository, and controller with optimistic locking, snapshot restore, and privacy filtering. Maven test suite passed with 118 tests (0 failures, 0 errors).
+  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, `V004__designer_onboarding.sql`, `V005__studio_specialties_and_onboarding_closure.sql`, and `V006__portfolio_engine.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
 - **REMOTE PUSH POLICY:** Local commits only. Remote push prohibited unless explicitly requested by the user.
 
