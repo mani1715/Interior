@@ -7,7 +7,15 @@ import java.util.Optional;
 
 /**
  * Controlled canonical style / aesthetic specialty taxonomy.
- * Defined in docs/02_TAXONOMY_STRATEGY.md.
+ * 
+ * Canonical Source:
+ * Maps directly to the Phase 02 Taxonomy Strategy (docs/02_TAXONOMY_STRATEGY.md, Section 2)
+ * 'STYLE' dimension (MODERN, CONTEMPORARY, MINIMAL, LUXURY, TRADITIONAL, SCANDINAVIAN, INDUSTRIAL, CLASSIC),
+ * adapted with composite aesthetic specializations for Indian design practices (e.g. Indian Traditional / Chettinad,
+ * Neo-Classical, Biophilic).
+ * 
+ * This controlled enum serves as the canonical V1 controlled taxonomy for studio specialties to
+ * prevent arbitrary free-text tags and ensure consistent discoverability, filtering, and indexing.
  */
 public enum CanonicalSpecialty {
     MODERN_MINIMALIST("MODERN_MINIMALIST", "Modern Minimalist"),

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interior.platform.common.exception.AccessDeniedException;
 import com.interior.platform.common.exception.BadRequestException;
 import com.interior.platform.common.exception.ConflictException;
+import com.interior.platform.common.util.UuidV7;
 import com.interior.platform.designers.dto.OnboardingCompletionRequest;
 import com.interior.platform.designers.repository.StudioRepository;
 import com.interior.platform.security.domain.ActorContext;
@@ -38,6 +39,9 @@ class OnboardingClosureIntegrationTest {
 
     @Autowired
     private StudioRepository studioRepository;
+
+    @Autowired
+    private SlugValidationService slugValidationService;
 
     @Autowired
     private SecurityRepository securityRepository;
@@ -154,6 +158,42 @@ class OnboardingClosureIntegrationTest {
         assertEquals(1, memberCount, "Exactly 1 studio membership must exist");
         assertEquals(1, roleCount, "Exactly 1 DESIGNER role must exist");
         assertEquals(1, completionCount, "Exactly 1 initial onboarding completion record must exist");
+
+        // Canonical UUIDv7 Invariant Check: Verify that all newly created entities have version 7 UUIDs
+        UUID studioId = result1.studio().id();
+        assertTrue(UuidV7.isUuidV7(studioId), "Root studio ID must be canonical UUIDv7");
+        assertEquals(7, studioId.version());
+        assertEquals(2, studioId.variant());
+
+        List<UUID> contactIds = jdbcTemplate.query("SELECT id FROM studio_contacts WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertFalse(contactIds.isEmpty());
+        contactIds.forEach(id -> assertTrue(UuidV7.isUuidV7(id), "studio_contacts ID must be canonical UUIDv7"));
+
+        List<UUID> serviceIds = jdbcTemplate.query("SELECT id FROM studio_services WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertFalse(serviceIds.isEmpty());
+        serviceIds.forEach(id -> assertTrue(UuidV7.isUuidV7(id), "studio_services ID must be canonical UUIDv7"));
+
+        List<UUID> specialtyIds = jdbcTemplate.query("SELECT id FROM studio_specialties WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertFalse(specialtyIds.isEmpty());
+        specialtyIds.forEach(id -> assertTrue(UuidV7.isUuidV7(id), "studio_specialties ID must be canonical UUIDv7"));
+
+        List<UUID> areaIds = jdbcTemplate.query("SELECT id FROM studio_service_areas WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertFalse(areaIds.isEmpty());
+        areaIds.forEach(id -> assertTrue(UuidV7.isUuidV7(id), "studio_service_areas ID must be canonical UUIDv7"));
+
+        UUID slugClaimId = jdbcTemplate.queryForObject("SELECT id FROM studio_slug_claims WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertNotNull(slugClaimId);
+        assertTrue(UuidV7.isUuidV7(slugClaimId), "studio_slug_claims ID must be canonical UUIDv7");
+
+        UUID memberId = jdbcTemplate.queryForObject("SELECT id FROM studio_members WHERE studio_id = ?",
+                (rs, rowNum) -> UUID.fromString(rs.getString("id")), studioId);
+        assertNotNull(memberId);
+        assertTrue(UuidV7.isUuidV7(memberId), "studio_members ID must be canonical UUIDv7");
     }
 
     @Test
@@ -266,7 +306,7 @@ class OnboardingClosureIntegrationTest {
     }
 
     @Test
-    @DisplayName("Invariant 5: Tenant bootstrap & RLS test - creator has OWNER access; User B is DENIED (403)")
+    @DisplayName("Invariant 5: Tenant bootstrap & application authorization test - creator has OWNER access; User B is DENIED (403)")
     void testTenantBootstrapAndIsolation() {
         UserRecord userA = createTestUser("User A", "userA@example.com");
         UserRecord userB = createTestUser("User B", "userB@example.com");
@@ -419,4 +459,51 @@ class OnboardingClosureIntegrationTest {
                 onboardingService.completeOnboarding(actor2, createValidRequest("Another Elite", "elite-interiors"), null, null)
         );
     }
+
+    @Test
+    @DisplayName("Phase 08.2: Reserved slug validation operates globally without requiring studio/tenant context")
+    void testReservedSlugValidationGlobalAccess() {
+        // Validation for reserved slugs must succeed in rejecting without tenant context
+        var reservedCheck = slugValidationService.checkAvailability("admin");
+        assertFalse(reservedCheck.available(), "Reserved slug 'admin' must not be available");
+        assertTrue(reservedCheck.reason().contains("reserved"), "Must indicate keyword is reserved");
+        assertEquals("admin-studio", reservedCheck.suggestedSlug());
+
+        var availableCheck = slugValidationService.checkAvailability("custom-unique-studio");
+        assertTrue(availableCheck.available(), "Unique slug must be available globally");
+    }
+
+    @Test
+    @DisplayName("Phase 08.2: designer_onboarding_completions is strictly user-scoped")
+    void testOnboardingCompletionIsStrictlyUserScoped() {
+        UserRecord userA = createTestUser("User Alpha", "alpha@example.com");
+        UserRecord userB = createTestUser("User Beta", "beta@example.com");
+
+        ActorContext actorA = new ActorContext(userA.id(), userA.displayName(), userA.email(), Set.of("CUSTOMER"), null, null, true);
+
+        // Initially neither user has completed onboarding
+        assertFalse(studioRepository.hasCompletedOnboarding(userA.id()));
+        assertFalse(studioRepository.hasCompletedOnboarding(userB.id()));
+        assertTrue(studioRepository.findInitialOnboardingStudioId(userA.id()).isEmpty());
+        assertTrue(studioRepository.findInitialOnboardingStudioId(userB.id()).isEmpty());
+
+        // User A completes onboarding
+        var resultA = onboardingService.completeOnboarding(actorA, createValidRequest("Alpha Studio", "alpha-studio"), null, null);
+        UUID studioAId = resultA.studio().id();
+
+        // User A completion is recorded
+        assertTrue(studioRepository.hasCompletedOnboarding(userA.id()));
+        assertEquals(Optional.of(studioAId), studioRepository.findInitialOnboardingStudioId(userA.id()));
+
+        // User B's state remains completely uncompleted and unaffected
+        assertFalse(studioRepository.hasCompletedOnboarding(userB.id()), "User B must not be marked as completed");
+        assertTrue(studioRepository.findInitialOnboardingStudioId(userB.id()).isEmpty(), "User B must have no initial studio ID");
+
+        // Database completion table verification
+        Integer countA = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM designer_onboarding_completions WHERE user_id = ?", Integer.class, userA.id());
+        Integer countB = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM designer_onboarding_completions WHERE user_id = ?", Integer.class, userB.id());
+        assertEquals(1, countA);
+        assertEquals(0, countB);
+    }
 }
+

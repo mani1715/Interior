@@ -104,7 +104,7 @@ public class SessionSecurityService {
         Instant absoluteExpiresAt = now.plusSeconds(properties.getSessionAbsoluteTimeoutSeconds());
 
         SessionRecord session = new SessionRecord(
-                UUID.randomUUID(),
+                com.interior.platform.common.util.UuidV7.randomUuid(),
                 userId,
                 tokenHash,
                 csrfHash,

@@ -246,7 +246,7 @@ public class JdbcSecurityRepository implements SecurityRepository {
         String sql = "INSERT INTO auth_oidc_transactions (id, state, nonce, code_verifier, provider_id, return_url, intent_role, created_at, expires_at) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
-                UUID.randomUUID(),
+                com.interior.platform.common.util.UuidV7.randomUuid(),
                 transaction.state(),
                 transaction.nonce(),
                 transaction.codeVerifier(),

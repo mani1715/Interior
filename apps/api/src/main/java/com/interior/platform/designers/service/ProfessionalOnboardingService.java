@@ -5,6 +5,7 @@ import com.interior.platform.common.exception.AccessDeniedException;
 import com.interior.platform.common.exception.BadRequestException;
 import com.interior.platform.common.exception.ConflictException;
 import com.interior.platform.common.exception.UnauthorizedException;
+import com.interior.platform.common.util.UuidV7;
 import com.interior.platform.designers.domain.OnboardingDraftRecord;
 import com.interior.platform.designers.domain.ProfessionalType;
 import com.interior.platform.designers.domain.StudioDetailRecord;
@@ -191,7 +192,7 @@ public class ProfessionalOnboardingService {
         }
 
         String normalizedSlug = slugCheck.slug();
-        UUID studioId = UUID.randomUUID();
+        UUID studioId = UuidV7.randomUuid();
         Instant now = Instant.now();
 
         // Sanitize text inputs
@@ -297,12 +298,12 @@ public class ProfessionalOnboardingService {
         }
 
         // 7. Create Studio Membership (role: OWNER)
-        securityRepository.addStudioMember(UUID.randomUUID(), studioId, actor.userId(), "OWNER");
+        securityRepository.addStudioMember(UuidV7.randomUuid(), studioId, actor.userId(), "OWNER");
 
         // 8. Promote Role: Grant DESIGNER Role in identity_user_roles
         Set<String> existingRoles = securityRepository.getUserRoles(actor.userId());
         if (!existingRoles.contains("DESIGNER")) {
-            securityRepository.assignUserRole(UUID.randomUUID(), actor.userId(), "DESIGNER", now);
+            securityRepository.assignUserRole(UuidV7.randomUuid(), actor.userId(), "DESIGNER", now);
         }
 
         // 9. Mark Onboarding Draft Completed and Record Initial Onboarding Completion

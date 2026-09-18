@@ -44,7 +44,7 @@ public class AuditService {
         }
 
         try {
-            UUID id = UUID.randomUUID();
+            UUID id = com.interior.platform.common.util.UuidV7.randomUuid();
             UUID resUuid = null;
             if (resourceId != null) {
                 try {

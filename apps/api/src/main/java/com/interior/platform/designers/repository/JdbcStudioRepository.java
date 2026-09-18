@@ -28,9 +28,9 @@ public class JdbcStudioRepository implements StudioRepository {
         String updateSql = "UPDATE designer_onboarding_drafts SET step = ?, draft_payload = ?, status = ?, updated_at = now() WHERE user_id = ?";
         int updated = jdbcTemplate.update(updateSql, step, draftPayload, status, userId);
         if (updated == 0) {
-            String insertSql = "INSERT INTO designer_onboarding_drafts (id, user_id, step, draft_payload, status, created_at, updated_at) " +
-                               "VALUES (?, ?, ?, ?, ?, now(), now())";
-            jdbcTemplate.update(insertSql, UUID.randomUUID(), userId, step, draftPayload, status);
+            String insertSql = "INSERT INTO designer_onboarding_drafts (user_id, step, draft_payload, status, created_at, updated_at) " +
+                               "VALUES (?, ?, ?, ?, now(), now())";
+            jdbcTemplate.update(insertSql, userId, step, draftPayload, status);
         }
     }
 
@@ -65,9 +65,9 @@ public class JdbcStudioRepository implements StudioRepository {
 
     @Override
     public void claimSlug(UUID studioId, String slug, String state) {
-        String sql = "INSERT INTO studio_slug_claims (id, studio_id, slug, state, created_at) " +
-                     "VALUES (?, ?, ?, ?, now())";
-        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, slug.trim().toLowerCase(), state);
+        String sql = "INSERT INTO studio_slug_claims (studio_id, slug, state, created_at) " +
+                     "VALUES (?, ?, ?, now())";
+        jdbcTemplate.update(sql, studioId, slug.trim().toLowerCase(), state);
     }
 
     @Override
@@ -107,23 +107,23 @@ public class JdbcStudioRepository implements StudioRepository {
 
     @Override
     public void addStudioContact(UUID studioId, String kind, String value, boolean publicConsent, int sortOrder) {
-        String sql = "INSERT INTO studio_contacts (id, studio_id, kind, contact_value, public_consent, sort_order) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, kind, value, publicConsent, sortOrder);
+        String sql = "INSERT INTO studio_contacts (studio_id, kind, contact_value, public_consent, sort_order) " +
+                     "VALUES (?, ?, ?, ?, ?)";
+        jdbcTemplate.update(sql, studioId, kind, value, publicConsent, sortOrder);
     }
 
     @Override
     public void addStudioService(UUID studioId, String serviceCode, String serviceName) {
-        String sql = "INSERT INTO studio_services (id, studio_id, service_code, service_name) " +
-                     "VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, serviceCode, serviceName);
+        String sql = "INSERT INTO studio_services (studio_id, service_code, service_name) " +
+                     "VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, studioId, serviceCode, serviceName);
     }
 
     @Override
     public void addStudioSpecialty(UUID studioId, String specialtyCode, String specialtyName) {
-        String sql = "INSERT INTO studio_specialties (id, studio_id, specialty_code, specialty_name) " +
-                     "VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, specialtyCode, specialtyName);
+        String sql = "INSERT INTO studio_specialties (studio_id, specialty_code, specialty_name) " +
+                     "VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, studioId, specialtyCode, specialtyName);
     }
 
     @Override
@@ -139,9 +139,9 @@ public class JdbcStudioRepository implements StudioRepository {
 
     @Override
     public void addStudioServiceArea(UUID studioId, String cityName, String locality) {
-        String sql = "INSERT INTO studio_service_areas (id, studio_id, city_name, locality) " +
-                     "VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, UUID.randomUUID(), studioId, cityName, locality);
+        String sql = "INSERT INTO studio_service_areas (studio_id, city_name, locality) " +
+                     "VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, studioId, cityName, locality);
     }
 
     @Override
