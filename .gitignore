@@ -16,6 +16,7 @@ dist/
 out/
 target/
 *.class
+*.tsbuildinfo
 
 # Test, coverage and local runtime state.
 coverage/

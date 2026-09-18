@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Menu, X, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+import { useAuth } from '@/lib/auth/auth-context';
+
 export interface NavLinkItem {
   label: string;
   href: string;
@@ -31,6 +33,7 @@ export function PublicHeader({
   onGetStartedClick,
 }: PublicHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[var(--surface)] border-b border-[var(--border)] transition-colors">
@@ -70,21 +73,41 @@ export function PublicHeader({
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="#portfolio-builder">
-            <Button variant="ghost" size="sm" onClick={onSignInClick}>
-              Sign In
-            </Button>
-          </Link>
-          <Link href="#portfolio-builder">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onGetStartedClick}
-              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            >
-              Get Started
-            </Button>
-          </Link>
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/account"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-raised)] transition-colors text-xs font-medium text-[var(--foreground)]"
+              >
+                <span className="w-2 h-2 rounded-full bg-forest-600" />
+                <span>{user.displayName}</span>
+                <span className="text-[10px] text-bronze-800 bg-sand-200/60 px-1.5 py-0.5 rounded font-mono">
+                  {user.roles[0] || 'CUSTOMER'}
+                </span>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={() => logout()}>
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link href="/sign-in">
+                <Button variant="ghost" size="sm" onClick={onSignInClick}>
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onGetStartedClick}
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                >
+                  Join Atelier
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -129,26 +152,55 @@ export function PublicHeader({
           </nav>
 
           <div className="pt-6 border-t border-[var(--border)] flex flex-col gap-3 mb-6">
-            <Link href="#portfolio-builder" onClick={() => setMobileMenuOpen(false)} className="w-full">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full justify-center"
-                onClick={onSignInClick}
-              >
-                Sign In
-              </Button>
-            </Link>
-            <Link href="#portfolio-builder" onClick={() => setMobileMenuOpen(false)} className="w-full">
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full justify-center"
-                onClick={onGetStartedClick}
-              >
-                Get Started Free
-              </Button>
-            </Link>
+            {isAuthenticated && user ? (
+              <>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl flex items-center justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-[var(--foreground)]">{user.displayName}</p>
+                    <p className="text-xs text-[var(--muted)] font-mono">{user.roles[0] || 'CUSTOMER'}</p>
+                  </div>
+                  <span className="text-xs font-medium text-[var(--brand)]">Account →</span>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full justify-center"
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)} className="w-full">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-center"
+                    onClick={onSignInClick}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)} className="w-full">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full justify-center"
+                    onClick={onGetStartedClick}
+                  >
+                    Join Atelier
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

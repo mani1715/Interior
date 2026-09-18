@@ -17,9 +17,44 @@ export class ApiError extends Error {
   }
 }
 
+let cachedCsrfToken: string | null = null;
+
+export async function getCsrfToken(): Promise<string> {
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  if (cachedCsrfToken) {
+    return cachedCsrfToken;
+  }
+
+  try {
+    const res = await fetch(`${env.apiBaseUrl}/auth/csrf`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      cachedCsrfToken = data.csrfToken;
+      return data.csrfToken;
+    }
+  } catch {
+    // If backend is unavailable, return empty
+  }
+  return '';
+}
+
+export function resetCsrfToken() {
+  cachedCsrfToken = null;
+}
+
 /**
  * Standardized API client fetching backend REST endpoints (/api/v1).
- * Credentials (cookies) are automatically included for same-origin session auth.
+ * Credentials (cookies) are automatically included for secure session auth.
  * Automatically forwards/extracts CSRF tokens and request IDs.
  */
 export async function apiFetch<T>(
@@ -33,11 +68,19 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  // Include credentials for session cookie authentication
+  const method = (options.method || 'GET').toUpperCase();
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && !headers.has('X-CSRF-Token')) {
+    const csrfToken = await getCsrfToken();
+    if (csrfToken) {
+      headers.set('X-CSRF-Token', csrfToken);
+    }
+  }
+
+  // Include credentials for session cookie authentication across ports/hosts
   const config: RequestInit = {
     ...options,
     headers,
-    credentials: 'same-origin',
+    credentials: 'include',
   };
 
   const response = await fetch(url, config);

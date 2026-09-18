@@ -16,6 +16,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+import { AuthProvider } from '@/lib/auth/auth-context';
+
 export default function RootLayout({
   children,
 }: {
@@ -24,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div id="root-shell">{children}</div>
+        <AuthProvider>
+          <div id="root-shell">{children}</div>
+        </AuthProvider>
       </body>
     </html>
   );

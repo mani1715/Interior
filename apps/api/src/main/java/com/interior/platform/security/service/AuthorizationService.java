@@ -23,14 +23,35 @@ public class AuthorizationService {
         }
     }
 
+    public void requirePermission(ActorContext actor, String permission) {
+        requireAuthenticated(actor);
+        if (actor.hasRole("SUPER_ADMIN")) {
+            return;
+        }
+        if (!actor.hasPermission(permission)) {
+            throw new AccessDeniedException("Required permission missing: " + permission);
+        }
+    }
+
+    /**
+     * Enforces elevated authentication assurance (MFA / WebAuthn) for privileged roles.
+     */
+    public void requireMfaAssurance(ActorContext actor) {
+        requireAuthenticated(actor);
+        if (!actor.hasMfaAssurance()) {
+            throw new AccessDeniedException("Multi-factor authentication (MFA) assurance required for this action");
+        }
+    }
+
     public void requireStudioAccess(ActorContext actor, UUID targetStudioId) {
         requireAuthenticated(actor);
         
-        // Super Admin or Moderator bypass for system operations
+        // Super Admin or Admin bypass for platform oversight
         if (actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
             return;
         }
 
+        // DESIGNER_TEAM and DESIGNER are strictly scoped to their assigned studio
         if (targetStudioId == null || !actor.isStudioMember(targetStudioId)) {
             throw new AccessDeniedException("Access denied: tenant isolation violation");
         }
