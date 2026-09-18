@@ -33,10 +33,19 @@ describe('Phase 07 — Frontend Authentication & Role Tests', () => {
       expect(sanitizeRedirectUrl('http://attacker.com')).toBe('/account');
       expect(sanitizeRedirectUrl('//evil.com')).toBe('/account');
       expect(sanitizeRedirectUrl('/\\evil.com')).toBe('/account');
+      expect(sanitizeRedirectUrl('\\\\evil.com')).toBe('/account');
+      expect(sanitizeRedirectUrl('\\evil.com')).toBe('/account');
       expect(sanitizeRedirectUrl('javascript:alert(1)')).toBe('/account');
+      expect(sanitizeRedirectUrl('data:text/html,<script>alert(1)</script>')).toBe('/account');
+      expect(sanitizeRedirectUrl('%2f%2fevil.com')).toBe('/account');
+      expect(sanitizeRedirectUrl('/%2fevil.com')).toBe('/account');
+      expect(sanitizeRedirectUrl('%5cevil.com')).toBe('/account');
+      expect(sanitizeRedirectUrl('/%5cevil.com')).toBe('/account');
       expect(sanitizeRedirectUrl(null)).toBe('/account');
       expect(sanitizeRedirectUrl('')).toBe('/account');
+      expect(sanitizeRedirectUrl('   ')).toBe('/account');
       expect(sanitizeRedirectUrl('/account\r\nSet-Cookie: evil=1')).toBe('/account');
+      expect(sanitizeRedirectUrl('/account\nLocation: https://evil.com')).toBe('/account');
     });
   });
 

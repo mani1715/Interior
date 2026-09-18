@@ -151,8 +151,9 @@ public class SessionSecurityService {
         }
 
         UserRecord user = userOpt.get();
-        // Canonical status: 'PENDING', 'ACTIVE', 'SUSPENDED', 'DELETED'
-        if ("SUSPENDED".equalsIgnoreCase(user.status()) || "DELETED".equalsIgnoreCase(user.status())) {
+        // Only canonical ACTIVE accounts are permitted to hold valid sessions.
+        // PENDING, SUSPENDED, and DELETED accounts are rejected.
+        if (!"ACTIVE".equalsIgnoreCase(user.status())) {
             return Optional.empty();
         }
 

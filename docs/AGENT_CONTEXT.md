@@ -53,14 +53,34 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 05.1 — PASS:** Homepage Truthfulness & SEO Correction Pass. Audited all visible homepage claims, mock data, badges, and links. Removed all unsupported "verified" assertions (verification system not yet implemented). Replaced with truthful regional positioning and professional trade descriptors. Cleaned SEO claims to clarify architecture foundation vs independent search engine ranking. Updated mock Google snippet to neutral SERP preview labeled Example Search Appearance. Refined AI disclaimer to canonical concise architectural wording. Audited all links to point to safe section anchors without broken routes or fake feature pages. Cleaned JSON-LD structured data and social metadata. 27 frontend tests and 8 backend tests PASS.
 - **PHASE 06 — PASS:** Public Discovery UI (Project-First Interior Discovery Experience). Built the complete public discovery UI architecture, client islands, centralized demo query boundary, and route hierarchy: `/projects` (Project Catalog with search, filters, sorting, responsive grid), `/projects/[projectSlug]` (Project Detail Story with gallery, technical specifications, before/after slider, before->AI->reality narrative with mandatory AI disclaimer badge, creator attribution, and related projects), `/professionals` (Professional Directory with trade tabs and city filtering), `/professionals/[professionalSlug]` (Public Studio Profile with services, specialties, and published projects), `/categories/[categorySlug]` (Category Landing with SEO content, popular styles, and filtered projects), and `/locations/[locationSlug]` (Location Landing with regional design context, popular categories, and local studios). Implemented "I Want Something Similar" enquiry modal with project context and honest development preview notice (zero fake backend lead transmission). Strict mobile-first design, single `<h1>` per route, JSON-LD BreadcrumbList and Article schemas, 404 handling via `notFound()`. 57 frontend tests across 7 test files, full TypeScript check, ESLint, Next.js build, and Spring Boot backend tests all 100% PASS.
 - **PHASE 07 — PARTIAL:** Authentication & Roles (Production Identity, Session & Authorization Implementation). Full security architecture implemented: backend-owned opaque 256-bit sessions (`identity_sessions`), SHA-256 hashed tokens, secure cookie transport (`__Host-session`), CSRF synchronizer token rotation/verification, in-memory sliding-window bucket rate limiter (`RateLimiterService`), replay-resistant single-use OIDC transaction store (`OidcTransactionStore`), provider-neutral OIDC boundary (`OidcService`), safe account linking preventing silent account takeover on email collision, least-privilege customer baseline role on registration, strictly studio-scoped `DESIGNER_TEAM` authorization, privileged MFA assurance enforcement (`requireMfaAssurance`), dev/test auth persona sandbox (`dev-login` strictly guarded by `@Profile({"dev", "test"})` AND `app.security.dev-auth-enabled=true`), open redirect defense (`sanitizeRedirectUrl`), auth-aware navigation (`PublicHeader`), and mobile-first frontend auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`). Status is truthfully PARTIAL because complete architecture and runtime are verified locally, while external live production OIDC provider credentials await production environment provisioning.
+- **PHASE 07.1 — PARTIAL (SECURITY CLOSURE COMPLETE):** Authentication Security Closure. Closed all 18 security verification gaps:
+  1. Durable database-backed OIDC transaction store (`auth_oidc_transactions` Flyway migration `V003__auth_oidc_transactions.sql`) with atomic SQL consumption (`UPDATE ... SET consumed_at = ? WHERE state = ? AND consumed_at IS NULL AND expires_at > ?`), eliminating process-local memory vulnerability in multi-instance load-balanced deployments.
+  2. Protocol-level ID token claims validation (`validateIdTokenClaims`) covering issuer mismatch, audience mismatch, token expiration, and nonce mismatch.
+  3. PKCE S256 verification (`verifyPkce`) testing SHA-256 code challenge match and replay rejection.
+  4. Trusted MFA assurance source (`deriveAssurance`) strictly derived from IdP `acr`/`amr` claims (`gold`, `phr`, `webauthn`, `fido`, `otp`, `sms`); ordinary sessions cannot self-upgrade.
+  5. Dev auth profile matrix test (`DevAuthSecurityTest`) verifying `DevAuthService` is absent under `production`, `staging`, and default profiles even if `dev-auth-enabled=true`, and verifying absolute absence and complete rejection of `X-User-Id`, `X-Role`, and `X-Studio-Id` headers.
+  6. Session lifecycle & revocation: current session revocation, user revocation isolation, and canonical account states enforcement (only `ACTIVE` accounts hold valid sessions; `PENDING`, `SUSPENDED`, and `DELETED` accounts are rejected).
+  7. Configuration-driven session timeouts (`AuthSecurityProperties`) and write throttling (zero DB writes inside 300s window).
+  8. CSRF closure: session-bound CSRF tokens, `Cache-Control: no-store, private` header on `/csrf`, cross-session CSRF token rejection, and CSRF enforcement on `POST /auth/logout` and `POST /auth/revoke-all`.
+  9. Rate limiting: sliding-window in-memory rate limiter (`RateLimiterService`) tested for capacity thresholds, IP isolation, and recovery after duration window.
+  10. Truthful `/auth/providers` contract returning only configured providers (empty if unconfigured) with truthful frontend rendering (zero fake buttons).
+  11. Open redirect defense across frontend and backend sanitized against `//`, `/\`, `\\`, `javascript:`, `data:`, `%2f`, `%5c`, and CRLF injection.
+  12. Least privilege role enforcement: professional intent (`DESIGNER`) receives `CUSTOMER` role only on registration; injected roles rejected.
+  13. `DESIGNER_TEAM` tenant isolation verified with explicit test `testDesignerTeamCrossStudioAccessDenied`.
+  14. `/auth/me` audit confirmed zero exposure of session tokens, hashes, or CSRF secrets.
+  15. Audit logging sanitization confirmed zero logging of tokens, codes, secrets, or PKCE verifiers.
+  16. Production cookie policy: `__Host-session`, Secure, HttpOnly, Path=/, SameSite=Lax.
+  17. SpringDoc OpenAPI 3.1 annotations on `AuthController`.
+  Status remains PARTIAL until live production OIDC provider credentials are provisioned by the platform operator.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
   - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), auth-aware `PublicHeader`, and zero-token client session context (`AuthProvider`). Next.js Turbopack build clean, 65 unit/integration tests passed across 8 test files.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations, Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping and privileged MFA enforcement. Maven test suite passed with 26 tests (0 failures, 0 errors).
-  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql` and `V002__pg_rls_policies.sql`.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003), Maven wrapper checked in. Opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping and privileged MFA enforcement. Maven test suite passed with 54 tests (0 failures, 0 errors).
+  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, and `V003__auth_oidc_transactions.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
+- **REMOTE PUSH POLICY:** Local commits only. Remote push prohibited unless explicitly requested by the user.
 
 ## SELECTED ARCHITECTURE
 
@@ -70,13 +90,13 @@ Paths below are relative to this document; filenames are the canonical repositor
 | Web tooling | Node 22.18.0 / npm 10.9.3; CSS variables + Tailwind; Vitest 5.0.1; ESLint 9 |
 | Backend | Java 25 (Temurin 25.0.4.1 runtime, compiler target Java 21), Spring Boot 3.4.3; modular monolith |
 | Java tooling | Maven 3.9.9 checked-in wrapper (`mvnw.cmd`); separate native build |
-| Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()` |
-| Cache | No initial Redis; PostgreSQL authoritative for sessions, quotas and sensitive counters |
+| Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()`, durable OIDC state in `auth_oidc_transactions` |
+| Cache | No initial Redis; PostgreSQL authoritative for sessions, OIDC transactions, quotas and sensitive counters |
 | Storage | Private S3-compatible abstraction, initial AWS S3 |
 | Public media / CDN | Approved watermarked derivatives only; CloudFront restricted origin/OAC |
 | Queue | SQS Standard + transactional outbox + destination dispatch |
 | Search | PostgreSQL initial search abstraction; rebuildable published projections |
-| API / contracts | REST `/api/v1`; OpenAPI 3.1 contract-first |
+| API / contracts | REST `/api/v1`; OpenAPI 3.1 contract-first (SpringDoc annotated) |
 | Authentication | Managed OIDC abstraction; backend-owned opaque browser sessions |
 
 ## CURRENT ENVIRONMENT
@@ -86,17 +106,18 @@ Paths below are relative to this document; filenames are the canonical repositor
 - Node 22.18.0 / npm 10.9.3 active for web execution; Node 24.19.0 LTS qualified.
 - PostgreSQL 18.3 active on port 5433; database `interior_design_dev` created and migrated.
 - Git repository initialized.
+- Standing Rule: NEVER PUSH TO REMOTE without explicit user command.
 
 ## RECENT VERIFICATION EVIDENCE
 
-- `npm run test` (apps/web): **PASS** (8 test files, 65 tests run, 0 failures, 4.62s)
+- `npm run test` (apps/web): **PASS** (8 test files, 65 tests run, 0 failures, 5.61s)
 - `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
 - `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
 - `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, all auth and discovery routes rendered cleanly)
-- `mvnw test` (apps/api): **PASS** (26 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25)
+- `mvnw test` (apps/api): **PASS** (54 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25)
 - Contrast Audit: `#B88A5A` + `#1F1F1F` = **5.35:1** (exceeds WCAG 2.2 AA 4.5:1 requirement)
 
 ## NEXT PHASE
 
 **PHASE 08 — DESIGNER ONBOARDING.**
-Authentication and role architecture implemented. Ready for interior designer studio creation, profile onboarding, and verification workflow.
+Authentication and role architecture hardened and verified. Ready for interior designer studio creation, profile onboarding, and verification workflow.

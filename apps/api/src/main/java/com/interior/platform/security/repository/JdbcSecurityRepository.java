@@ -242,6 +242,49 @@ public class JdbcSecurityRepository implements SecurityRepository {
     }
 
     @Override
+    public void saveOidcTransaction(com.interior.platform.security.domain.OidcTransaction transaction) {
+        String sql = "INSERT INTO auth_oidc_transactions (id, state, nonce, code_verifier, provider_id, return_url, intent_role, created_at, expires_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(sql,
+                UUID.randomUUID(),
+                transaction.state(),
+                transaction.nonce(),
+                transaction.codeVerifier(),
+                transaction.providerId(),
+                transaction.returnUrl(),
+                transaction.intentRole(),
+                Timestamp.from(transaction.createdAt()),
+                Timestamp.from(transaction.expiresAt())
+        );
+    }
+
+    @Override
+    public Optional<com.interior.platform.security.domain.OidcTransaction> consumeOidcTransaction(String state, Instant now) {
+        // Atomic one-time consumption: only updates if not yet consumed and not expired
+        String updateSql = "UPDATE auth_oidc_transactions SET consumed_at = ? " +
+                           "WHERE state = ? AND consumed_at IS NULL AND expires_at > ?";
+        int updated = jdbcTemplate.update(updateSql, Timestamp.from(now), state, Timestamp.from(now));
+        if (updated == 0) {
+            return Optional.empty();
+        }
+
+        String querySql = "SELECT state, nonce, code_verifier, provider_id, return_url, intent_role, created_at, expires_at " +
+                          "FROM auth_oidc_transactions WHERE state = ?";
+        List<com.interior.platform.security.domain.OidcTransaction> results = jdbcTemplate.query(querySql, (rs, rowNum) -> new com.interior.platform.security.domain.OidcTransaction(
+                rs.getString("state"),
+                rs.getString("nonce"),
+                rs.getString("code_verifier"),
+                rs.getString("provider_id"),
+                rs.getString("return_url"),
+                rs.getString("intent_role"),
+                rs.getTimestamp("created_at").toInstant(),
+                rs.getTimestamp("expires_at").toInstant()
+        ), state);
+
+        return results.stream().findFirst();
+    }
+
+    @Override
     public void recordAuditEvent(UUID id, UUID studioId, UUID actorId, String action, String resourceType,
                                  UUID resourceId, String requestId, String details, Instant timestamp) {
         String sql = "INSERT INTO audit_events (id, studio_id, actor_id, action, resource_type, resource_id, request_id, details, timestamp) " +

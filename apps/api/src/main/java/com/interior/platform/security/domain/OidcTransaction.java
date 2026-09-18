@@ -8,6 +8,7 @@ public record OidcTransaction(
     String codeVerifier,
     String providerId,
     String returnUrl,
+    String intentRole,
     Instant createdAt,
     Instant expiresAt
 ) {
@@ -19,7 +20,7 @@ public record OidcTransaction(
         String intentRole,
         Instant expiresAt
     ) {
-        this(state, nonce, codeVerifier, intentRole, returnUrl, Instant.now(), expiresAt);
+        this(state, nonce, codeVerifier, "oidc", returnUrl, intentRole, Instant.now(), expiresAt);
     }
 
     public boolean isExpired(Instant now) {

@@ -73,6 +73,31 @@ class AuthorizationPolicyTest {
     }
 
     @Test
+    @DisplayName("DESIGNER_TEAM member of Studio A attempting to access Studio B is DENIED")
+    void testDesignerTeamCrossStudioAccessDenied() {
+        UUID studioA = UUID.randomUUID();
+        UUID studioB = UUID.randomUUID();
+
+        ActorContext teamMemberStudioA = new ActorContext(
+                UUID.randomUUID(),
+                "Team Member Studio A",
+                "member@studioa.com",
+                Set.of("DESIGNER_TEAM"),
+                Set.of("project:read", "project:write"),
+                studioA,
+                "MEMBER",
+                "PASSWORD",
+                true
+        );
+
+        AccessDeniedException ex = assertThrows(
+                AccessDeniedException.class,
+                () -> authorizationService.requireStudioAccess(teamMemberStudioA, studioB)
+        );
+        assertTrue(ex.getMessage().contains("tenant isolation violation") || ex.getMessage().contains("Access denied to studio"));
+    }
+
+    @Test
     @DisplayName("Privileged MFA requirement enforces MFA or WebAuthn assurance")
     void testPrivilegedMfaRequirement() {
         UUID adminId = UUID.randomUUID();

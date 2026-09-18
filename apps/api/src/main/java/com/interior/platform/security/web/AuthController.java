@@ -12,10 +12,13 @@ import com.interior.platform.security.service.DevAuthService;
 import com.interior.platform.security.service.OidcService;
 import com.interior.platform.security.service.RateLimiterService;
 import com.interior.platform.security.service.SessionSecurityService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +35,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "Authentication & Sessions", description = "Identity, OIDC authentication, and session management")
 public class AuthController {
 
     private final SessionSecurityService sessionSecurityService;
@@ -58,6 +62,10 @@ public class AuthController {
     }
 
     @GetMapping("/providers")
+    @Operation(summary = "List configured identity providers", description = "Returns only actually configured OIDC providers and dev auth availability.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Configured providers list returned")
+    })
     public ResponseEntity<Map<String, Object>> getProviders() {
         var providers = oidcService.getAvailableProviders();
         boolean isDevAuthEnabled = devAuthService.isPresent();
@@ -71,6 +79,12 @@ public class AuthController {
     }
 
     @GetMapping("/login")
+    @Operation(summary = "Initiate OIDC authentication", description = "Generates secure state, nonce, and PKCE challenge, returning 302 redirect to provider.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "302", description = "Redirect to provider authorization endpoint"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public void login(
             @RequestParam(name = "provider", defaultValue = "google") String provider,
             @RequestParam(name = "returnUrl", defaultValue = "/") String returnUrl,
@@ -86,6 +100,12 @@ public class AuthController {
     }
 
     @GetMapping("/callback")
+    @Operation(summary = "OIDC callback handler (GET)", description = "Handles authorization code return, validates state and nonce, issues session cookie.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "302", description = "Redirect to sanitized application return URL"),
+            @ApiResponse(responseCode = "403", description = "Invalid or expired state / replay attack"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public void handleGetCallback(
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
@@ -96,6 +116,12 @@ public class AuthController {
     }
 
     @PostMapping("/callback")
+    @Operation(summary = "OIDC callback handler (POST)", description = "Form-post callback handler for identity providers that post authorization response.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "302", description = "Redirect to sanitized application return URL"),
+            @ApiResponse(responseCode = "403", description = "Invalid or expired state"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public void handlePostCallback(
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
@@ -147,6 +173,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get current authenticated identity", description = "Returns active user profile, studio tenancy, roles, and assurance. Does not leak secrets.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Identity context returned")
+    })
     public ResponseEntity<AuthMeResponse> getCurrentUser(HttpServletRequest request) {
         ActorContext actor = (ActorContext) request.getAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE);
         if (actor == null || !actor.isAuthenticated()) {
@@ -175,6 +205,10 @@ public class AuthController {
     }
 
     @GetMapping("/csrf")
+    @Operation(summary = "Retrieve fresh CSRF token", description = "Returns CSRF token with private no-store cache headers.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "CSRF token returned")
+    })
     public ResponseEntity<Map<String, String>> getCsrfToken(HttpServletRequest request) {
         SessionRecord session = (SessionRecord) request.getAttribute(SecurityInterceptor.SESSION_ATTRIBUTE);
         String csrfToken;
@@ -190,6 +224,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "Logout current session", description = "Revokes current session in database, clears cookie. Requires X-CSRF-Token for authenticated sessions.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Logged out successfully"),
+            @ApiResponse(responseCode = "403", description = "CSRF token missing or invalid")
+    })
     public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request, HttpServletResponse response) {
         SessionRecord session = (SessionRecord) request.getAttribute(SecurityInterceptor.SESSION_ATTRIBUTE);
         ActorContext actor = (ActorContext) request.getAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE);
@@ -213,6 +252,12 @@ public class AuthController {
     }
 
     @PostMapping("/revoke-all")
+    @Operation(summary = "Revoke all user sessions", description = "Revokes all sessions across all devices for the current user. Requires X-CSRF-Token.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All active sessions revoked"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "CSRF token missing or invalid")
+    })
     public ResponseEntity<Map<String, Object>> revokeAll(HttpServletRequest request, HttpServletResponse response) {
         ActorContext actor = (ActorContext) request.getAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE);
         if (actor == null || !actor.isAuthenticated()) {
@@ -237,6 +282,12 @@ public class AuthController {
     }
 
     @PostMapping("/dev-login")
+    @Operation(summary = "Development persona login", description = "Authenticates as a predefined development persona. Strictly rejected outside dev/test profiles.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Authenticated as persona"),
+            @ApiResponse(responseCode = "403", description = "Dev authentication disabled in this environment"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public ResponseEntity<AuthMeResponse> devLogin(
             @RequestBody Map<String, String> body,
             HttpServletRequest request,

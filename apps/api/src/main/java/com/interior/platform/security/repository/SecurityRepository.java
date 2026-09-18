@@ -33,6 +33,9 @@ public interface SecurityRepository {
     UUID findStudioIdBySlug(String slug);
     void addStudioMember(UUID id, UUID studioId, UUID userId, String role);
 
+    void saveOidcTransaction(com.interior.platform.security.domain.OidcTransaction transaction);
+    Optional<com.interior.platform.security.domain.OidcTransaction> consumeOidcTransaction(String state, Instant now);
+
     void recordAuditEvent(UUID id, UUID studioId, UUID actorId, String action, String resourceType,
                           UUID resourceId, String requestId, String details, Instant timestamp);
 }

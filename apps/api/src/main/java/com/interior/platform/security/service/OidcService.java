@@ -32,6 +32,27 @@ public class OidcService {
     public record AuthorizationResponse(String authorizationUrl, String state) {}
     public record OidcAuthResult(UserRecord user, String returnUrl, String assurance) {}
 
+    public record ParsedIdToken(
+        String issuer,
+        String audience,
+        String subject,
+        String nonce,
+        Instant expiresAt,
+        Instant issuedAt,
+        String email,
+        String name,
+        String acr,
+        List<String> amr
+    ) {}
+
+    public record OidcClaims(
+        String issuer,
+        String subject,
+        String email,
+        String name,
+        String assurance
+    ) {}
+
     private final AuthSecurityProperties properties;
     private final OidcTransactionStore transactionStore;
     private final SecurityRepository securityRepository;
@@ -53,26 +74,36 @@ public class OidcService {
         this.clock = clock;
     }
 
+    /**
+     * Returns only actually configured OIDC providers. Unconfigured providers are omitted.
+     */
     public List<ProviderInfo> getAvailableProviders() {
         Map<String, AuthSecurityProperties.OidcProviderProperties> configured = properties.getOidc().getProviders();
-        if (configured.isEmpty()) {
+        if (configured == null || configured.isEmpty()) {
             return List.of();
         }
         return configured.entrySet().stream()
+                .filter(entry -> isProviderReady(entry.getValue()))
                 .map(entry -> new ProviderInfo(
                         entry.getKey(),
                         formatProviderName(entry.getKey()),
-                        isProviderReady(entry.getValue())
+                        true
                 ))
                 .toList();
     }
 
     public boolean isProviderConfigured(String providerId) {
+        if (properties.getOidc().getProviders() == null) {
+            return false;
+        }
         AuthSecurityProperties.OidcProviderProperties provider = properties.getOidc().getProviders().get(providerId);
         return isProviderReady(provider);
     }
 
     public AuthorizationResponse initiateLogin(String providerId, String returnUrl, String intentRole) {
+        if (properties.getOidc().getProviders() == null) {
+            throw new IllegalStateException("OIDC Provider '" + providerId + "' is not configured on this platform");
+        }
         AuthSecurityProperties.OidcProviderProperties provider = properties.getOidc().getProviders().get(providerId);
         if (provider == null || !isProviderReady(provider)) {
             throw new IllegalStateException("OIDC Provider '" + providerId + "' is not configured on this platform");
@@ -111,20 +142,80 @@ public class OidcService {
             throw new AccessDeniedException("Authorization code missing from callback");
         }
 
-        // Production provider implementation will exchange code with tokenUri using codeVerifier and validate ID token
-        // In the absence of live provider credentials, throw configuration exception
+        // Production provider implementation exchanges code with tokenUri using codeVerifier and validates ID token.
+        // In the absence of live provider credentials in Phase 07, throw configuration exception.
         throw new IllegalStateException("Production OIDC token exchange requires live provider credentials and endpoints");
     }
 
     /**
+     * Protocol-level validation of parsed ID token claims against transaction and provider contracts.
+     */
+    public OidcClaims validateIdTokenClaims(
+            ParsedIdToken token,
+            OidcTransaction tx,
+            AuthSecurityProperties.OidcProviderProperties provider
+    ) {
+        if (token == null) {
+            throw new AccessDeniedException("OIDC token validation failed: token is missing");
+        }
+        if (provider == null || provider.getIssuer() == null || !provider.getIssuer().equals(token.issuer())) {
+            throw new AccessDeniedException("OIDC token validation failed: issuer mismatch");
+        }
+        if (provider.getClientId() == null || !provider.getClientId().equals(token.audience())) {
+            throw new AccessDeniedException("OIDC token validation failed: audience mismatch");
+        }
+        if (token.expiresAt() == null || token.expiresAt().isBefore(clock.instant())) {
+            throw new AccessDeniedException("OIDC token validation failed: token has expired");
+        }
+        if (tx.nonce() == null || !tx.nonce().equals(token.nonce())) {
+            throw new AccessDeniedException("OIDC token validation failed: nonce mismatch");
+        }
+
+        String assurance = deriveAssurance(token.acr(), token.amr());
+        return new OidcClaims(token.issuer(), token.subject(), token.email(), token.name(), assurance);
+    }
+
+    /**
+     * Verifies PKCE code challenge match using SHA-256.
+     */
+    public boolean verifyPkce(String codeVerifier, String codeChallenge) {
+        if (codeVerifier == null || codeChallenge == null) {
+            return false;
+        }
+        String computedChallenge = generateCodeChallenge(codeVerifier);
+        return computedChallenge.equals(codeChallenge);
+    }
+
+    /**
+     * Derives authentication assurance level strictly from trusted OIDC acr/amr claims.
+     */
+    public String deriveAssurance(String acr, List<String> amr) {
+        if ("gold".equalsIgnoreCase(acr) || "phr".equalsIgnoreCase(acr)) {
+            return "MFA";
+        }
+        if (amr != null) {
+            for (String method : amr) {
+                if ("webauthn".equalsIgnoreCase(method) || "fido".equalsIgnoreCase(method)) {
+                    return "WEBAUTHN";
+                }
+                if ("mfa".equalsIgnoreCase(method) || "otp".equalsIgnoreCase(method) || "sms".equalsIgnoreCase(method)) {
+                    return "MFA";
+                }
+            }
+        }
+        return "PASSWORD";
+    }
+
+    /**
      * Resolves an authenticated external identity into a platform user with safe account linking rules.
+     * Principle of least privilege: all new accounts receive CUSTOMER baseline role only.
      */
     public UserRecord resolveExternalUser(String issuer, String subject, String email, String displayName) {
         // 1. Check existing link
         var existingUserOpt = securityRepository.findUserByExternalIdentity(issuer, subject);
         if (existingUserOpt.isPresent()) {
             UserRecord user = existingUserOpt.get();
-            if ("SUSPENDED".equals(user.status()) || "DELETED".equals(user.status())) {
+            if (!"ACTIVE".equalsIgnoreCase(user.status())) {
                 throw new AccessDeniedException("User account is inactive");
             }
             return user;
@@ -140,7 +231,7 @@ public class OidcService {
                         "AUTH_EMAIL_COLLISION_REJECTED",
                         "USER",
                         existingByEmail.get().id().toString(),
-                        Map.of("issuer", issuer, "subject", subject, "email", email),
+                        Map.of("issuer", issuer, "email", email),
                         null,
                         null
                 );
@@ -148,7 +239,7 @@ public class OidcService {
             }
         }
 
-        // 3. Register new user with baseline role CUSTOMER
+        // 3. Register new user with baseline role CUSTOMER (least privilege)
         UUID userId = UUID.randomUUID();
         Instant now = clock.instant();
         UserRecord newUser = new UserRecord(
@@ -166,7 +257,7 @@ public class OidcService {
         // Bind external identity
         securityRepository.linkExternalIdentity(UUID.randomUUID(), userId, issuer, subject, now);
 
-        // Assign baseline CUSTOMER role (least privilege)
+        // Always assign baseline CUSTOMER role (least privilege)
         securityRepository.assignUserRole(UUID.randomUUID(), userId, "CUSTOMER", now);
 
         auditService.record(
@@ -175,7 +266,7 @@ public class OidcService {
                 "USER_REGISTERED_OIDC",
                 "USER",
                 userId.toString(),
-                Map.of("issuer", issuer, "subject", subject),
+                Map.of("issuer", issuer),
                 null,
                 null
         );
@@ -188,14 +279,24 @@ public class OidcService {
             return "/";
         }
         String trimmed = returnUrl.trim();
-        // Prevent open redirect (must start with / and not // or /\)
-        if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.startsWith("/\\")) {
-            return "/";
-        }
-        // Prevent CR/LF header injection
+
+        // Reject CRLF header injection
         if (trimmed.contains("\r") || trimmed.contains("\n")) {
             return "/";
         }
+
+        // Must start with single forward slash, and not double slash, backslash, or protocol-relative
+        if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.startsWith("/\\") || trimmed.startsWith("\\")) {
+            return "/";
+        }
+
+        // Disallow javascript:, data:, backslash, or encoded slashes/backslashes
+        String lower = trimmed.toLowerCase();
+        if (lower.contains("javascript:") || lower.contains("data:") || lower.contains("\\")
+                || lower.contains("%2f") || lower.contains("%5c")) {
+            return "/";
+        }
+
         return trimmed;
     }
 

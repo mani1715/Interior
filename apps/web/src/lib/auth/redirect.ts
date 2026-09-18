@@ -1,6 +1,6 @@
 /**
  * Sanitizes a redirect URL to prevent open redirect vulnerabilities.
- * Only allows relative internal application paths.
+ * Only allows safe, relative internal application paths.
  */
 export function sanitizeRedirectUrl(url?: string | null, defaultUrl: string = '/account'): string {
   if (!url || typeof url !== 'string') {
@@ -9,13 +9,25 @@ export function sanitizeRedirectUrl(url?: string | null, defaultUrl: string = '/
 
   const trimmed = url.trim();
 
-  // Reject empty or protocol-relative or backslash-based paths
-  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.startsWith('/\\')) {
+  // Reject CRLF header injection
+  if (trimmed.includes('\r') || trimmed.includes('\n')) {
     return defaultUrl;
   }
 
-  // Reject CRLF header injection
-  if (trimmed.includes('\r') || trimmed.includes('\n')) {
+  // Reject empty, protocol-relative, backslash, or windows network share paths
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.startsWith('/\\') || trimmed.startsWith('\\')) {
+    return defaultUrl;
+  }
+
+  // Disallow javascript:, data:, backslash, or encoded slashes/backslashes
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('javascript:') ||
+    lower.includes('data:') ||
+    lower.includes('\\') ||
+    lower.includes('%2f') ||
+    lower.includes('%5c')
+  ) {
     return defaultUrl;
   }
 
