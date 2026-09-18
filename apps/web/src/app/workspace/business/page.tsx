@@ -115,7 +115,23 @@ export default function BusinessProfilePage() {
           </div>
           <div>
             <dt className="text-charcoal-500 font-medium">Platform Handle / Slug</dt>
-            <dd className="font-mono text-bronze-800 mt-1">@{profile.slug}</dd>
+            <dd className="font-mono text-bronze-800 mt-1 flex items-center gap-2 flex-wrap">
+              <span>@{profile.slug}</span>
+              {profile.publicationStatus === 'PUBLISHED' ? (
+                <Link
+                  href={`/professionals/${profile.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-sans font-medium text-bronze-700 hover:text-bronze-900 underline inline-flex items-center gap-0.5"
+                >
+                  <span>View Public Profile</span>
+                </Link>
+              ) : (
+                <span className="text-[11px] font-sans font-normal text-charcoal-500 bg-sand-100 px-2 py-0.5 rounded border border-sand-200">
+                  Public profile not published yet.
+                </span>
+              )}
+            </dd>
           </div>
           <div>
             <dt className="text-charcoal-500 font-medium">Professional Classification</dt>
@@ -154,7 +170,7 @@ export default function BusinessProfilePage() {
               <dd className="font-mono text-sm text-charcoal-900 mt-1 font-semibold">
                 {profile.gstNumber}
                 <span className="ml-2 text-[11px] font-normal text-charcoal-500 font-sans">
-                  (Format-validated Indian GSTIN • Owner confidential)
+                  (Format-validated Indian GSTIN • Studio owner confidential)
                 </span>
               </dd>
             </div>

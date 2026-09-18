@@ -151,14 +151,20 @@ class WorkspaceServiceTest {
         assertFalse(summary.setupChecklist().get(6).completed(), "Portfolio setup pending");
         assertFalse(summary.setupChecklist().get(7).completed(), "Projects setup pending");
 
-        // Module readiness checks
+        // Module readiness checks: verify truthful semantics
         assertEquals(9, summary.modules().size());
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("portfolio") && m.status().equals("NOT_CONFIGURED")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("business") && m.status().equals("READY")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("media") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("leads") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("analytics") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("COMING_SOON")));
 
-        // Activity feed check: derived from studio timestamps, NOT raw audit records
+        // Activity feed check: derived from studio timestamps, NOT raw audit records, with user-friendly copy
         assertFalse(summary.activityFeed().isEmpty());
         assertEquals("ONBOARDING", summary.activityFeed().get(0).type());
+        assertTrue(summary.activityFeed().get(0).description().contains("Professional workspace enabled"));
     }
 
     @Test
@@ -336,5 +342,72 @@ class WorkspaceServiceTest {
         var emailContact = profile.contacts().stream().filter(c -> c.kind().equals("EMAIL")).findFirst().orElseThrow();
         assertFalse(emailContact.publicConsent());
         assertEquals("Private / Internal only", emailContact.visibilityLabel());
+    }
+
+    @Test
+    @DisplayName("9. GSTIN is hidden from DESIGNER_TEAM non-owner members in Business Profile")
+    void testBusinessProfileHidesGstNumberFromNonOwnerDesignerTeamMember() {
+        UUID teamUserId = UuidV7.randomUuid();
+        UUID studioId = UuidV7.randomUuid();
+        UserRecord user = createMockUser(teamUserId, "ACTIVE");
+        StudioDetailRecord studio = createMockStudio(studioId, UuidV7.randomUuid());
+
+        StudioMemberRecord membership = new StudioMemberRecord(
+                UuidV7.randomUuid(), studioId, "Suresh Design Studio", "suresh-design", teamUserId, "MEMBER", Instant.now()
+        );
+
+        ActorContext actor = new ActorContext(
+                teamUserId, user.displayName(), user.email(), Set.of("DESIGNER_TEAM"), studioId, "MEMBER", true
+        );
+
+        when(securityRepository.findUserById(teamUserId)).thenReturn(Optional.of(user));
+        when(securityRepository.getStudioMemberships(teamUserId)).thenReturn(List.of(membership));
+        when(studioRepository.findStudioById(studioId)).thenReturn(Optional.of(studio));
+
+        WorkspaceBusinessProfileResponse profile = workspaceService.getBusinessProfile(actor, null);
+
+        assertNotNull(profile);
+        // Non-owner team member must NOT see GSTIN
+        assertNull(profile.gstNumber(), "GSTIN must be null for non-owner members");
+        assertEquals("MEMBER", profile.roleInStudio());
+    }
+
+    @Test
+    @DisplayName("10. Module readiness semantics: unbuilt modules are COMING_SOON, business is READY, portfolio is NOT_CONFIGURED")
+    void testModuleReadinessSemantics() {
+        UUID userId = UuidV7.randomUuid();
+        UUID studioId = UuidV7.randomUuid();
+        UserRecord user = createMockUser(userId, "ACTIVE");
+        StudioDetailRecord studio = createMockStudio(studioId, userId);
+
+        StudioMemberRecord membership = new StudioMemberRecord(
+                UuidV7.randomUuid(), studioId, "Suresh Design Studio", "suresh-design", userId, "OWNER", Instant.now()
+        );
+
+        ActorContext actor = new ActorContext(
+                userId, user.displayName(), user.email(), Set.of("DESIGNER"), studioId, "OWNER", true
+        );
+
+        when(securityRepository.findUserById(userId)).thenReturn(Optional.of(user));
+        when(securityRepository.getStudioMemberships(userId)).thenReturn(List.of(membership));
+        when(studioRepository.findStudioById(studioId)).thenReturn(Optional.of(studio));
+
+        WorkspaceSummaryResponse summary = workspaceService.getWorkspaceSummary(actor, null);
+
+        var moduleMap = summary.modules().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        WorkspaceSummaryResponse.ModuleReadinessDto::id,
+                        WorkspaceSummaryResponse.ModuleReadinessDto::status
+                ));
+
+        assertEquals("READY", moduleMap.get("business"), "Business profile is implemented and usable");
+        assertEquals("NOT_CONFIGURED", moduleMap.get("portfolio"), "Portfolio is not yet configured for this studio");
+        assertEquals("COMING_SOON", moduleMap.get("projects"), "Project CMS is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("media"), "Media engine is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("ai"), "AI visualizer is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("leads"), "Leads/CRM is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("seo"), "SEO center is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("analytics"), "Analytics engine is not yet built");
+        assertEquals("COMING_SOON", moduleMap.get("notifications"), "Notification product model is not yet built");
     }
 }

@@ -38,10 +38,10 @@ export default function NotificationsWorkspacePage() {
             <ShieldCheck className="w-5 h-5 text-forest-600 flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="text-xs sm:text-sm font-semibold text-charcoal-900">
-                Professional Workspace Activated
+                Professional Workspace Initialized
               </h3>
               <p className="text-xs text-charcoal-600 mt-0.5 leading-relaxed">
-                Your studio identity, services catalog, and contact channels have been saved. Complete portfolio preparation to prepare for launch.
+                Your studio identity, services catalog, and contact channels have been registered. Complete portfolio preparation to prepare for launch.
               </p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function NotificationsWorkspacePage() {
                 Session Rotation Successful
               </h3>
               <p className="text-xs text-charcoal-600 mt-0.5 leading-relaxed">
-                Platform identity promoted to DESIGNER with active studio ownership credentials.
+                Professional workspace enabled with active studio ownership credentials.
               </p>
             </div>
           </div>

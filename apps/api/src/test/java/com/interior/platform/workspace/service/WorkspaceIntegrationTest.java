@@ -169,8 +169,14 @@ class WorkspaceIntegrationTest {
         // Module readiness assertions
         assertEquals(9, summary.modules().size());
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("portfolio") && m.status().equals("NOT_CONFIGURED")));
-        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("projects") && m.status().equals("NOT_STARTED")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("projects") && m.status().equals("COMING_SOON")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("business") && m.status().equals("READY")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("media") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("leads") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("seo") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("analytics") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("COMING_SOON")));
 
         // 2. Fetch Business Profile
         ResponseEntity<WorkspaceBusinessProfileResponse> profileResp = workspaceController.getBusinessProfile(request, null, null);
@@ -208,5 +214,37 @@ class WorkspaceIntegrationTest {
         assertThrows(UnauthorizedException.class, () ->
                 workspaceController.getWorkspaceSummary(request, null, null)
         );
+    }
+
+    @Test
+    @DisplayName("Workspace Security: DESIGNER_TEAM non-owner member cannot view GSTIN in business profile")
+    void testNonOwnerTeamMemberCannotViewGstNumber() {
+        UserRecord owner = createTestUser("Owner User", "owner@example.com");
+        UserRecord teamMember = createTestUser("Team User", "team@example.com");
+
+        ActorContext ownerActor = new ActorContext(owner.id(), owner.displayName(), owner.email(), Set.of("CUSTOMER"), null, null, true);
+        var onboardResult = onboardingService.completeOnboarding(ownerActor, createValidRequest("Team Studio", "team-studio"), null, null);
+        UUID studioId = onboardResult.studio().id();
+
+        // Add teamMember as MEMBER (non-owner)
+        jdbcTemplate.update(
+                "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES (?, ?, ?, ?, ?)",
+                UuidV7.randomUuid(), studioId, teamMember.id(), "MEMBER", Instant.now()
+        );
+
+        ActorContext teamActor = new ActorContext(
+                teamMember.id(), teamMember.displayName(), teamMember.email(), Set.of("DESIGNER_TEAM"), studioId, "MEMBER", true
+        );
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, teamActor);
+
+        ResponseEntity<WorkspaceBusinessProfileResponse> profileResp = workspaceController.getBusinessProfile(request, null, null);
+        assertEquals(200, profileResp.getStatusCode().value());
+
+        WorkspaceBusinessProfileResponse profile = profileResp.getBody();
+        assertNotNull(profile);
+        assertNull(profile.gstNumber(), "GSTIN must be null for non-owner members");
+        assertEquals("MEMBER", profile.roleInStudio());
     }
 }

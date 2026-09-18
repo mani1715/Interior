@@ -148,6 +148,9 @@ public class WorkspaceService {
                 )).toList()
                 : List.of();
 
+        // GSTIN is sensitive commercial data: exposed only to authenticated studio owner
+        String gstNumber = "OWNER".equalsIgnoreCase(studioContext.role()) ? studio.gstNumber() : null;
+
         return new WorkspaceBusinessProfileResponse(
                 studio.id(),
                 studio.name(),
@@ -166,7 +169,7 @@ public class WorkspaceService {
                 studio.country(),
                 studio.travelAvailable(),
                 studio.gstRegistered(),
-                studio.gstNumber(),
+                gstNumber,
                 studio.status(),
                 studio.publicationStatus(),
                 studioContext.role(),
@@ -291,7 +294,7 @@ public class WorkspaceService {
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
                 "registration",
                 "Professional Registration",
-                "Account verified and professional workspace activated.",
+                "Account authenticated and professional workspace activated.",
                 true,
                 "View",
                 "/workspace"
@@ -344,8 +347,8 @@ public class WorkspaceService {
 
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
                 "portfolio",
-                "Professional Portfolio",
-                "Public portfolio website configuration and theme layout.",
+                "Configure Portfolio Website",
+                "Select portfolio theme layout and structure. Available in Portfolio Builder (Upcoming).",
                 false,
                 "Prepare Portfolio",
                 "/workspace/portfolio"
@@ -353,10 +356,10 @@ public class WorkspaceService {
 
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
                 "projects",
-                "Add First Project",
-                "Showcase completed residential or commercial interior work.",
+                "Publish First Project Story",
+                "Showcase completed residential or commercial interior work. Available when Project CMS launches.",
                 false,
-                "View Projects",
+                "View Overview",
                 "/workspace/projects"
         ));
 
@@ -377,9 +380,9 @@ public class WorkspaceService {
                         "projects",
                         "Projects",
                         "Showcase completed residential and commercial interior projects and case studies.",
-                        "NOT_STARTED",
+                        "COMING_SOON",
                         "/workspace/projects",
-                        "View Project Workspace"
+                        "View Overview"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "media",
@@ -387,7 +390,7 @@ public class WorkspaceService {
                         "Centralized storage for high-resolution project photography, plans, and brand assets.",
                         "COMING_SOON",
                         "/workspace/media",
-                        "Explore Media"
+                        "Learn About This Feature"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "ai",
@@ -395,7 +398,7 @@ public class WorkspaceService {
                         "Transform site photos and room dimensions into conceptual spatial renders.",
                         "COMING_SOON",
                         "/workspace/ai",
-                        "Explore AI Studio"
+                        "Learn About This Feature"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "leads",
@@ -403,31 +406,31 @@ public class WorkspaceService {
                         "Manage client inquiries, consultation requests, and project briefs.",
                         "COMING_SOON",
                         "/workspace/leads",
-                        "View Inquiries"
+                        "View Overview"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "seo",
                         "SEO Center",
                         "Optimize search appearance, local keywords, and portfolio discoverability.",
-                        "NOT_CONFIGURED",
+                        "COMING_SOON",
                         "/workspace/seo",
-                        "Open SEO Center"
+                        "Learn About This Feature"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "analytics",
                         "Analytics",
                         "Track portfolio engagement, project impressions, and visitor inquiries once live.",
-                        "LOCKED",
+                        "COMING_SOON",
                         "/workspace/analytics",
-                        "View Analytics"
+                        "Learn About This Feature"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "notifications",
                         "Notifications",
                         "Platform updates, system notices, and client communication alerts.",
-                        "READY",
+                        "COMING_SOON",
                         "/workspace/notifications",
-                        "View Notifications"
+                        "View Overview"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "business",
@@ -447,7 +450,7 @@ public class WorkspaceService {
             feed.add(new WorkspaceSummaryResponse.ActivityItemDto(
                     "act-1",
                     "Professional Onboarding Completed",
-                    "Studio profile, services, and commercial details successfully registered.",
+                    "Studio profile, services, and commercial details successfully registered. Professional workspace enabled.",
                     studio.onboardingCompletedAt(),
                     "ONBOARDING"
             ));
@@ -456,7 +459,7 @@ public class WorkspaceService {
         if (studio.createdAt() != null) {
             feed.add(new WorkspaceSummaryResponse.ActivityItemDto(
                     "act-2",
-                    "Workspace Activated",
+                    "Studio Workspace Initialized",
                     "Professional workspace initialized with operational status ACTIVE.",
                     studio.createdAt(),
                     "SYSTEM"

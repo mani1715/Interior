@@ -75,7 +75,7 @@ const mockSummaryData: WorkspaceSummary = {
     {
       id: 'registration',
       title: 'Professional Registration',
-      description: 'Account verified and workspace activated.',
+      description: 'Account authenticated and professional workspace activated.',
       completed: true,
       actionLabel: 'View',
       actionRoute: '/workspace',
@@ -90,18 +90,18 @@ const mockSummaryData: WorkspaceSummary = {
     },
     {
       id: 'portfolio',
-      title: 'Professional Portfolio',
-      description: 'Public portfolio website layout.',
+      title: 'Configure Portfolio Website',
+      description: 'Select portfolio theme layout. Available in Portfolio Builder (Upcoming).',
       completed: false,
       actionLabel: 'Prepare Portfolio',
       actionRoute: '/workspace/portfolio',
     },
     {
       id: 'projects',
-      title: 'Add First Project',
-      description: 'Showcase interior work.',
+      title: 'Publish First Project Story',
+      description: 'Showcase completed interior work. Available when Project CMS launches.',
       completed: false,
-      actionLabel: 'View Projects',
+      actionLabel: 'View Overview',
       actionRoute: '/workspace/projects',
     },
   ],
@@ -118,9 +118,57 @@ const mockSummaryData: WorkspaceSummary = {
       id: 'projects',
       name: 'Projects',
       description: 'Showcase completed projects.',
-      status: 'NOT_STARTED',
+      status: 'COMING_SOON',
       route: '/workspace/projects',
-      ctaLabel: 'View Project Workspace',
+      ctaLabel: 'View Overview',
+    },
+    {
+      id: 'media',
+      name: 'Media Library',
+      description: 'Centralized asset storage.',
+      status: 'COMING_SOON',
+      route: '/workspace/media',
+      ctaLabel: 'Learn About This Feature',
+    },
+    {
+      id: 'ai',
+      name: 'AI Studio',
+      description: 'Transform site photos into spatial renders.',
+      status: 'COMING_SOON',
+      route: '/workspace/ai',
+      ctaLabel: 'Learn About This Feature',
+    },
+    {
+      id: 'leads',
+      name: 'Leads & Clients',
+      description: 'Manage client inquiries.',
+      status: 'COMING_SOON',
+      route: '/workspace/leads',
+      ctaLabel: 'View Overview',
+    },
+    {
+      id: 'seo',
+      name: 'SEO Center',
+      description: 'Optimize search appearance.',
+      status: 'COMING_SOON',
+      route: '/workspace/seo',
+      ctaLabel: 'Learn About This Feature',
+    },
+    {
+      id: 'analytics',
+      name: 'Analytics',
+      description: 'Track portfolio engagement.',
+      status: 'COMING_SOON',
+      route: '/workspace/analytics',
+      ctaLabel: 'Learn About This Feature',
+    },
+    {
+      id: 'notifications',
+      name: 'Notifications',
+      description: 'Platform updates and system notices.',
+      status: 'COMING_SOON',
+      route: '/workspace/notifications',
+      ctaLabel: 'View Overview',
     },
     {
       id: 'business',
@@ -135,7 +183,7 @@ const mockSummaryData: WorkspaceSummary = {
     {
       id: 'act-1',
       title: 'Professional Onboarding Completed',
-      description: 'Studio profile registered.',
+      description: 'Studio profile registered. Professional workspace enabled.',
       timestamp: '2026-09-18T10:00:00Z',
       type: 'ONBOARDING',
     },
@@ -339,11 +387,14 @@ describe('Phase 09: Designer Dashboard & Professional Workspace', () => {
     // Setup checklist
     expect(screen.getByText('Studio Setup Checklist')).toBeDefined();
     expect(screen.getByText('Professional Registration')).toBeDefined();
-    expect(screen.getByText('Professional Portfolio')).toBeDefined();
+    expect(screen.getByText('Configure Portfolio Website')).toBeDefined();
 
     // Module readiness cards
     expect(screen.getByText('Not Configured')).toBeDefined();
-    expect(screen.getByText('Not Started')).toBeDefined();
+    expect(screen.getAllByText('Coming Soon').length).toBeGreaterThanOrEqual(1);
+
+    // Unpublished profile notice
+    expect(screen.getAllByText('Public profile not published yet.').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders BusinessProfilePage with real studio attributes, GSTIN, and contact privacy labels', async () => {
@@ -361,10 +412,35 @@ describe('Phase 09: Designer Dashboard & Professional Workspace', () => {
 
     expect(screen.getByText('@srinivasa-interiors')).toBeDefined();
     expect(screen.getByText('37AAAAA0000A1Z5')).toBeDefined();
+    expect(screen.getByText(/Studio owner confidential/i)).toBeDefined();
+    expect(screen.getByText('Public profile not published yet.')).toBeDefined();
 
     // Privacy visibility labels
     expect(screen.getByText('Public when portfolio published')).toBeDefined();
     expect(screen.getByText('Private / Internal only')).toBeDefined();
+  });
+
+  it('BusinessProfilePage hides GSTIN section when user is non-owner and gstNumber is null', async () => {
+    const nonOwnerProfile: BusinessProfile = {
+      ...mockBusinessProfileData,
+      roleInStudio: 'MEMBER',
+      gstNumber: null,
+    };
+    vi.spyOn(workspaceApi, 'fetchBusinessProfile').mockResolvedValue(nonOwnerProfile);
+
+    render(
+      <AuthContext.Provider value={mockDesignerAuth}>
+        <BusinessProfilePage />
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Srinivasa Interiors')).toBeDefined();
+    });
+
+    // GSTIN must NOT be present
+    expect(screen.queryByText('37AAAAA0000A1Z5')).toBeNull();
+    expect(screen.queryByText(/Studio owner confidential/i)).toBeNull();
   });
 
   it('PublicHeader displays Workspace link for DESIGNER user', () => {

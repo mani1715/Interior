@@ -36,7 +36,7 @@ export default function LeadsWorkspacePage() {
           Client Inquiry Inbox in Preparation
         </h2>
         <p className="text-xs sm:text-sm text-charcoal-600 max-w-md mx-auto leading-relaxed mb-8">
-          Once your portfolio and projects are published, verified homeowner inquiries and consultation briefs will route directly to this workspace.
+          Once your portfolio and projects are published, genuine homeowner inquiries and consultation briefs will route directly to this workspace.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-2xl mx-auto pt-6 border-t border-sand-200">

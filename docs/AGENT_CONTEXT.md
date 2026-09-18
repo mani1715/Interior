@@ -102,14 +102,39 @@ Paths below are relative to this document; filenames are the canonical repositor
   - Responsive Mobile-First Workspace Shell: Implemented `WorkspaceShell.tsx` featuring desktop sidebar (1024px+) with studio switcher and sign-out, mobile top bar (360px-430px) with studio badge, 5-item thumb-friendly bottom navigation, accessible slide-over `BottomSheet` for secondary links, suspended account blocking screen, and customer guidance redirecting to `/onboarding/professional`.
   - Truthful Workspace Home & Business Profile: Implemented `/workspace` dashboard with greeting, studio status badges, truthful publication warning, dual completeness cards, 4 quick actions, 8 dynamic setup checklist items, 9 module readiness cards, and lifecycle activity log. Implemented `/workspace/business` with structured profile details and contact privacy badges.
   - Truthful Module Shells: Implemented 8 dedicated module preparation landing views (`/workspace/portfolio`, `/workspace/projects`, `/workspace/media`, `/workspace/ai`, `/workspace/leads`, `/workspace/seo`, `/workspace/analytics`, `/workspace/notifications`) featuring clear readiness status, prerequisites, and roadmap context with zero fake buttons or internal phase numbers.
-  - Navigation & Flow Integration: Updated `PublicHeader.tsx` to display "Workspace" link for authenticated `DESIGNER` / `DESIGNER_TEAM` accounts. Updated Step 8 of `/onboarding/professional` to direct users to `/workspace`.
-  - Comprehensive Verification: 105 backend tests (0 failures, 0 errors) in Maven; 80 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded with dynamic rendering. Terminology audit confirmed 0 occurrences of wedding terminology.
+- **PHASE 09.1 — PASS:** Workspace Truthfulness & Readiness Closure.
+  - Canonical Module Readiness Semantics Defined:
+    * `READY`: real user-facing functionality is implemented and usable.
+    * `NOT_CONFIGURED`: functionality exists but this studio has not configured it.
+    * `NOT_STARTED`: functionality exists but studio has no content/state yet.
+    * `LOCKED`: functionality exists but prerequisites or permissions block it.
+    * `COMING_SOON`: feature itself is not yet implemented.
+  - Truthful Current Module Statuses:
+    * `PORTFOLIO`: `NOT_CONFIGURED` (awaits Phase 10 builder setup)
+    * `PROJECTS`: `COMING_SOON` (awaits Phase 18 Project CMS)
+    * `MEDIA`: `COMING_SOON` (awaits Phase 19 Media Engine)
+    * `AI_STUDIO`: `COMING_SOON` (awaits Phase 24 AI Visualizer)
+    * `LEADS`: `COMING_SOON` (awaits Leads/CRM product implementation)
+    * `SEO`: `COMING_SOON` (awaits SEO engine and published portfolio prerequisites)
+    * `ANALYTICS`: `COMING_SOON` (awaits published portfolio visitor data)
+    * `NOTIFICATIONS`: `COMING_SOON` (awaits notification engine product model)
+    * `BUSINESS_PROFILE`: `READY` (real, implemented, structured inspection operational)
+  - Public Profile Unpublished Behavior:
+    * When `publicationStatus == 'UNPUBLISHED'`, public profile links to `/professionals/{slug}` are hidden/disabled in the workspace and replaced with "Public profile not published yet."
+    * Public discovery link only becomes active when studio state is `PUBLISHED`.
+  - GSTIN Owner Authorization & Confidentiality:
+    * Replaced all "verified owner" phrasing with "authenticated studio owner".
+    * GSTIN is strictly scoped to `OWNER` role in `getBusinessProfile`; hidden (`null`) for `DESIGNER_TEAM` non-owners (`MEMBER`); denied to foreign tenants; absent from public discovery.
+  - Setup Checklist & Activity Wording Hardened:
+    * "Publish First Project Story" and "Configure Portfolio Website" clearly communicate future prerequisites with non-actionable "View Overview" / "Prepare Portfolio" labels.
+    * Activity feed copy updated to user-friendly "Professional workspace enabled" (removing internal role terminology).
+  - Comprehensive Verification: 108 backend tests (0 failures, 0 errors) in Maven; 81 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded with dynamic rendering. Terminology audit confirmed 0 occurrences of wedding/event terminology.
 
 ## CURRENT IMPLEMENTATION STATE
 
 - **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), authenticated professional workspace (`/workspace` and 9 sub-routes) with responsive mobile bottom navigation and accessible bottom sheet. Next.js Turbopack build clean, 80 unit/integration tests passed across 10 test files.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005), Maven wrapper checked in. Canonical RFC 9562 UUIDv7 generator (`UuidV7`), opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion, and workspace service with deterministic readiness calculations and private caching. Maven test suite passed with 105 tests (0 failures, 0 errors).
+  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), authenticated professional workspace (`/workspace` and 9 sub-routes) with responsive mobile bottom navigation, accessible bottom sheet, truthful module readiness states, and unpublished profile safeguards. Next.js Turbopack build clean, 81 unit/integration tests passed across 10 test files.
+  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005), Maven wrapper checked in. Canonical RFC 9562 UUIDv7 generator (`UuidV7`), opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion, and workspace service with truthful module readiness, owner-scoped GSTIN confidentiality, and private caching. Maven test suite passed with 108 tests (0 failures, 0 errors).
   - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, `V004__designer_onboarding.sql`, and `V005__studio_specialties_and_onboarding_closure.sql`.
 - Git repository initialized. `.gitignore` protects credentials and build output.
 - **REMOTE PUSH POLICY:** Local commits only. Remote push prohibited unless explicitly requested by the user.
@@ -142,15 +167,15 @@ Paths below are relative to this document; filenames are the canonical repositor
 
 ## RECENT VERIFICATION EVIDENCE
 
-- `npm run test` (apps/web): **PASS** (10 test files, 80 tests run, 0 failures)
+- `npm run test` (apps/web): **PASS** (10 test files, 81 tests run, 0 failures)
 - `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
 - `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
 - `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, all `/workspace/*` routes dynamic)
-- `mvnw test` (apps/api): **PASS** (105 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25 with H2 and Flyway v005)
+- `mvnw test` (apps/api): **PASS** (108 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25 with H2 and Flyway v005)
 - PostgreSQL 18 dev database on port 5433 migrated to `v005` cleanly via `mvnw flyway:migrate`.
 
 ## NEXT PHASE
 
 **PHASE 10 — PORTFOLIO BUILDER ENGINE.**
-Designer dashboard, studio workspace overview, completeness calculation, truthful module readiness, and mobile-first navigation shell complete. Ready to implement the Portfolio Builder engine upon user approval.
+Workspace truthfulness and readiness closure complete. Ready to implement the Portfolio Builder engine upon user approval.
 

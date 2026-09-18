@@ -98,7 +98,10 @@ export default function WorkspaceHomePage() {
         <ShieldCheck className="w-5 h-5 text-bronze-700 flex-shrink-0 mt-0.5" />
         <div className="text-xs sm:text-sm text-charcoal-700 leading-relaxed">
           <strong className="font-semibold text-charcoal-900">Studio Status: Operational Internally</strong>.
-          {' '}Your professional studio profile has been verified and registered. Public discovery remains unpublished until you configure your portfolio and publish your first interior project.
+          {' '}Your professional studio profile has been registered and initialized. Public discovery remains unpublished until you configure your portfolio and publish your first interior project.
+          <span className="block mt-1 font-medium text-charcoal-600">
+            Public profile not published yet.
+          </span>
         </div>
       </div>
 
