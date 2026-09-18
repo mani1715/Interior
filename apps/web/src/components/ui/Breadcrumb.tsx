@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+  current?: boolean;
 }
 
 export interface BreadcrumbProps {

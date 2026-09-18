@@ -73,11 +73,11 @@ export default function HomePage() {
         {/* Public Header with responsive drawer */}
         <PublicHeader
           navLinks={[
+            { label: 'Projects', href: '/projects' },
+            { label: 'Professionals', href: '/professionals' },
             { label: 'Portfolio', href: '#portfolio-builder' },
-            { label: 'Discovery', href: '#discover-projects' },
             { label: 'AI Visualizer', href: '#ai-visualizer' },
             { label: 'Transformation', href: '#transformation-experience' },
-            { label: 'Inspiration', href: '#project-inspiration' },
           ]}
         />
 

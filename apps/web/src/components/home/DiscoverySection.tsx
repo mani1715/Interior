@@ -44,27 +44,33 @@ export function DiscoverySection() {
           </div>
         </SectionHeader>
 
-        {/* Mock Search Bar Interaction */}
+        {/* Interactive Search Bar Link */}
         <div className="max-w-2xl mx-auto mb-10 sm:mb-12">
-          <div className="p-2 sm:p-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md flex items-center gap-3">
-            <Search className="w-5 h-5 text-[var(--brand)] ml-2 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-[var(--foreground)] font-medium flex-1">
-              TV Units in Guntur, Andhra Pradesh
-            </span>
-            <span className="px-3 py-1.5 rounded-xl bg-[var(--brand)] text-[var(--charcoal)] font-semibold text-xs whitespace-nowrap">
-              Search Projects
-            </span>
-          </div>
+          <Link
+            href="/projects?category=tv-units&location=guntur"
+            className="p-2 sm:p-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md flex items-center gap-3 hover:border-[var(--brand)] transition-colors group block"
+          >
+            <div className="flex items-center gap-3 w-full">
+              <Search className="w-5 h-5 text-[var(--brand)] ml-2 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-[var(--foreground)] font-medium flex-1">
+                TV Units in Guntur, Andhra Pradesh
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-[var(--brand)] text-[var(--charcoal)] font-semibold text-xs whitespace-nowrap group-hover:brightness-105 transition-all">
+                Search Projects
+              </span>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-1.5 flex-wrap justify-center mt-3">
             <span className="text-[11px] text-[var(--muted)] mr-1">Trending:</span>
             {popularSearches.map((term, idx) => (
-              <span
+              <Link
                 key={idx}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--muted)]"
+                href={`/projects?q=${encodeURIComponent(term)}`}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--brand)] hover:border-[var(--brand)] transition-colors"
               >
                 {term}
-              </span>
+              </Link>
             ))}
           </div>
         </div>

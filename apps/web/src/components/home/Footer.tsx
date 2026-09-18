@@ -6,11 +6,11 @@ export function Footer() {
     {
       title: 'Discover',
       links: [
-        { label: 'All Projects', href: '#project-inspiration' },
-        { label: 'TV Units & Consoles', href: '#project-inspiration' },
-        { label: 'Modular Kitchens', href: '#project-inspiration' },
-        { label: 'Master Bedroom Suites', href: '#project-inspiration' },
-        { label: 'Pooja Mandir Units', href: '#project-inspiration' },
+        { label: 'All Projects', href: '/projects' },
+        { label: 'TV Units & Consoles', href: '/categories/tv-units' },
+        { label: 'Modular Kitchens', href: '/categories/modular-kitchens' },
+        { label: 'Master Bedroom Suites', href: '/categories/bedroom' },
+        { label: 'Pooja Mandir Units', href: '/categories/pooja-units' },
       ],
     },
     {
@@ -19,7 +19,7 @@ export function Footer() {
         { label: 'Create Portfolio', href: '#portfolio-builder' },
         { label: 'AI Spatial Visualizer', href: '#ai-visualizer' },
         { label: 'Watermark Protection', href: '#portfolio-builder' },
-        { label: 'Studio Showcase', href: '#discover-projects' },
+        { label: 'Studio Showcase', href: '/professionals' },
       ],
     },
     {

@@ -11,10 +11,10 @@ export interface NavLinkItem {
 }
 
 const defaultNavLinks: NavLinkItem[] = [
-  { label: 'Portfolio', href: '#portfolio-builder' },
-  { label: 'Discovery', href: '#discover-projects' },
-  { label: 'AI Visualizer', href: '#ai-visualizer' },
-  { label: 'Transformation', href: '#transformation-experience' },
+  { label: 'Projects', href: '/projects' },
+  { label: 'Professionals', href: '/professionals' },
+  { label: 'Categories', href: '/categories/tv-units' },
+  { label: 'AI Visualizer', href: '/#ai-visualizer' },
 ];
 
 export interface PublicHeaderProps {

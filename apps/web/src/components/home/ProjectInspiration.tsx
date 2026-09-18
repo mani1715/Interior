@@ -95,19 +95,35 @@ export function ProjectInspiration() {
                 </div>
 
                 {/* Footer Creator Link */}
-                <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
+                <Link
+                  href="/projects"
+                  className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs hover:text-[var(--brand)] transition-colors"
+                >
                   <div className="truncate">
                     <p className="font-medium text-[var(--foreground)] truncate">{project.studioName}</p>
                     <p className="text-[10px] text-[var(--muted)]">{project.designerName}</p>
                   </div>
                   <span className="text-[var(--brand)] font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    <span>View</span>
+                    <span>Explore</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>
-                </div>
+                </Link>
               </div>
             </article>
           ))}
+        </div>
+
+        {/* Discovery Catalog Link */}
+        <div className="mt-10 text-center">
+          <Link href="/projects">
+            <Button
+              variant="outline"
+              size="lg"
+              rightIcon={<ArrowRight className="w-4 h-4 text-[var(--brand)]" />}
+            >
+              Browse Complete Public Project Catalog
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

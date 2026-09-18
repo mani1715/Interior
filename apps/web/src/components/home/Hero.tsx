@@ -39,7 +39,7 @@ export function Hero() {
                   Create Your Portfolio
                 </Button>
               </Link>
-              <Link href="#discover-projects" className="w-full sm:w-auto">
+              <Link href="/projects" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="lg"
