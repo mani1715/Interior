@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-18, Antigravity Phase 06 Public Discovery UI PASS.
+Last updated: 2026-09-19, Antigravity Phase 10 Portfolio Builder Engine PASS. Next: Phase 11 Basic Portfolio Design (Astra).
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -39,9 +39,11 @@ Paths below are relative to this document; filenames are the canonical repositor
 - [02_TAXONOMY_STRATEGY.md](02_TAXONOMY_STRATEGY.md): typed dimensions and reference seeds.
 - [02_INDEX_QUERY_STRATEGY.md](02_INDEX_QUERY_STRATEGY.md): bounded queries, indexes and mobile summaries.
 - [02_MIGRATION_STRATEGY.md](02_MIGRATION_STRATEGY.md): progressive Flyway plan and Phase02 validation evidence.
+- [PORTFOLIO_TEMPLATE_CONTRACT.md](PORTFOLIO_TEMPLATE_CONTRACT.md): formal theme engine contract, props, and invariants for Phases 11–16.
+- [ASTRA_PHASE_11_HANDOFF.md](ASTRA_PHASE_11_HANDOFF.md): focused Phase 11 execution boundary for Astra.
 - [README.md](../README.md), [.gitignore](../.gitignore), [.editorconfig](../.editorconfig): root guidance/conventions.
 
-## COMPLETED PHASES
+## PHASE STATUS
 
 - **PHASE 00 — PASS:** Master Product Specification; 145 requirements recorded.
 - **PHASE 01 — PASS:** Production architecture selected; eight architecture documents.
@@ -49,161 +51,120 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 03 — PASS:** Security Foundation + Actual Application Implementation Start. Real monorepo codebase created (`apps/web`, `apps/api`), JDK 25 installed, PostgreSQL 18 migrations applied, security foundation & RLS implemented, cross-tenant isolation tests PASSED, Next.js build PASSED.
 - **PHASE 04 — PASS:** Global Design System (Actual UI Implementation — Mobile-First). Complete reusable UI library created in `apps/web/src/components/`, locked palette tokens with WCAG 2.2 AA (5.35:1) compliance, responsive layout primitives, feedback/alerts/dialogs/sheets, media components (BeforeAfterSlider, BeforeAiReality with mandatory AI disclaimer badge, WatermarkPreview), interactive showcase route `/design-system` (marked `noindex`), Vitest test suite (20 tests passed), TypeScript and Next.js Turbopack build PASSED.
 - **PHASE 04.1 — PASS:** Design System Canonicalization & Runtime Decisions Locked. Restored exact 12 canonical brand tokens (`#1F1F1F`, `#FAF8F5`, `#E7E1D8`, `#B88A5A`, `#2E5D4B`, `#3E6D8C`, `#C76F4A`, `#E6C9C3`, `#FFFFFF`, `#F4F4F4`, `#D9D9D9`, `#6B6B6B`). Clearly separated brand tokens from accessible semantic derived UI tokens (`--status-warning-text: #9E4522`, etc.). Formally marked Spring Boot 3.4.3 running on JDK 25 with Java 21 compiler bytecode target as canonical backend baseline.
-- **PHASE 05 — PASS:** Homepage + 3D Experience (Production Implementation). Production homepage implemented in `apps/web/src/app/page.tsx` replacing the Phase 03 shell. Features 16 integrated sections communicating the unified platform: Hero (single `<h1>`, dual-audience copy, prioritized LCP visual), Core Value Strip, Signature 7-Stage Architectural Transformation Experience (interactive scrubber, accessible screen-reader fallback, layered vector compositing saving >600KB JS over WebGL and eliminating canvas crash risks), Portfolio Platform Section (watermark protection, client hub), Public Discovery Preview (search preview, trending chips, regional context), AI Concept Visualizer (4-step workflow, prompt demonstration, mandatory legal disclaimer), Before AI Reality narrative, Built for Google Discoverability Section (structured data, snippet preview), Project Inspiration Gallery (category filtering chips), Professional Practitioner Types, 6-Step Workflow, Lead Generation Engine (WhatsApp inquiry preview), Mobile-First On-Site Workflow, Final Call-To-Action, and Production Footer. Strict mobile-first design (360-430px base). WebSite and Organization JSON-LD schemas included. 27 unit tests passing across 6 test files. Next.js Turbopack build and Spring Boot backend test suite all 100% PASS.
-- **PHASE 05.1 — PASS:** Homepage Truthfulness & SEO Correction Pass. Audited all visible homepage claims, mock data, badges, and links. Removed all unsupported "verified" assertions (verification system not yet implemented). Replaced with truthful regional positioning and professional trade descriptors. Cleaned SEO claims to clarify architecture foundation vs independent search engine ranking. Updated mock Google snippet to neutral SERP preview labeled Example Search Appearance. Refined AI disclaimer to canonical concise architectural wording. Audited all links to point to safe section anchors without broken routes or fake feature pages. Cleaned JSON-LD structured data and social metadata. 27 frontend tests and 8 backend tests PASS.
-- **PHASE 06 — PASS:** Public Discovery UI (Project-First Interior Discovery Experience). Built the complete public discovery UI architecture, client islands, centralized demo query boundary, and route hierarchy: `/projects` (Project Catalog with search, filters, sorting, responsive grid), `/projects/[projectSlug]` (Project Detail Story with gallery, technical specifications, before/after slider, before->AI->reality narrative with mandatory AI disclaimer badge, creator attribution, and related projects), `/professionals` (Professional Directory with trade tabs and city filtering), `/professionals/[professionalSlug]` (Public Studio Profile with services, specialties, and published projects), `/categories/[categorySlug]` (Category Landing with SEO content, popular styles, and filtered projects), and `/locations/[locationSlug]` (Location Landing with regional design context, popular categories, and local studios). Implemented "I Want Something Similar" enquiry modal with project context and honest development preview notice (zero fake backend lead transmission). Strict mobile-first design, single `<h1>` per route, JSON-LD BreadcrumbList and Article schemas, 404 handling via `notFound()`. 57 frontend tests across 7 test files, full TypeScript check, ESLint, Next.js build, and Spring Boot backend tests all 100% PASS.
-- **PHASE 07 — PARTIAL:** Authentication & Roles (Production Identity, Session & Authorization Implementation). Full security architecture implemented: backend-owned opaque 256-bit sessions (`identity_sessions`), SHA-256 hashed tokens, secure cookie transport (`__Host-session`), CSRF synchronizer token rotation/verification, in-memory sliding-window bucket rate limiter (`RateLimiterService`), replay-resistant single-use OIDC transaction store (`OidcTransactionStore`), provider-neutral OIDC boundary (`OidcService`), safe account linking preventing silent account takeover on email collision, least-privilege customer baseline role on registration, strictly studio-scoped `DESIGNER_TEAM` authorization, privileged MFA assurance enforcement (`requireMfaAssurance`), dev/test auth persona sandbox (`dev-login` strictly guarded by `@Profile({"dev", "test"})` AND `app.security.dev-auth-enabled=true`), open redirect defense (`sanitizeRedirectUrl`), auth-aware navigation (`PublicHeader`), and mobile-first frontend auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`). Status is truthfully PARTIAL because complete architecture and runtime are verified locally, while external live production OIDC provider credentials await production environment provisioning.
-- **PHASE 07.1 — PARTIAL (SECURITY CLOSURE COMPLETE):** Authentication Security Closure. Closed all 18 security verification gaps:
-  1. Durable database-backed OIDC transaction store (`auth_oidc_transactions` Flyway migration `V003__auth_oidc_transactions.sql`) with atomic SQL consumption (`UPDATE ... SET consumed_at = ? WHERE state = ? AND consumed_at IS NULL AND expires_at > ?`), eliminating process-local memory vulnerability in multi-instance load-balanced deployments.
-  2. Protocol-level ID token claims validation (`validateIdTokenClaims`) covering issuer mismatch, audience mismatch, token expiration, and nonce mismatch.
-  3. PKCE S256 verification (`verifyPkce`) testing SHA-256 code challenge match and replay rejection.
-  4. Trusted MFA assurance source (`deriveAssurance`) strictly derived from IdP `acr`/`amr` claims (`gold`, `phr`, `webauthn`, `fido`, `otp`, `sms`); ordinary sessions cannot self-upgrade.
-  5. Dev auth profile matrix test (`DevAuthSecurityTest`) verifying `DevAuthService` is absent under `production`, `staging`, and default profiles even if `dev-auth-enabled=true`, and verifying absolute absence and complete rejection of `X-User-Id`, `X-Role`, and `X-Studio-Id` headers.
-  6. Session lifecycle & revocation: current session revocation, user revocation isolation, and canonical account states enforcement (only `ACTIVE` accounts hold valid sessions; `PENDING`, `SUSPENDED`, and `DELETED` accounts are rejected).
-  7. Configuration-driven session timeouts (`AuthSecurityProperties`) and write throttling (zero DB writes inside 300s window).
-  8. CSRF closure: session-bound CSRF tokens, `Cache-Control: no-store, private` header on `/csrf`, cross-session CSRF token rejection, and CSRF enforcement on `POST /auth/logout` and `POST /auth/revoke-all`.
-  9. Rate limiting: sliding-window in-memory rate limiter (`RateLimiterService`) tested for capacity thresholds, IP isolation, and recovery after duration window.
-  10. Truthful `/auth/providers` contract returning only configured providers (empty if unconfigured) with truthful frontend rendering (zero fake buttons).
-  11. Open redirect defense across frontend and backend sanitized against `//`, `/\`, `\\`, `javascript:`, `data:`, `%2f`, `%5c`, and CRLF injection.
-  12. Least privilege role enforcement: professional intent (`DESIGNER`) receives `CUSTOMER` role only on registration; injected roles rejected.
-  13. `DESIGNER_TEAM` tenant isolation verified with explicit test `testDesignerTeamCrossStudioAccessDenied`.
-  14. `/auth/me` audit confirmed zero exposure of session tokens, hashes, or CSRF secrets.
-  15. Audit logging sanitization confirmed zero logging of tokens, codes, secrets, or PKCE verifiers.
-  16. Production cookie policy: `__Host-session`, Secure, HttpOnly, Path=/, SameSite=Lax.
-  17. SpringDoc OpenAPI 3.1 annotations on `AuthController`.
-- **PHASE 08.1 — PASS:** Designer Onboarding Closure & Invariant Audit.
-  - Normalized Specialty Storage: Migrated schema via `V005__studio_specialties_and_onboarding_closure.sql` creating `studio_specialties` table with unique constraint `(studio_id, specialty_code)`. Implemented `CanonicalSpecialty` enum with 8 canonical design specialties (`MODERN_MINIMALIST`, `WARM_CONTEMPORARY`, `INDIAN_TRADITIONAL`, `NEO_CLASSICAL`, `SCANDINAVIAN`, `INDUSTRIAL`, `LUXURY_ECLECTIC`, `BIOPHILIC`). Non-canonical specialties rejected with HTTP 400 `BadRequestException`, inputs deduplicated before insertion, and retrieved as structured lists in studio profiles.
-  - Canonical Initial Onboarding Idempotency: Created `designer_onboarding_completions` table (`user_id` PRIMARY KEY, `studio_id`, `completed_at`). Repeated completion calls return the existing studio summary idempotently without creating duplicate studios, duplicate slug claims, or duplicate roles.
-  - Concurrency & Race Condition Guarantee: Multi-threaded test verified that concurrent near-simultaneous completions produce exactly 1 studio, 1 slug claim, 1 OWNER membership, 1 DESIGNER role, and 1 completion record, with zero orphan rows left behind.
-  - Transaction Rollback Guarantee: Integration test verified that any mid-transaction failure completely rolls back all operations across all 9 related tables (0 studios, 0 slug claims, 0 contacts, 0 services, 0 specialties, 0 areas, 0 members, 0 roles, 0 completions).
-  - Tenant Bootstrap & RLS Invariant: Verified creator gains OWNER access to the new studio while other authenticated users are strictly DENIED (HTTP 403 / `AccessDeniedException` tenant isolation violation). Tenant context is strictly derived from session/database membership, never from client-supplied IDs.
-  - Mass Assignment Defense: Verified client payload injection of `userId`, `ownerUserId`, `studioId`, `tenantId`, `role`, `roles`, `permissions`, `publicationStatus`, `status`, `verified`, and `isAdmin` is completely ignored during completion and stripped from JSON drafts.
-  - Privilege Elevation & Session Rotation: Tested full session rotation lifecycle on completion: old session invalidated (revoked in DB), new session created and attached to response cookie, CSRF token rotated, new session validates with `DESIGNER` platform role and `OWNER` studio membership, and subsequent access with old session returns 401 Unauthorized.
-  - Slug Claim Invariants: Global uniqueness enforced; partial unique index on `(studio_id)` for state `CURRENT`; check constraint `chk_reserved_null_studio` prevents reserved slugs from being claimed as current; duplicate claims rejected with HTTP 409 Conflict.
-  - Truthful Copy & Privacy Compliance: Replaced "Licensed architect" with "Architectural professional"; replaced "Verified Designer Role" with "Professional access enabled" and "DESIGNER (Role Activated)"; confirmed GSTIN format-only validation (no fake "Government Verified" claim); confirmed contact `public_consent` stored and isolated from public discovery; confirmed zero fake logo/media endpoints.
-  - PostgreSQL 18 Migration: Applied `V005__studio_specialties_and_onboarding_closure.sql` to live PostgreSQL 18.3 on port 5433 (database `interior_design_dev`), bringing schema version to `v005`.
-  - Verification Suite: 94 backend tests (0 failures, 0 errors) in Maven; 73 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded.
-- **PHASE 08.2 COMPLETE — UUID & TENANT-ISOLATION CANONICALIZATION:**
-  - Canonical UUIDv7 Utility: Created pure Java, zero-dependency `com.interior.platform.common.util.UuidV7` implementing RFC 9562 UUIDv7 generation with monotonicity support, version 7 and variant 2 compliance, and timestamp extraction. Added comprehensive unit tests in `UuidV7Test.java` (5 tests passing).
-  - H2 Test Compatibility: Updated `V000__h2_compat.sql` with `CREATE ALIAS IF NOT EXISTS uuidv7 FOR "com.interior.platform.common.util.UuidV7.randomUuid"`, ensuring test environments mirror PostgreSQL 18's native `uuidv7()` generation.
-  - Zero-Drift ID Generation: Replaced all `UUID.randomUUID()` calls for persisted domain entities (`audit_events`, `identity_sessions`, `auth_oidc_transactions`, `designer_studios`, `studio_members`, `identity_user_roles`).
-  - Database DEFAULT vs Application Preallocation: For root aggregates (`designer_studios`), application pre-allocates ID via `UuidV7.randomUuid()` under ADR-037 to enable transactional sub-entity child linking in a single transaction; for sub-entities (`studio_contacts`, `studio_services`, `studio_specialties`, `studio_service_areas`, `studio_slug_claims`, `designer_onboarding_drafts`), SQL insert statements omit `id` and defer directly to database `DEFAULT uuidv7()`.
-  - Truthful Security Boundaries: Clarified distinction between application authorization (`AuthorizationService.requireStudioAccess`) and PostgreSQL RLS defense-in-depth (`V002__pg_rls_policies.sql`). Renamed and verified Invariant 5 test as application-layer tenant isolation.
-  - Table Classification & Scope Integrity: Classified all Phase 08 tables (Tenant-owned sub-entities, User-owned lifecycle records, and Global/system slug registry). Confirmed `studio_slug_claims` operates without RLS to allow global availability and reserved slug validation. Confirmed `designer_onboarding_completions` is strictly user-scoped with PK `user_id`.
-  - Taxonomy Source Alignment: Formally linked `CanonicalSpecialty` to `docs/02_TAXONOMY_STRATEGY.md` Section 2 (`STYLE` dimension adapted for Indian interior studios).
-- **PHASE 09 — PASS:** Designer Dashboard & Professional Workspace (Production Implementation).
-  - Backend Workspace Foundation: Built `WorkspaceService`, `WorkspaceController`, and DTOs (`WorkspaceSummaryResponse`, `WorkspaceBusinessProfileResponse`). Enforced `requireAuthenticated`, active account check (blocks `SUSPENDED`), and role check (blocks bare `CUSTOMER` accounts).
-  - Studio Resolution Invariant: Resolved active studio strictly from active studio memberships (`studio_members`). Replaced any dependence on `designer_onboarding_completions` so `DESIGNER_TEAM` members cleanly access shared studios. Added support for studio switching via `X-Studio-Id` / `studioId` parameter with strict membership validation.
-  - Deterministic Completeness Metrics: Implemented Core Profile Completeness (Identity 20%, Location 20%, Services 20%, Specialties 20%, Contacts 20% = 100%) and Platform Launch Readiness (Profile * 0.50 = 50%, portfolio 0%, projects 0%). Explicitly ensured optional fields (GST, social links, team size, budget) do not penalize completeness score.
-  - Module Readiness Derivation: Derived readiness states dynamically (`READY`, `NOT_CONFIGURED`, `NOT_STARTED`, `COMING_SOON`, `LOCKED`) based on studio data and feature availability.
-  - Privacy & Caching Protection: Enforced private caching headers (`Cache-Control: private, no-store, max-age=0, must-revalidate` and `Pragma: no-cache`) on all workspace endpoints. Isolated sensitive `gstNumber` from standard summary and only exposed it to verified owners in the business profile. Attached clear privacy visibility labels to contact channels ("Public when portfolio published" vs "Private / Internal only").
-  - Lifecycle Activity Feed: Derived workspace feed strictly from studio lifecycle timestamps (`onboardingCompletedAt`, `createdAt`), never querying raw internal audit events.
-  - Server-First Workspace Protection: Created `/workspace/layout.tsx` with `dynamic = 'force-dynamic'`, `revalidate = 0`, `robots: { index: false, follow: false }`, and server-side session cookie inspection redirecting unauthenticated requests to `/sign-in` before rendering.
-  - Responsive Mobile-First Workspace Shell: Implemented `WorkspaceShell.tsx` featuring desktop sidebar (1024px+) with studio switcher and sign-out, mobile top bar (360px-430px) with studio badge, 5-item thumb-friendly bottom navigation, accessible slide-over `BottomSheet` for secondary links, suspended account blocking screen, and customer guidance redirecting to `/onboarding/professional`.
-  - Truthful Workspace Home & Business Profile: Implemented `/workspace` dashboard with greeting, studio status badges, truthful publication warning, dual completeness cards, 4 quick actions, 8 dynamic setup checklist items, 9 module readiness cards, and lifecycle activity log. Implemented `/workspace/business` with structured profile details and contact privacy badges.
-  - Truthful Module Shells: Implemented 8 dedicated module preparation landing views (`/workspace/portfolio`, `/workspace/projects`, `/workspace/media`, `/workspace/ai`, `/workspace/leads`, `/workspace/seo`, `/workspace/analytics`, `/workspace/notifications`) featuring clear readiness status, prerequisites, and roadmap context with zero fake buttons or internal phase numbers.
-- **PHASE 09.1 — PASS:** Workspace Truthfulness & Readiness Closure.
-  - Canonical Module Readiness Semantics Defined:
-    * `READY`: real user-facing functionality is implemented and usable.
-    * `NOT_CONFIGURED`: functionality exists but this studio has not configured it.
-    * `NOT_STARTED`: functionality exists but studio has no content/state yet.
-    * `LOCKED`: functionality exists but prerequisites or permissions block it.
-    * `COMING_SOON`: feature itself is not yet implemented.
-  - Truthful Current Module Statuses:
-    * `PORTFOLIO`: `NOT_CONFIGURED` (awaits Phase 10 builder setup)
-    * `PROJECTS`: `COMING_SOON` (awaits Phase 18 Project CMS)
-    * `MEDIA`: `COMING_SOON` (awaits Phase 19 Media Engine)
-    * `AI_STUDIO`: `COMING_SOON` (awaits Phase 24 AI Visualizer)
-    * `LEADS`: `COMING_SOON` (awaits Leads/CRM product implementation)
-    * `SEO`: `COMING_SOON` (awaits SEO engine and published portfolio prerequisites)
-    * `ANALYTICS`: `COMING_SOON` (awaits published portfolio visitor data)
-    * `NOTIFICATIONS`: `COMING_SOON` (awaits notification engine product model)
-    * `BUSINESS_PROFILE`: `READY` (real, implemented, structured inspection operational)
-  - Public Profile Unpublished Behavior:
-    * When `publicationStatus == 'UNPUBLISHED'`, public profile links to `/professionals/{slug}` are hidden/disabled in the workspace and replaced with "Public profile not published yet."
-    * Public discovery link only becomes active when studio state is `PUBLISHED`.
-  - GSTIN Owner Authorization & Confidentiality:
-    * Replaced all "verified owner" phrasing with "authenticated studio owner".
-    * GSTIN is strictly scoped to `OWNER` role in `getBusinessProfile`; hidden (`null`) for `DESIGNER_TEAM` non-owners (`MEMBER`); denied to foreign tenants; absent from public discovery.
-  - Setup Checklist & Activity Wording Hardened:
-    * "Publish First Project Story" and "Configure Portfolio Website" clearly communicate future prerequisites with non-actionable "View Overview" / "Prepare Portfolio" labels.
-    * Activity feed copy updated to user-friendly "Professional workspace enabled" (removing internal role terminology).
-  - Comprehensive Verification: 108 backend tests (0 failures, 0 errors) in Maven; 81 frontend tests (0 failures) in Vitest; `tsc --noEmit` clean exit 0; `eslint .` clean exit 0; Next.js Turbopack build succeeded with dynamic rendering. Terminology audit confirmed 0 occurrences of wedding/event terminology.
+- **PHASE 05 — PASS:** Homepage + 3D Experience (Production Implementation). Production homepage implemented in `apps/web/src/app/page.tsx` replacing the Phase 03 shell. 16 integrated sections, 7-Stage Architectural Transformation Experience (interactive scrubber, accessible screen-reader fallback, layered vector compositing saving >600KB JS over WebGL and eliminating canvas crash risks), Portfolio Platform Section, Public Discovery Preview, AI Concept Visualizer (4-step workflow, prompt demonstration, mandatory legal disclaimer), Before AI Reality narrative, Built for Google Discoverability Section, Project Inspiration Gallery, Professional Practitioner Types, 6-Step Workflow, Lead Generation Engine, Mobile-First On-Site Workflow, Final Call-To-Action, and Production Footer. Strict mobile-first design (360-430px base). WebSite and Organization JSON-LD schemas included. 27 unit tests passing across 6 test files. Next.js Turbopack build and Spring Boot backend test suite all 100% PASS.
+- **PHASE 05.1 — PASS:** Homepage Truthfulness & SEO Correction Pass. Audited all visible homepage claims, mock data, badges, and links. Removed all unsupported "verified" assertions. Replaced with truthful regional positioning and professional trade descriptors. Cleaned SEO claims to clarify architecture foundation vs independent search engine ranking. Updated mock Google snippet to neutral SERP preview labeled Example Search Appearance. Refined AI disclaimer to canonical concise architectural wording. Audited all links to point to safe section anchors without broken routes or fake feature pages. Cleaned JSON-LD structured data and social metadata. 27 frontend tests and 8 backend tests PASS.
+- **PHASE 06 — PASS:** Public Discovery UI (Project-First Interior Discovery Experience). Built the complete public discovery UI architecture, client islands, centralized demo query boundary, and route hierarchy: `/projects`, `/projects/[projectSlug]`, `/professionals`, `/professionals/[professionalSlug]`, `/categories/[categorySlug]`, and `/locations/[locationSlug]`. Implemented "I Want Something Similar" enquiry modal with project context and honest development preview notice (zero fake backend lead transmission). Strict mobile-first design, single `<h1>` per route, JSON-LD BreadcrumbList and Article schemas, 404 handling via `notFound()`. 57 frontend tests across 7 test files, full TypeScript check, ESLint, Next.js build, and Spring Boot backend tests all 100% PASS.
+- **PHASE 07 — PARTIAL:** Authentication & Roles (Production Identity, Session & Authorization Implementation). Full security architecture implemented: backend-owned opaque 256-bit sessions (`identity_sessions`), SHA-256 hashed tokens, secure cookie transport (`__Host-session`), CSRF synchronizer token rotation/verification, in-memory sliding-window bucket rate limiter (`RateLimiterService`), replay-resistant single-use OIDC transaction store (`OidcTransactionStore`), provider-neutral OIDC boundary (`OidcService`), safe account linking preventing silent account takeover on email collision, least-privilege customer baseline role on registration, strictly studio-scoped `DESIGNER_TEAM` authorization, privileged MFA assurance enforcement (`requireMfaAssurance`), dev/test auth persona sandbox (`dev-login` strictly guarded by `@Profile({"dev", "test"})` AND `app.security.dev-auth-enabled=true`), open redirect defense (`sanitizeRedirectUrl`), auth-aware navigation (`PublicHeader`), and mobile-first frontend auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`). Status is truthfully PARTIAL solely because production external OIDC provider configuration remains deployment-time external work.
+- **PHASE 07.1 — PASS (SECURITY CLOSURE COMPLETE):** Authentication Security Closure. Closed all 18 security verification gaps: durable database-backed OIDC transaction store (`auth_oidc_transactions` Flyway migration `V003__auth_oidc_transactions.sql`), protocol-level claims validation, PKCE S256 verification, and trusted MFA assurance.
+- **PHASE 08 — PASS:** Professional Onboarding Wizard (7-Step Production Engine). Multi-step onboarding wizard (`/onboarding/professional`) with draft persistence, role promotion, studio slug reservation, contact collection, and service taxonomy.
+- **PHASE 08.1 — PASS:** Designer Onboarding Closure & Invariant Audit. Normalized relational storage for specialties (`studio_specialties` via `V005__studio_specialties_and_onboarding_closure.sql`).
+- **PHASE 08.2 — PASS:** UUID & Tenant-Isolation Canonicalization. Enforced canonical UUIDv7 across all persisted platform entities.
+- **PHASE 09 — PASS:** Designer Dashboard & Professional Workspace (Production Implementation). Authenticated workspace shell at `/workspace` and 9 module sub-routes, dual-score completeness engine, owner-scoped GSTIN confidentiality, and responsive mobile bottom navigation.
+- **PHASE 09.1 — PASS:** Workspace Truthfulness & Readiness Closure. Module readiness corrected: `PORTFOLIO` = `NOT_CONFIGURED` (prior to Phase 10), `BUSINESS_PROFILE` = `READY`, and remaining future product engines set to `COMING_SOON`. Unpublished profile safeguards active.
+- **PHASE 10 — PASS:** Portfolio Builder Engine (Production Implementation). Shared, reusable portfolio builder engine decoupling content from presentation (`CONTENT != TEMPLATE`). 18 canonical section types, optimistic locking, two-pass reordering, immutable version snapshotting & restore, privacy-filtered preview, neutral `ReferenceTemplate` tolerating 0 projects/testimonials, full interactive builder UI (`/workspace/portfolio`), and private preview (`/workspace/portfolio/preview` with `noindex, nofollow`). 118 backend tests, 89 frontend tests PASS.
+- **NEXT PHASE:** **PHASE 11 — BASIC PORTFOLIO DESIGN** (Assigned to: **ASTRA**).
 
-- **PHASE 10: PORTFOLIO BUILDER ENGINE (COMPLETED):**
-  - Shared Portfolio Engine decoupling content from presentation (`CONTENT != TEMPLATE`).
-  - Strict scope boundaries preserved: No final theme designs (reserved for Astra in Phases 11-16), no `POST /publish` or client-controlled live publishing, no fake media uploads, no fake project CMS, no AI generation, no fake reviews, no dangerous raw HTML injection.
-  - Database Schema (`V006__portfolio_engine.sql`):
-    * `portfolios`: Primary studio portfolio record with tenant foreign key `studio_id REFERENCES designer_studios(id) ON DELETE CASCADE`, template key enum, aggregate version counter, editorial content fields, color tokens, font pairing, and status (`DRAFT`, `READY`, `UNPUBLISHED`).
-    * `portfolio_sections`: Normalized 18 modular section types (`HERO`, `ABOUT`, `SERVICES`, `FEATURED_PROJECTS`, `PROJECT_GALLERY`, `BEFORE_AFTER`, `DESIGN_PHILOSOPHY`, `PROCESS`, `TESTIMONIALS`, `PRESS`, `AWARDS`, `TEAM`, `FAQ`, `CONTACT_FORM`, `LOCATION_MAP`, `INSTAGRAM_FEED`, `CONSULTATION_CTA`, `FOOTER`). Unique composite tenant foreign key `(portfolio_id, studio_id)` ensuring strict multi-tenant isolation.
-    * `portfolio_versions`: Immutable JSONB snapshot history with max 10 version retention per studio.
-  - Concurrency & Ordering:
-    * Optimistic concurrency control via aggregate version checks on all write operations.
-    * Accessible, two-pass reordering with non-negative offset preventing display order check constraint and uniqueness collisions.
-  - Privacy & Security:
-    * Strict privacy filtering on `/api/v1/portfolio/preview` ensuring only contacts with `public_consent == true` are exposed.
-    * Section content payload validation rejecting HTML tags, script tags, iframes, and JS event handler patterns (`\bon[a-z]{3,20}\s*=`). Payload bounded to 32 KB per section; snapshot bounded to 64 KB.
-    * Private caching headers (`Cache-Control: private, no-store, max-age=0, must-revalidate`).
-  - Template Engine Contract & Scaffolds:
-    * Formal `PortfolioTemplateProps` contract defined in `apps/web/src/lib/portfolio/template-contract.ts` and documented in `docs/PORTFOLIO_TEMPLATE_CONTRACT.md`.
-    * Six aesthetic themes registered in `TEMPLATE_REGISTRY` with `SCAFFOLD` status for Astra's upcoming implementations (Basic, Modern, Luxury, Architectural, Warm/Natural, Dark Cinematic).
-    * Neutral `ReferenceTemplate` component safely tolerates 0 projects and 0 testimonials with elegant editorial empty states.
-  - Interactive Workspace Builder UI & Private Preview:
-    * Full builder page `/workspace/portfolio` featuring tabbed interface (Content, Sections, Design & Themes, Snapshots), live saving indicator, accessible Move Up/Down controls, visibility toggles, and live desktop/mobile preview frame.
-    * Dedicated private preview route `/workspace/portfolio/preview` with `<meta name="robots" content="noindex, nofollow" />`.
-  - Comprehensive Verification:
-    * Backend: 118 Maven tests passing (0 failures, 0 errors), including `PortfolioIntegrationTest` and `PortfolioServiceTest`.
-    * Frontend: 89 Vitest tests passing across 11 test files, including `PortfolioBuilder.test.tsx`.
-    * Typecheck & Lint: `tsc --noEmit` exit 0, `eslint .` exit 0.
-    * Build: Next.js Turbopack production build succeeded.
-    * Terminology audit: 0 occurrences of wedding/event/photography terms.
+## CURRENT TECHNICAL FOUNDATION
 
-## CURRENT IMPLEMENTATION STATE
+- **Frontend Stack**:
+  - Next.js 16.3.3 (App Router, Turbopack, React Server Components where applicable)
+  - React 19.3.0
+  - TypeScript 6.0.3 (`tsc --noEmit` clean)
+  - Styling: Tailwind CSS with 12 locked brand palette variables
+  - Icons: `lucide-react`
+  - Tests: Vitest 5.0.1, React Testing Library, JSDOM
+- **Backend Stack**:
+  - Java 25 runtime (Eclipse Adoptium Temurin 25.0.4.1+1-LTS)
+  - Java 21 compiler release bytecode target
+  - Spring Boot 3.4.3 (Web, Data JPA/JDBC, Validation, Security, Actuator)
+  - Build Tool: Maven 3.9.9 (`mvnw.cmd` checked in)
+- **Database & Persistence**:
+  - PostgreSQL 18.3 active on port 5433 (database: `interior_design_dev`)
+  - Flyway versioned SQL migrations: `V001` through `V006` applied cleanly
+  - In-memory H2 with Flyway test migrations for fast, isolated backend test execution
+- **Architecture Highlights**:
+  - Modular monolith with explicit module boundaries
+  - RESTful API under `/api/v1`
+  - Backend-owned opaque browser sessions (`__Host-session` cookie, SHA-256 tokens)
+  - Studio membership tenant isolation (`designer_studios`, `studio_members`, composite keys)
+  - Server-side role & capability authorization (`AuthorizationService`)
+  - Canonical RFC 9562 UUIDv7 identifiers (`UuidV7`)
+  - Workspace routes protected with `Cache-Control: private, no-store, max-age=0, must-revalidate`
+  - Strict mobile-first design (360px-430px base).
 
-- **MONOREPO CODEBASE IMPLEMENTED:**
-  - `apps/web`: Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3, App Router, Vitest test suite, ESLint 9, design tokens with exact 12-color locked brand palette, mobile-first 360px-430px base, health diagnostic, full component library, showcase route `/design-system` (`noindex`), full public homepage (`/`), 6 public discovery routes, auth pages (`/sign-in`, `/sign-up`, `/auth/callback`, `/auth/error`, `/account`), professional onboarding wizard (`/onboarding/professional`), authenticated professional workspace (`/workspace` and 9 sub-routes) with responsive mobile bottom navigation, accessible bottom sheet, truthful module readiness states, and unpublished profile safeguards. Full Portfolio Builder workspace (`/workspace/portfolio`) with live preview, accessible section reordering, template switching, version snapshot restore, and private preview route (`/workspace/portfolio/preview` with `noindex, nofollow`). Next.js Turbopack build clean, 89 unit/integration tests passed across 11 test files.
-  - `apps/api`: Java 25 (Temurin 25.0.4.1 runtime, compiler target/release 21), Spring Boot 3.4.3, Flyway versioned SQL migrations (V001, V002, V003, V004, V005, V006), Maven wrapper checked in. Canonical RFC 9562 UUIDv7 generator (`UuidV7`), opaque 256-bit hashed session tokens (`__Host-session`), database-backed durable OIDC transactions, CSRF protection, request correlation filter (`X-Request-Id`), error envelope, rate limiting, provider-neutral OIDC service, dev/test auth persona adapter, tenant-aware authorization service with studio scoping, professional onboarding service with role promotion, workspace service with truthful module readiness and owner-scoped GSTIN confidentiality, and complete portfolio engine service, validation, repository, and controller with optimistic locking, snapshot restore, and privacy filtering. Maven test suite passed with 118 tests (0 failures, 0 errors).
-  - `database`: PostgreSQL 18 running on port 5433 (database `interior_design_dev`). Applied `V001__security_identity_tenant_schema.sql`, `V002__pg_rls_policies.sql`, `V003__auth_oidc_transactions.sql`, `V004__designer_onboarding.sql`, `V005__studio_specialties_and_onboarding_closure.sql`, and `V006__portfolio_engine.sql`.
-- Git repository initialized. `.gitignore` protects credentials and build output.
-- **REMOTE PUSH POLICY:** Local commits only. Remote push prohibited unless explicitly requested by the user.
+## PHASE 10 PORTFOLIO ARCHITECTURE
 
-## SELECTED ARCHITECTURE
+- **Core Architectural Invariant**: `CONTENT != TEMPLATE`
+  - The portfolio engine strictly separates domain content and section structure from presentation themes.
+  - Professionals can switch between themes without destroying, mutating, or losing section data, text, or ordering.
+- **Database Entities (`V006__portfolio_engine.sql`)**:
+  - `portfolios`: Exactly one primary portfolio record per studio (`studio_id REFERENCES designer_studios(id) ON DELETE CASCADE`). Tracks `template_key`, aggregate `version` (for optimistic concurrency), editorial text (`headline`, `subheadline`, `bio`, `design_philosophy`, `years_of_experience`), design tokens (`primary_color`, `secondary_color`, `accent_color`, `font_pairing`), and lifecycle status (`DRAFT`, `READY`, `UNPUBLISHED`).
+  - `portfolio_sections`: Normalized modular sections with composite tenant foreign key `(portfolio_id, studio_id)` ensuring strict cross-tenant isolation. Enforces non-negative `display_order >= 0`.
+  - `portfolio_versions`: Immutable JSONB snapshots for historical milestone preservation (retains up to 10 snapshots per studio, automatically pruned on creation).
+- **Lifecycle & Publishing Rules**:
+  - Phase 10 operates exclusively on `DRAFT`, `READY`, and `UNPUBLISHED`.
+  - **Live public publishing is NOT implemented**: No `POST /publish`, no client-controlled `PUBLISHED` state, no public search engine indexing.
+  - Studio publication status and portfolio readiness are distinct: Portfolio readiness contributes 25% to platform launch readiness score when required sections are configured and visible.
+- **18 Canonical Section Types**:
+  `HERO`, `ABOUT`, `SERVICES`, `FEATURED_PROJECTS`, `PROJECT_GALLERY`, `BEFORE_AFTER`, `DESIGN_PHILOSOPHY`, `PROCESS`, `TESTIMONIALS`, `PRESS`, `AWARDS`, `TEAM`, `FAQ`, `CONTACT_FORM`, `LOCATION_MAP`, `INSTAGRAM_FEED`, `CONSULTATION_CTA`, `FOOTER`.
+- **Validation & Security**:
+  - `PortfolioSectionValidator` bounds section JSON payloads to 32 KB and snapshots to 64 KB.
+  - Rejects HTML tags (`<script`, `<iframe`, `<object`, `<embed`, etc.) and JavaScript event handlers (`\bon[a-z]{3,20}\s*=`).
+  - Strict optimistic locking: Aggregate version mismatches return HTTP 409 Conflict.
+- **Privacy & Previews**:
+  - `GET /api/v1/portfolio/preview` strictly exposes only studio contacts where `public_consent == true`. Private phone numbers and emails are completely omitted from preview output.
+  - Private preview route `/workspace/portfolio/preview` includes `<meta name="robots" content="noindex, nofollow" />`.
+- **Known Upstream Phase Boundaries**:
+  - No Project CMS yet (Phase 18): Sections tolerate 0 projects with clean editorial empty states.
+  - No Media Engine yet (Phase 19): Logo/hero image references remain null or future references; no fake file upload endpoints.
+  - No AI Visualizer generation yet (Phase 24).
+  - No public portfolio routing yet.
 
-| Area | Selected baseline |
-|---|---|
-| Frontend | Next.js 16.3.3, React 19.3.0, TypeScript 6.0.3; App Router/server-first |
-| Web tooling | Node 22.18.0 / npm 10.9.3; CSS variables + Tailwind; Vitest 5.0.1; ESLint 9 |
-| Backend | Java 25 (Temurin 25.0.4.1 runtime, compiler target Java 21), Spring Boot 3.4.3; modular monolith |
-| Java tooling | Maven 3.9.9 checked-in wrapper (`mvnw.cmd`); separate native build |
-| Database / migration | PostgreSQL 18.3; Flyway versioned SQL, native `uuidv7()`, durable OIDC state in `auth_oidc_transactions`, studio registry in `designer_studios` & `studio_slug_claims`, normalized specialties in `studio_specialties`, initial onboarding completions in `designer_onboarding_completions` |
-| Cache | No initial Redis; PostgreSQL authoritative for sessions, OIDC transactions, quotas and sensitive counters |
-| Storage | Private S3-compatible abstraction, initial AWS S3 |
-| Public media / CDN | Approved watermarked derivatives only; CloudFront restricted origin/OAC |
-| Queue | SQS Standard + transactional outbox + destination dispatch |
-| Search | PostgreSQL initial search abstraction; rebuildable published projections |
-| API / contracts | REST `/api/v1`; OpenAPI 3.1 contract-first (SpringDoc annotated) |
-| Authentication | Managed OIDC abstraction; backend-owned opaque browser sessions; role promotion to DESIGNER on onboarding; server-first workspace route protection |
+## TEMPLATE ENGINE & THEME DEFINITIONS
 
-## CURRENT ENVIRONMENT
+- **Six Canonical Template Keys**:
+  1. `BASIC`: Clean Editorial (Phase 11 — Astra)
+  2. `MODERN`: Modern Minimalist (Phase 12 — Astra)
+  3. `LUXURY`: Luxury Atelier (Phase 13 — Astra)
+  4. `ARCHITECTURAL`: Architectural Monograph (Phase 14 — Astra)
+  5. `WARM_NATURAL`: Warm & Natural Biophilic (Phase 15 — Astra)
+  6. `DARK_CINEMATIC`: Dark Cinematic Moodboard (Phase 16 — Astra)
+- **Current Implementation Status**:
+  - All six template keys are registered in `apps/web/src/lib/portfolio/template-registry.tsx` with status **`SCAFFOLD`**.
+  - No finished production template exists yet.
+  - `ReferenceTemplate` (`apps/web/src/components/portfolio/templates/ReferenceTemplate.tsx`) is an **ENGINE TEST / STRUCTURAL REFERENCE ONLY**. It is **NOT** the final Basic design and must not be used as a production portfolio.
+  - Astra will design and implement the real visual templates in Phases 11–16.
 
-- Windows workstation; PowerShell; shared local workspace `c:\my projects\interior design`.
-- Java 25 installed at `C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot` (Temurin 25.0.4.1+1-LTS).
-- Node 22.18.0 / npm 10.9.3 active for web execution; Node 24.19.0 LTS qualified.
-- PostgreSQL 18.3 active on port 5433; database `interior_design_dev` created and migrated to `v005`.
-- Git repository initialized.
-- Standing Rule: NEVER PUSH TO REMOTE without explicit user command.
+## ASTRA OWNERSHIP BOUNDARIES (PHASES 11–16)
 
-## RECENT VERIFICATION EVIDENCE
+### Allowed / Astra-Owned Files:
+- `apps/web/src/components/portfolio/templates/basic/**` (Phase 11)
+- `apps/web/src/components/portfolio/templates/modern/**` (Phase 12)
+- `apps/web/src/components/portfolio/templates/luxury/**` (Phase 13)
+- `apps/web/src/components/portfolio/templates/architectural/**` (Phase 14)
+- `apps/web/src/components/portfolio/templates/warm-natural/**` (Phase 15)
+- `apps/web/src/components/portfolio/templates/dark-cinematic/**` (Phase 16)
+- Template-specific styling, visual components, typography tokens, decorative SVG assets, and template unit tests (e.g. `apps/web/src/components/__tests__/BasicTemplate.test.tsx`).
+- Graduating a template in `apps/web/src/lib/portfolio/template-registry.tsx` from `'SCAFFOLD'` to `'AVAILABLE'` upon completing its phase.
 
-- `npm run test` (apps/web): **PASS** (10 test files, 81 tests run, 0 failures)
-- `npm run typecheck` (apps/web): **PASS** (`tsc --noEmit` clean exit code 0)
-- `npm run lint` (apps/web): **PASS** (`eslint .` clean exit code 0, 0 warnings, 0 errors)
-- `npm run build` (apps/web): **PASS** (Next.js 16.3.3 Turbopack build succeeded, all `/workspace/*` routes dynamic)
-- `mvnw test` (apps/api): **PASS** (108 tests run, 0 failures, 0 errors, Spring Boot 3.4.3 on JDK 25 with H2 and Flyway v005)
-- PostgreSQL 18 dev database on port 5433 migrated to `v005` cleanly via `mvnw flyway:migrate`.
+### Strictly Forbidden / Engine-Owned:
+- Backend Java code (`apps/api/**`)
+- Database migrations (`V001` through `V006`)
+- Authentication, session, and cookie logic (`apps/api/.../security/**`, `apps/web/src/lib/auth/**`)
+- CSRF protection and rate limiting
+- Authorization policies and tenant scoping (`AuthorizationService`)
+- Portfolio API endpoints and contracts (`PortfolioController`, `portfolio/api.ts`)
+- Section schema definitions and validation logic (`PortfolioSectionValidator`)
+- Optimistic concurrency and version snapshot mechanisms
+- The `PortfolioTemplateProps` contract interface (`apps/web/src/lib/portfolio/template-contract.ts`)
+- Global workspace shell and navigation (`apps/web/src/components/workspace/**`, `apps/web/src/app/workspace/page.tsx`).
 
-## NEXT PHASE
+## CURRENT TEST BASELINE (PHASE 10 PASS)
 
-**PHASE 10 — PORTFOLIO BUILDER ENGINE.**
-Workspace truthfulness and readiness closure complete. Ready to implement the Portfolio Builder engine upon user approval.
-
+- **Backend (Maven)**: **118 / 118 PASSED** (0 failures, 0 errors)
+- **Frontend (Vitest)**: **89 / 89 PASSED** (11 test files, 0 failures)
+- **Typecheck**: **PASS** (`npm run typecheck` / `tsc --noEmit` exit code 0)
+- **Lint**: **PASS** (`npm run lint` / `eslint .` exit code 0)
+- **Production Build**: **PASS** (`npm run build` / Next.js Turbopack build clean)
+- **Terminology Audit**: **PASS** (0 occurrences of wedding, photoshoot, photographer, bride, groom)
+- **Git State**: Local commit `b3b70ad602ce3245ae02f2694ae6e492be6f7289`, working tree clean, **NEVER PUSHED TO REMOTE**.
