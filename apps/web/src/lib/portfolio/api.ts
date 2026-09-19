@@ -23,7 +23,7 @@ export async function initPortfolio(
   req: InitializePortfolioRequest = {},
   studioId?: string
 ): Promise<PortfolioDetailResponse> {
-  return apiFetch<PortfolioDetailResponse>(`/portfolio/init${buildQuery(studioId)}`, {
+  return apiFetch<PortfolioDetailResponse>(`/portfolio${buildQuery(studioId)}`, {
     method: 'POST',
     body: JSON.stringify(req),
   });

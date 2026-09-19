@@ -7,7 +7,23 @@ import {
   PreviewServiceAreaDto,
   PreviewServiceDto,
   PreviewSpecialtyDto,
+  SectionType,
 } from './types';
+
+export interface NavItem {
+  sectionId: string;
+  sectionType: SectionType;
+  label: string;
+  anchor: string;
+}
+
+export interface NavigationSettings {
+  sticky: boolean;
+  navItems: NavItem[];
+  showPrimaryCta: boolean;
+  primaryCtaLabel: string;
+  primaryCtaAnchor: string;
+}
 
 export interface PortfolioTemplateProps {
   portfolioId: string;
@@ -28,6 +44,7 @@ export interface PortfolioTemplateProps {
   secondaryColor?: string | null;
   accentColor?: string | null;
   fontPairing?: FontPairing;
+  navigationSettings: NavigationSettings;
   publicContacts: PreviewContactDto[];
   canonicalServices: PreviewServiceDto[];
   canonicalSpecialties: PreviewSpecialtyDto[];
@@ -43,7 +60,10 @@ export interface TemplateDefinition {
   name: string;
   tagline: string;
   description: string;
+  version: string;
   status: 'SCAFFOLD' | 'AVAILABLE' | 'DEPRECATED';
+  isSelectable: boolean;
+  supportedSections: SectionType[];
   designer: string;
   phase: string;
   component: PortfolioTemplateComponent;

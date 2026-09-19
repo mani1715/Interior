@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-19, Antigravity Phase 10 Portfolio Builder Engine PASS. Next: Phase 11 Basic Portfolio Design (Astra).
+Last updated: 2026-09-19, Antigravity Phase 10.1 Portfolio Contract Alignment Closure PASS. Next: Phase 11 Basic Portfolio Design (Astra).
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -62,7 +62,9 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 09 — PASS:** Designer Dashboard & Professional Workspace (Production Implementation). Authenticated workspace shell at `/workspace` and 9 module sub-routes, dual-score completeness engine, owner-scoped GSTIN confidentiality, and responsive mobile bottom navigation.
 - **PHASE 09.1 — PASS:** Workspace Truthfulness & Readiness Closure. Module readiness corrected: `PORTFOLIO` = `NOT_CONFIGURED` (prior to Phase 10), `BUSINESS_PROFILE` = `READY`, and remaining future product engines set to `COMING_SOON`. Unpublished profile safeguards active.
 - **PHASE 10 — PASS:** Portfolio Builder Engine (Production Implementation). Shared, reusable portfolio builder engine decoupling content from presentation (`CONTENT != TEMPLATE`). 18 canonical section types, optimistic locking, two-pass reordering, immutable version snapshotting & restore, privacy-filtered preview, neutral `ReferenceTemplate` tolerating 0 projects/testimonials, full interactive builder UI (`/workspace/portfolio`), and private preview (`/workspace/portfolio/preview` with `noindex, nofollow`). 118 backend tests, 89 frontend tests PASS.
-- **NEXT PHASE:** **PHASE 11 — BASIC PORTFOLIO DESIGN** (Assigned to: **ASTRA**).
+- **PHASE 11 — BLOCKED (2026-09-19):** Astra conducted intake verification and halted Phase 11 due to engine-owned contract mismatches between frontend and backend (endpoint path, versioning on mutations, field names, section and font enums).
+- **PHASE 10.1 — PASS:** Portfolio Contract Alignment Closure. All 7 engine blockers resolved. Aligned initialization endpoint to `POST /portfolio`. Enforced `version` on all mutation request bodies (`UpdateSectionRequest`, `ReorderSectionsRequest`, `CreateVersionSnapshotRequest`, `RestoreVersionRequest`). Aligned reorder payload to `sectionIds`. Canonicalized 18 `SectionType` and 6 `FontPairing` enums. Introduced centralized `normalizePortfolioProps()` in `normalize-props.ts` supplying strongly-typed, non-null `NavigationSettings`. Aligned section content properties with `PortfolioSectionValidator.java`. Versioned template registry entries (`1.0.0`, `SCAFFOLD`, `isSelectable: false`). Added contract test suites `PortfolioContractTest.java` and `PortfolioContract.test.ts`. 125 backend tests, 94 frontend tests PASS.
+- **NEXT ACTION:** Resume **PHASE 11 — BASIC PORTFOLIO DESIGN** (Assigned to: **ASTRA**). Contract alignment complete; Astra can implement `BasicTemplate.tsx` cleanly. Phase 12 has not started.
 
 ## CURRENT TECHNICAL FOUNDATION
 
@@ -105,8 +107,8 @@ Paths below are relative to this document; filenames are the canonical repositor
   - Phase 10 operates exclusively on `DRAFT`, `READY`, and `UNPUBLISHED`.
   - **Live public publishing is NOT implemented**: No `POST /publish`, no client-controlled `PUBLISHED` state, no public search engine indexing.
   - Studio publication status and portfolio readiness are distinct: Portfolio readiness contributes 25% to platform launch readiness score when required sections are configured and visible.
-- **18 Canonical Section Types**:
-  `HERO`, `ABOUT`, `SERVICES`, `FEATURED_PROJECTS`, `PROJECT_GALLERY`, `BEFORE_AFTER`, `DESIGN_PHILOSOPHY`, `PROCESS`, `TESTIMONIALS`, `PRESS`, `AWARDS`, `TEAM`, `FAQ`, `CONTACT_FORM`, `LOCATION_MAP`, `INSTAGRAM_FEED`, `CONSULTATION_CTA`, `FOOTER`.
+- **18 Canonical Section Types (PostgreSQL V006 & SectionType.java)**:
+  `HERO`, `ABOUT`, `SERVICES`, `FEATURED_PROJECTS`, `PROJECT_GRID`, `BEFORE_AFTER`, `BEFORE_AI_REALITY`, `DESIGN_PROCESS`, `TESTIMONIALS`, `TEAM`, `AWARDS`, `PRESS`, `SERVICE_AREAS`, `FAQ`, `CONTACT`, `CTA`, `VIDEO`, `CUSTOM_NOTE`.
 - **Validation & Security**:
   - `PortfolioSectionValidator` bounds section JSON payloads to 32 KB and snapshots to 64 KB.
   - Rejects HTML tags (`<script`, `<iframe`, `<object`, `<embed`, etc.) and JavaScript event handlers (`\bon[a-z]{3,20}\s*=`).
@@ -130,7 +132,7 @@ Paths below are relative to this document; filenames are the canonical repositor
   5. `WARM_NATURAL`: Warm & Natural Biophilic (Phase 15 — Astra)
   6. `DARK_CINEMATIC`: Dark Cinematic Moodboard (Phase 16 — Astra)
 - **Current Implementation Status**:
-  - All six template keys are registered in `apps/web/src/lib/portfolio/template-registry.tsx` with status **`SCAFFOLD`**.
+  - All six template keys are registered in `apps/web/src/lib/portfolio/template-registry.tsx` with status **`SCAFFOLD`**, version **`1.0.0`**, and `isSelectable: false`.
   - No finished production template exists yet.
   - `ReferenceTemplate` (`apps/web/src/components/portfolio/templates/ReferenceTemplate.tsx`) is an **ENGINE TEST / STRUCTURAL REFERENCE ONLY**. It is **NOT** the final Basic design and must not be used as a production portfolio.
   - Astra will design and implement the real visual templates in Phases 11–16.
@@ -159,12 +161,28 @@ Paths below are relative to this document; filenames are the canonical repositor
 - The `PortfolioTemplateProps` contract interface (`apps/web/src/lib/portfolio/template-contract.ts`)
 - Global workspace shell and navigation (`apps/web/src/components/workspace/**`, `apps/web/src/app/workspace/page.tsx`).
 
-## CURRENT TEST BASELINE (PHASE 10 PASS)
+## CURRENT TEST BASELINE (PHASE 10.1 PASS)
 
-- **Backend (Maven)**: **118 / 118 PASSED** (0 failures, 0 errors)
-- **Frontend (Vitest)**: **89 / 89 PASSED** (11 test files, 0 failures)
+- **Backend (Maven)**: **125 / 125 PASSED** across 15 test classes (0 failures, 0 errors), including `PortfolioContractTest`.
+- **Frontend (Vitest)**: **94 / 94 PASSED** across 12 test files (0 failures), including `PortfolioContract.test.ts`.
 - **Typecheck**: **PASS** (`npm run typecheck` / `tsc --noEmit` exit code 0)
 - **Lint**: **PASS** (`npm run lint` / `eslint .` exit code 0)
 - **Production Build**: **PASS** (`npm run build` / Next.js Turbopack build clean)
 - **Terminology Audit**: **PASS** (0 occurrences of wedding, photoshoot, photographer, bride, groom)
-- **Git State**: Local commit `b3b70ad602ce3245ae02f2694ae6e492be6f7289`, working tree clean, **NEVER PUSHED TO REMOTE**.
+- **Git State**: Local commit `phase-10.1: align portfolio frontend backend contracts` pushed to `https://github.com/mani1715/Interior.git`, with `local HEAD == origin/main`.
+
+## REPOSITORY INTAKE QUALIFICATION & PHASE 10.1 RESOLUTION
+
+During repository intake on 2026-09-19, Astra correctly halted Phase 11 and documented contract discrepancies between frontend and backend in Section 18 of `ASTRA_PHASE_11_HANDOFF.md` (initialization routes, mutation versions, reorder field names, font and section enums, section content fields, missing navigation settings).
+
+Antigravity executed Phase 10.1 to resolve all engine-owned contract blockers without breaking architecture or database migrations:
+1. Endpoint aligned: `POST /portfolio` across frontend and backend.
+2. Optimistic concurrency aligned: `version: number` on all mutation payloads; `sectionIds` on reordering.
+3. 18 canonical `SectionType` and 6 `FontPairing` enums synchronized between backend, DB V006, and frontend.
+4. Centralized presentation normalizer `normalizePortfolioProps()` implemented, providing strongly-typed, non-null `NavigationSettings`.
+5. Section content names aligned with `PortfolioSectionValidator.java`.
+6. Template registry entries updated to `version: '1.0.0'`, `status: 'SCAFFOLD'`, `isSelectable: false`.
+7. Full regression passing: 125 backend tests and 94 frontend tests.
+
+Astra can now proceed directly with **PHASE 11 — BASIC PORTFOLIO DESIGN**.
+

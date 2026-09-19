@@ -18,7 +18,8 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
   primaryColor = '#1F2937',
   secondaryColor = '#F3F4F6',
   accentColor = '#C5A880',
-  fontPairing = 'PLAYFAIR_INTER',
+  fontPairing = 'SYSTEM_SANS',
+  navigationSettings,
   publicContacts = [],
   canonicalServices = [],
   canonicalSpecialties = [],
@@ -28,23 +29,22 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
 }) => {
   const sortedSections = [...visibleSections].sort((a, b) => a.displayOrder - b.displayOrder);
 
-  // Derive font family styles
+  // Derive font family styles from canonical FontPairing enum
   const getFontFamilyHeading = () => {
     switch (fontPairing) {
-      case 'PLAYFAIR_INTER':
+      case 'CLASSIC_SERIF':
         return 'font-serif';
-      case 'CORMORANT_PLUS_JAKARTA':
-        return 'font-serif';
-      case 'CINZEL_MANROPE':
-        return 'font-serif tracking-wider';
-      case 'SYNE_SPACE_GROTESK':
-        return 'font-sans font-black tracking-tight';
-      case 'FRAUNCES_OUTFIT':
-        return 'font-serif';
-      case 'BODONI_INTER':
+      case 'EDITORIAL':
+        return 'font-serif tracking-wide';
+      case 'WARM_EDITORIAL':
         return 'font-serif italic';
+      case 'BOLD_CINEMATIC':
+        return 'font-sans font-black tracking-tight';
+      case 'MODERN_CLEAN':
+        return 'font-sans tracking-tight';
+      case 'SYSTEM_SANS':
       default:
-        return 'font-serif';
+        return 'font-sans font-medium';
     }
   };
 
@@ -56,14 +56,17 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
         isMobilePreview ? 'max-w-sm mx-auto border border-sand-300 rounded-3xl shadow-xl overflow-hidden' : 'w-full'
       }`}
       style={{
-        // Dynamic theme CSS variables
         ['--theme-primary' as any]: primaryColor || '#1F2937',
         ['--theme-secondary' as any]: secondaryColor || '#F3F4F6',
         ['--theme-accent' as any]: accentColor || '#C5A880',
       }}
     >
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-sand-200 px-6 py-4 flex items-center justify-between">
+      {/* Navigation Header from normalized navigationSettings */}
+      <header
+        className={`${
+          navigationSettings?.sticky ? 'sticky top-0 z-20' : ''
+        } bg-white/90 backdrop-blur-md border-b border-sand-200 px-6 py-4 flex items-center justify-between`}
+      >
         <div>
           <span className={`${headingClass} text-lg font-bold tracking-tight text-charcoal-900 block`}>
             {studioName || 'Studio Portfolio'}
@@ -75,11 +78,25 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
             </span>
           )}
         </div>
+
         <nav className="hidden sm:flex items-center gap-6 text-xs font-medium text-charcoal-600">
-          <a href="#about" className="hover:text-charcoal-900 transition-colors">About</a>
-          <a href="#services" className="hover:text-charcoal-900 transition-colors">Services</a>
-          <a href="#projects" className="hover:text-charcoal-900 transition-colors">Portfolio</a>
-          <a href="#contact" className="hover:text-charcoal-900 transition-colors">Contact</a>
+          {navigationSettings?.navItems?.map((item) => (
+            <a
+              key={item.sectionId}
+              href={item.anchor}
+              className="hover:text-charcoal-900 transition-colors"
+            >
+              {item.label}
+            </a>
+          ))}
+          {navigationSettings?.showPrimaryCta && (
+            <a
+              href={navigationSettings.primaryCtaAnchor}
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-charcoal-900 text-white hover:bg-charcoal-800 transition-colors"
+            >
+              {navigationSettings.primaryCtaLabel}
+            </a>
+          )}
         </nav>
       </header>
 
@@ -87,7 +104,13 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
       <main className="divide-y divide-sand-100">
         {sortedSections.map((section) => {
           switch (section.sectionType) {
-            case 'HERO':
+            case 'HERO': {
+              const heroHeadline = section.content?.headlineOverride || headline || 'Designing Spaces that Elevate Daily Living';
+              const heroSubheadline = section.content?.subheadlineOverride || subheadline || 'Thoughtful interior architecture and bespoke styling for discerning residential and commercial clients.';
+              const badge = section.content?.badgeText || professionalTitle;
+              const ctaText = section.content?.ctaText || 'Request Consultation';
+              const ctaLink = section.content?.ctaLink || '#contact';
+
               return (
                 <section
                   key={section.sectionId}
@@ -95,31 +118,36 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   className="px-6 py-16 sm:py-24 text-center bg-gradient-to-b from-sand-50/60 to-white"
                 >
                   <div className="max-w-3xl mx-auto space-y-6">
-                    {professionalTitle && (
+                    {badge && (
                       <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-sand-200/80 text-charcoal-700">
-                        {professionalTitle}
+                        {badge}
                       </span>
                     )}
                     <h1 className={`${headingClass} text-3xl sm:text-5xl font-normal tracking-tight text-charcoal-950 leading-tight`}>
-                      {section.content?.title || headline || 'Designing Spaces that Elevate Daily Living'}
+                      {heroHeadline}
                     </h1>
                     <p className="text-sm sm:text-base text-charcoal-600 max-w-xl mx-auto leading-relaxed">
-                      {section.content?.subtitle || subheadline || 'Thoughtful interior architecture and bespoke styling for discerning residential and commercial clients.'}
+                      {heroSubheadline}
                     </p>
                     <div className="pt-4 flex flex-wrap justify-center gap-3">
                       <a
-                        href="#contact"
+                        href={ctaLink}
                         className="px-6 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-charcoal-900 text-white hover:bg-charcoal-800 transition-colors shadow-sm inline-flex items-center gap-2"
                       >
-                        <span>Request Consultation</span>
+                        <span>{ctaText}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </a>
                     </div>
                   </div>
                 </section>
               );
+            }
 
-            case 'ABOUT':
+            case 'ABOUT': {
+              const aboutNarrative = section.content?.narrativeOverride || bio || 'Dedicated to crafting architectural interiors shaped by light, materiality, and enduring functional elegance.';
+              const aboutPhilosophy = section.content?.philosophyOverride || designPhilosophy;
+              const quote = section.content?.quote;
+
               return (
                 <section key={section.sectionId} id="about" className="px-6 py-16 sm:py-20 max-w-4xl mx-auto">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
@@ -128,9 +156,9 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                         Our Story
                       </span>
                       <h2 className={`${headingClass} text-2xl sm:text-3xl text-charcoal-900 font-normal`}>
-                        {section.content?.heading || 'About the Studio'}
+                        About the Studio
                       </h2>
-                      {yearsOfExperience && (
+                      {yearsOfExperience != null && (
                         <div className="mt-4 p-4 rounded-xl bg-sand-50 border border-sand-200">
                           <span className="block text-2xl font-bold text-bronze-700">{yearsOfExperience}+</span>
                           <span className="text-xs text-charcoal-600">Years of Practice</span>
@@ -138,9 +166,17 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                       )}
                     </div>
                     <div className="md:col-span-2 space-y-4 text-xs sm:text-sm text-charcoal-600 leading-relaxed">
-                      <p>
-                        {bio || section.content?.text || 'Dedicated to crafting architectural interiors shaped by light, materiality, and enduring functional elegance.'}
-                      </p>
+                      <p>{aboutNarrative}</p>
+                      {aboutPhilosophy && (
+                        <p className="italic text-charcoal-700 border-l-2 border-bronze-600 pl-4 py-1">
+                          {aboutPhilosophy}
+                        </p>
+                      )}
+                      {quote && (
+                        <blockquote className="text-xs text-charcoal-500 italic">
+                          &ldquo;{quote}&rdquo;
+                        </blockquote>
+                      )}
                       {canonicalSpecialties.length > 0 && (
                         <div className="pt-2">
                           <h4 className="text-xs font-semibold text-charcoal-900 mb-2 uppercase tracking-wider">
@@ -162,8 +198,12 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   </div>
                 </section>
               );
+            }
 
-            case 'SERVICES':
+            case 'SERVICES': {
+              const headlineText = section.content?.sectionHeadline || 'Design Services';
+              const descriptionText = section.content?.sectionDescription;
+
               return (
                 <section key={section.sectionId} id="services" className="px-6 py-16 sm:py-20 bg-sand-50/50">
                   <div className="max-w-4xl mx-auto space-y-8">
@@ -172,8 +212,11 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                         What We Do
                       </span>
                       <h2 className={`${headingClass} text-2xl sm:text-3xl text-charcoal-900 font-normal`}>
-                        {section.content?.heading || 'Design Services'}
+                        {headlineText}
                       </h2>
+                      {descriptionText && (
+                        <p className="text-xs text-charcoal-500 mt-2">{descriptionText}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -199,9 +242,11 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   </div>
                 </section>
               );
+            }
 
             case 'FEATURED_PROJECTS':
-            case 'PROJECT_GALLERY':
+            case 'PROJECT_GRID': {
+              const projectsHeadline = section.content?.sectionHeadline || 'Featured Projects';
               return (
                 <section key={section.sectionId} id="projects" className="px-6 py-16 sm:py-20 max-w-5xl mx-auto">
                   <div className="text-center max-w-md mx-auto mb-10">
@@ -209,11 +254,10 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                       Selected Works
                     </span>
                     <h2 className={`${headingClass} text-2xl sm:text-3xl text-charcoal-900 font-normal`}>
-                      {section.content?.heading || 'Featured Projects'}
+                      {projectsHeadline}
                     </h2>
                   </div>
 
-                  {/* Empty state: Gracefully tolerates 0 projects without breaking, as Project CMS is in Phase 18 */}
                   <div className="p-12 text-center bg-sand-50/60 rounded-3xl border border-dashed border-sand-300 space-y-3">
                     <Award className="w-8 h-8 text-bronze-700 mx-auto opacity-70" />
                     <h3 className="text-sm font-semibold text-charcoal-800">Projects In Curation</h3>
@@ -223,42 +267,32 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   </div>
                 </section>
               );
+            }
 
-            case 'DESIGN_PHILOSOPHY':
-              return (
-                <section key={section.sectionId} className="px-6 py-16 bg-charcoal-950 text-white">
-                  <div className="max-w-3xl mx-auto text-center space-y-4">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-bronze-400 block">
-                      Philosophy
-                    </span>
-                    <blockquote className={`${headingClass} text-xl sm:text-2xl font-light italic leading-relaxed text-sand-100`}>
-                      &ldquo;{designPhilosophy || section.content?.text || 'True design is not about decoration, but harmony between human life, natural light, and quiet materials.'}&rdquo;
-                    </blockquote>
-                    <span className="text-xs text-sand-400 block">— {studioName}</span>
-                  </div>
-                </section>
-              );
+            case 'DESIGN_PROCESS': {
+              const processHeadline = section.content?.sectionHeadline || 'Our Design Process';
+              const defaultSteps = [
+                { step: '01', title: 'Consultation', desc: 'Understanding spatial vision and lifestyle needs.' },
+                { step: '02', title: 'Concept & Plan', desc: 'Layout drafting, mood boards, and aesthetic direction.' },
+                { step: '03', title: 'Material Selection', desc: 'Curating fine finishes, bespoke joinery, and lighting.' },
+                { step: '04', title: 'Execution', desc: 'Overseeing turnkey delivery and final styling touches.' },
+              ];
+              const steps = Array.isArray(section.content?.steps) ? section.content.steps : defaultSteps;
 
-            case 'PROCESS':
               return (
-                <section key={section.sectionId} className="px-6 py-16 sm:py-20 max-w-4xl mx-auto">
+                <section key={section.sectionId} id="process" className="px-6 py-16 sm:py-20 max-w-4xl mx-auto">
                   <div className="text-center max-w-md mx-auto mb-10">
                     <span className="text-xs font-semibold uppercase tracking-widest text-bronze-700 block mb-1">
                       Methodology
                     </span>
                     <h2 className={`${headingClass} text-2xl sm:text-3xl text-charcoal-900 font-normal`}>
-                      Our Design Process
+                      {processHeadline}
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    {[
-                      { step: '01', title: 'Consultation', desc: 'Understanding your spatial vision and lifestyle needs.' },
-                      { step: '02', title: 'Concept & Plan', desc: 'Layout drafting, mood boards, and aesthetic direction.' },
-                      { step: '03', title: 'Material Selection', desc: 'Curating fine finishes, bespoke joinery, and lighting.' },
-                      { step: '04', title: 'Execution', desc: 'Overseeing turnkey delivery and final styling touches.' },
-                    ].map((st) => (
-                      <div key={st.step} className="p-5 rounded-2xl bg-sand-50 border border-sand-200 space-y-2">
-                        <span className="text-xs font-mono font-bold text-bronze-700">{st.step}</span>
+                    {steps.map((st: any, idx: number) => (
+                      <div key={idx} className="p-5 rounded-2xl bg-sand-50 border border-sand-200 space-y-2">
+                        <span className="text-xs font-mono font-bold text-bronze-700">{st.step || `0${idx + 1}`}</span>
                         <h4 className="text-xs font-semibold text-charcoal-900">{st.title}</h4>
                         <p className="text-[11px] text-charcoal-500 leading-relaxed">{st.desc}</p>
                       </div>
@@ -266,8 +300,32 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   </div>
                 </section>
               );
+            }
 
-            case 'CONTACT_FORM':
+            case 'SERVICE_AREAS': {
+              const areasHeadline = section.content?.sectionHeadline || 'Service Areas';
+              const coverageNote = section.content?.coverageNote;
+
+              return (
+                <section key={section.sectionId} id="areas" className="px-6 py-12 max-w-4xl mx-auto">
+                  <div className="text-center mb-6">
+                    <h2 className={`${headingClass} text-2xl text-charcoal-900 font-normal`}>{areasHeadline}</h2>
+                    {coverageNote && <p className="text-xs text-charcoal-500 mt-1">{coverageNote}</p>}
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {canonicalServiceAreas.map((sa, idx) => (
+                      <span key={idx} className="px-3 py-1.5 rounded-xl bg-sand-100 text-charcoal-800 text-xs font-medium">
+                        {[sa.locality, sa.cityName].filter(Boolean).join(', ')}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+
+            case 'CONTACT': {
+              const contactIntro = section.content?.contactIntro || 'Let\'s Create Something Beautiful';
+
               return (
                 <section key={section.sectionId} id="contact" className="px-6 py-16 sm:py-20 bg-sand-50/50">
                   <div className="max-w-4xl mx-auto">
@@ -277,7 +335,7 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                           Inquiries
                         </span>
                         <h2 className={`${headingClass} text-2xl sm:text-3xl text-charcoal-900 font-normal mb-4`}>
-                          Let&apos;s Create Something Beautiful
+                          {contactIntro}
                         </h2>
                         <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed mb-6">
                           We take on a limited number of commissions each year to ensure exceptional craftsmanship and attention to detail.
@@ -294,12 +352,6 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                               <span>{contact.contactValue}</span>
                             </div>
                           ))}
-                          {canonicalServiceAreas.length > 0 && (
-                            <div className="pt-2 text-xs text-charcoal-500">
-                              <span className="font-medium text-charcoal-700">Serving: </span>
-                              {canonicalServiceAreas.map((sa) => sa.locality || sa.cityName).join(', ')}
-                            </div>
-                          )}
                         </div>
                       </div>
 
@@ -346,32 +398,113 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                   </div>
                 </section>
               );
+            }
 
-            case 'FOOTER':
+            case 'CTA': {
+              const ctaHeadline = section.content?.headline || 'Ready to Transform Your Space?';
+              const ctaDesc = section.content?.description || 'Schedule an initial architectural consultation.';
+              const ctaBtn = section.content?.buttonText || 'Schedule Consultation';
+              const ctaHref = section.content?.buttonLink || '#contact';
+
               return (
-                <footer key={section.sectionId} className="px-6 py-10 bg-white border-t border-sand-200 text-center text-xs text-charcoal-500 space-y-2">
-                  <p className="font-semibold text-charcoal-800">{studioName}</p>
-                  <p>© {new Date().getFullYear()} {studioName}. All rights reserved.</p>
-                  <p className="text-[10px] text-charcoal-400">
-                    Curated on the Platform • {studioSlug}.domain.placeholder
-                  </p>
-                </footer>
+                <section key={section.sectionId} className="px-6 py-16 bg-charcoal-950 text-white text-center">
+                  <div className="max-w-2xl mx-auto space-y-4">
+                    <h2 className={`${headingClass} text-2xl sm:text-3xl font-normal`}>{ctaHeadline}</h2>
+                    <p className="text-xs text-sand-300 max-w-md mx-auto">{ctaDesc}</p>
+                    <div className="pt-2">
+                      <a
+                        href={ctaHref}
+                        className="inline-block px-6 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-bronze-600 text-white hover:bg-bronze-500 transition-colors"
+                      >
+                        {ctaBtn}
+                      </a>
+                    </div>
+                  </div>
+                </section>
               );
+            }
+
+            case 'TESTIMONIALS': {
+              const testHeadline = section.content?.sectionHeadline || 'Client Testimonials';
+              const items = Array.isArray(section.content?.items) ? section.content.items : [];
+
+              if (items.length === 0) {
+                return null; // Gracefully collapse if empty
+              }
+
+              return (
+                <section key={section.sectionId} id="testimonials" className="px-6 py-16 max-w-4xl mx-auto">
+                  <h2 className={`${headingClass} text-2xl text-center mb-8`}>{testHeadline}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {items.map((item: any, idx: number) => (
+                      <div key={idx} className="p-6 rounded-2xl bg-sand-50 border border-sand-200 space-y-2">
+                        <p className="text-xs italic text-charcoal-700">&ldquo;{item.quote}&rdquo;</p>
+                        <span className="block text-[11px] font-semibold text-charcoal-900">— {item.clientName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+
+            case 'FAQ': {
+              const faqHeadline = section.content?.sectionHeadline || 'Frequently Asked Questions';
+              const items = Array.isArray(section.content?.items) ? section.content.items : [];
+
+              if (items.length === 0) return null;
+
+              return (
+                <section key={section.sectionId} id="faq" className="px-6 py-16 max-w-3xl mx-auto">
+                  <h2 className={`${headingClass} text-2xl text-center mb-8`}>{faqHeadline}</h2>
+                  <div className="space-y-4">
+                    {items.map((item: any, idx: number) => (
+                      <div key={idx} className="p-4 rounded-xl border border-sand-200">
+                        <h4 className="text-xs font-semibold text-charcoal-900 mb-1">{item.question}</h4>
+                        <p className="text-[11px] text-charcoal-600">{item.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+
+            case 'CUSTOM_NOTE': {
+              const noteTitle = section.content?.title || 'Studio Note';
+              const noteBody = section.content?.body || '';
+
+              return (
+                <section key={section.sectionId} className="px-6 py-12 max-w-3xl mx-auto">
+                  <h3 className={`${headingClass} text-xl text-charcoal-900 mb-2`}>{noteTitle}</h3>
+                  <p className="text-xs text-charcoal-600 leading-relaxed whitespace-pre-wrap">{noteBody}</p>
+                </section>
+              );
+            }
 
             default:
               return (
                 <section key={section.sectionId} className="px-6 py-12 max-w-4xl mx-auto">
                   <h3 className={`${headingClass} text-xl text-charcoal-900 mb-2`}>
-                    {section.content?.title || section.sectionType.replace('_', ' ')}
+                    {section.sectionType.replace(/_/g, ' ')}
                   </h3>
                   <p className="text-xs text-charcoal-600">
-                    {section.content?.subtitle || section.content?.text || 'Section content'}
+                    {section.content?.sectionHeadline || section.content?.title || 'Section content configured.'}
                   </p>
                 </section>
               );
           }
         })}
       </main>
+
+      {/* Standard Editorial Footer */}
+      <footer className="px-6 py-10 bg-white border-t border-sand-200 text-center text-xs text-charcoal-500 space-y-2">
+        <p className="font-semibold text-charcoal-800">{studioName}</p>
+        <p>© {new Date().getFullYear()} {studioName}. All rights reserved.</p>
+        {studioSlug && (
+          <p className="text-[10px] text-charcoal-400">
+            Curated on the Platform • {studioSlug}.domain.placeholder
+          </p>
+        )}
+      </footer>
     </div>
   );
 };

@@ -37,7 +37,7 @@ import {
   FontPairing,
 } from '@/lib/portfolio/types';
 import { TEMPLATE_REGISTRY, getAllTemplates } from '@/lib/portfolio/template-registry';
-import { ReferenceTemplate } from '@/components/portfolio/templates/ReferenceTemplate';
+import { normalizePortfolioProps } from '@/lib/portfolio/normalize-props';
 
 export default function PortfolioBuilderPage() {
   const [portfolio, setPortfolio] = useState<PortfolioDetailResponse | null>(null);
@@ -61,7 +61,7 @@ export default function PortfolioBuilderPage() {
   const [primaryColor, setPrimaryColor] = useState('#1F2937');
   const [secondaryColor, setSecondaryColor] = useState('#F3F4F6');
   const [accentColor, setAccentColor] = useState('#C5A880');
-  const [fontPairing, setFontPairing] = useState<FontPairing>('PLAYFAIR_INTER');
+  const [fontPairing, setFontPairing] = useState<FontPairing>('SYSTEM_SANS');
   const [isDirty, setIsDirty] = useState(false);
 
   // Version snapshot input state
@@ -77,7 +77,7 @@ export default function PortfolioBuilderPage() {
       try {
         data = await fetchPortfolio();
       } catch (err: any) {
-        // If 404, automatically initialize
+        // If 404, automatically initialize via canonical POST /portfolio
         if (err.status === 404) {
           data = await initPortfolio({ templateKey: 'BASIC' });
         } else {
@@ -94,7 +94,7 @@ export default function PortfolioBuilderPage() {
       setPrimaryColor(data.primaryColor || '#1F2937');
       setSecondaryColor(data.secondaryColor || '#F3F4F6');
       setAccentColor(data.accentColor || '#C5A880');
-      setFontPairing(data.fontPairing || 'PLAYFAIR_INTER');
+      setFontPairing(data.fontPairing || 'SYSTEM_SANS');
       setIsDirty(false);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to load portfolio.');
@@ -107,7 +107,7 @@ export default function PortfolioBuilderPage() {
     loadPortfolio();
   }, [loadPortfolio]);
 
-  // Save content & styles
+  // Save content & styles (optimistic concurrency version included)
   const handleSavePortfolio = async () => {
     if (!portfolio) return;
     try {
@@ -140,7 +140,7 @@ export default function PortfolioBuilderPage() {
     }
   };
 
-  // Section visibility toggle
+  // Section visibility toggle (optimistic concurrency version included)
   const handleToggleSectionVisibility = async (section: PortfolioSectionDto) => {
     if (!portfolio) return;
     try {
@@ -148,14 +148,19 @@ export default function PortfolioBuilderPage() {
       const updated = await updateSection(section.id, {
         isVisible: !section.isVisible,
         content: section.content,
+        version: portfolio.version,
       });
       setPortfolio(updated);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to update section visibility.');
+      if (err.status === 409) {
+        setErrorMessage('Another session modified this portfolio. Please refresh to load the latest state.');
+      } else {
+        setErrorMessage(err.message || 'Failed to update section visibility.');
+      }
     }
   };
 
-  // Reorder sections (Move up / down)
+  // Reorder sections (Move up / down, canonical sectionIds and version included)
   const handleMoveSection = async (index: number, direction: 'up' | 'down') => {
     if (!portfolio) return;
     const sections = [...portfolio.sections].sort((a, b) => a.displayOrder - b.displayOrder);
@@ -167,17 +172,24 @@ export default function PortfolioBuilderPage() {
     sections[index] = sections[targetIndex];
     sections[targetIndex] = temp;
 
-    const orderedSectionIds = sections.map((s) => s.id);
+    const sectionIds = sections.map((s) => s.id);
     try {
       setErrorMessage(null);
-      const updated = await reorderSections({ orderedSectionIds });
+      const updated = await reorderSections({
+        sectionIds,
+        version: portfolio.version,
+      });
       setPortfolio(updated);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to reorder sections.');
+      if (err.status === 409) {
+        setErrorMessage('Another session modified this portfolio. Please refresh to load the latest state.');
+      } else {
+        setErrorMessage(err.message || 'Failed to reorder sections.');
+      }
     }
   };
 
-  // Switch template
+  // Switch template (optimistic concurrency version included)
   const handleSwitchTemplate = async (templateKey: PortfolioTemplateKey) => {
     if (!portfolio || portfolio.templateKey === templateKey) return;
     try {
@@ -191,13 +203,17 @@ export default function PortfolioBuilderPage() {
       setSuccessMessage(`Switched template to ${templateKey}. Content preserved.`);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to switch template.');
+      if (err.status === 409) {
+        setErrorMessage('Another session modified this portfolio. Please refresh to load the latest state.');
+      } else {
+        setErrorMessage(err.message || 'Failed to switch template.');
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  // Create version snapshot
+  // Create version snapshot (optimistic concurrency version included)
   const handleCreateSnapshot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!portfolio || !snapshotLabel.trim()) return;
@@ -206,19 +222,24 @@ export default function PortfolioBuilderPage() {
       setErrorMessage(null);
       const updated = await createVersionSnapshot({
         label: snapshotLabel.trim(),
+        version: portfolio.version,
       });
       setPortfolio(updated);
       setSnapshotLabel('');
       setSuccessMessage('Version snapshot created successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to create version snapshot.');
+      if (err.status === 409) {
+        setErrorMessage('Another session modified this portfolio. Please refresh to load the latest state.');
+      } else {
+        setErrorMessage(err.message || 'Failed to create version snapshot.');
+      }
     } finally {
       setCreatingSnapshot(false);
     }
   };
 
-  // Restore version snapshot
+  // Restore version snapshot (optimistic concurrency version included)
   const handleRestoreSnapshot = async (versionNumber: number) => {
     if (!portfolio) return;
     if (!confirm(`Restore portfolio to version ${versionNumber}? Current un-snapshotted changes will be overwritten.`)) {
@@ -239,12 +260,16 @@ export default function PortfolioBuilderPage() {
       setPrimaryColor(updated.primaryColor || '#1F2937');
       setSecondaryColor(updated.secondaryColor || '#F3F4F6');
       setAccentColor(updated.accentColor || '#C5A880');
-      setFontPairing(updated.fontPairing || 'PLAYFAIR_INTER');
+      setFontPairing(updated.fontPairing || 'SYSTEM_SANS');
       setIsDirty(false);
       setSuccessMessage(`Restored version ${versionNumber} successfully.`);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to restore version snapshot.');
+      if (err.status === 409) {
+        setErrorMessage('Another session modified this portfolio. Please refresh to load the latest state.');
+      } else {
+        setErrorMessage(err.message || 'Failed to restore version snapshot.');
+      }
     } finally {
       setSaving(false);
     }
@@ -278,6 +303,60 @@ export default function PortfolioBuilderPage() {
   const sortedSections = [...portfolio.sections].sort((a, b) => a.displayOrder - b.displayOrder);
   const activeTemplateDef = TEMPLATE_REGISTRY[portfolio.templateKey] || TEMPLATE_REGISTRY.BASIC;
   const ActiveTemplateComponent = activeTemplateDef.component;
+
+  // Normalized presentation props for live preview frame
+  const previewProps = normalizePortfolioProps(
+    {
+      portfolioId: portfolio.id,
+      studioId: portfolio.studioId,
+      studioName: 'Aarav Design Atelier',
+      studioSlug: 'aarav-atelier',
+      professionalType: 'INTERIOR_STUDIO',
+      professionalTitle: 'Lead Architect & Interior Designer',
+      studioCity: 'Bengaluru',
+      studioState: 'Karnataka',
+      templateKey: portfolio.templateKey,
+      status: portfolio.status,
+      headline: headline || portfolio.headline,
+      subheadline: subheadline || portfolio.subheadline,
+      bio: bio || portfolio.bio,
+      designPhilosophy: designPhilosophy || portfolio.designPhilosophy,
+      yearsOfExperience: yearsOfExperience === '' ? null : Number(yearsOfExperience),
+      primaryColor,
+      secondaryColor,
+      accentColor,
+      fontPairing,
+      publicContacts: [
+        { kind: 'EMAIL', contactValue: 'studio@aarav.in' },
+        { kind: 'PHONE', contactValue: '+91 98765 43210' },
+        { kind: 'INSTAGRAM', contactValue: '@aarav.atelier' },
+      ],
+      canonicalServices: [
+        { serviceCode: 'RESIDENTIAL', serviceName: 'Residential Architecture & Interiors' },
+        { serviceCode: 'KITCHEN', serviceName: 'Modular Kitchens & Bespoke Millwork' },
+        { serviceCode: 'TURNKEY', serviceName: 'Turnkey Execution & Site Management' },
+      ],
+      canonicalSpecialties: [
+        { specialtyCode: 'WARM_CONTEMPORARY', specialtyName: 'Warm Contemporary' },
+        { specialtyCode: 'INDIAN_TRADITIONAL', specialtyName: 'Indian Traditional Modern' },
+      ],
+      canonicalServiceAreas: [
+        { cityName: 'Bengaluru', locality: 'Indiranagar' },
+        { cityName: 'Bengaluru', locality: 'Koramangala' },
+      ],
+      visibleSections: sortedSections
+        .filter((s) => s.isVisible)
+        .map((s) => ({
+          sectionId: s.id,
+          sectionType: s.sectionType,
+          displayOrder: s.displayOrder,
+          schemaVersion: s.schemaVersion,
+          content: s.content,
+        })),
+      previewGeneratedAt: new Date().toISOString(),
+    },
+    { isMobilePreview }
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -645,7 +724,7 @@ export default function PortfolioBuilderPage() {
                         {tpl.tagline}
                       </p>
                       <div className="flex items-center justify-between text-[10px] text-charcoal-400 font-mono">
-                        <span>{tpl.phase}</span>
+                        <span>v{tpl.version}</span>
                         <span className="text-bronze-700 font-sans font-medium">{tpl.status}</span>
                       </div>
                     </div>
@@ -653,22 +732,22 @@ export default function PortfolioBuilderPage() {
                 })}
               </div>
 
-              {/* Typography Pairing Selector */}
+              {/* Canonical Typography Pairing Selector */}
               <div className="pt-4 border-t border-sand-100 space-y-3">
                 <div>
                   <h4 className="text-xs font-semibold text-charcoal-900">Typography Pairing</h4>
                   <p className="text-[11px] text-charcoal-500">
-                    Carefully curated font combinations for luxury interior editorial layouts.
+                    Carefully curated canonical font combinations for interior editorial layouts.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
-                    { key: 'PLAYFAIR_INTER', name: 'Playfair Display + Inter', style: 'font-serif' },
-                    { key: 'CORMORANT_PLUS_JAKARTA', name: 'Cormorant + Plus Jakarta', style: 'font-serif' },
-                    { key: 'CINZEL_MANROPE', name: 'Cinzel + Manrope', style: 'font-serif tracking-wide' },
-                    { key: 'SYNE_SPACE_GROTESK', name: 'Syne + Space Grotesk', style: 'font-sans font-bold' },
-                    { key: 'FRAUNCES_OUTFIT', name: 'Fraunces + Outfit', style: 'font-serif' },
-                    { key: 'BODONI_INTER', name: 'Bodoni Moda + Inter', style: 'font-serif italic' },
+                    { key: 'SYSTEM_SANS', name: 'System Sans', style: 'font-sans font-medium' },
+                    { key: 'CLASSIC_SERIF', name: 'Classic Serif', style: 'font-serif' },
+                    { key: 'MODERN_CLEAN', name: 'Modern Clean', style: 'font-sans tracking-tight' },
+                    { key: 'EDITORIAL', name: 'Editorial Serif', style: 'font-serif tracking-wide' },
+                    { key: 'WARM_EDITORIAL', name: 'Warm Editorial', style: 'font-serif italic' },
+                    { key: 'BOLD_CINEMATIC', name: 'Bold Cinematic', style: 'font-sans font-black tracking-tight' },
                   ].map((fp) => (
                     <button
                       key={fp.key}
@@ -851,53 +930,7 @@ export default function PortfolioBuilderPage() {
 
           {/* Preview Container */}
           <div className="border border-sand-200 rounded-2xl bg-sand-50/40 p-4 max-h-[850px] overflow-y-auto">
-            <ActiveTemplateComponent
-              portfolioId={portfolio.id}
-              studioId={portfolio.studioId}
-              studioName="Aarav Design Atelier"
-              studioSlug="aarav-atelier"
-              professionalTitle="Lead Architect & Interior Designer"
-              studioCity="Bengaluru"
-              studioState="Karnataka"
-              templateKey={portfolio.templateKey}
-              headline={headline || portfolio.headline}
-              subheadline={subheadline || portfolio.subheadline}
-              bio={bio || portfolio.bio}
-              designPhilosophy={designPhilosophy || portfolio.designPhilosophy}
-              yearsOfExperience={yearsOfExperience === '' ? null : Number(yearsOfExperience)}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              accentColor={accentColor}
-              fontPairing={fontPairing}
-              publicContacts={[
-                { kind: 'EMAIL', contactValue: 'studio@aarav.in' },
-                { kind: 'PHONE', contactValue: '+91 98765 43210' },
-                { kind: 'INSTAGRAM', contactValue: '@aarav.atelier' },
-              ]}
-              canonicalServices={[
-                { serviceCode: 'RESIDENTIAL', serviceName: 'Residential Architecture & Interiors' },
-                { serviceCode: 'KITCHEN', serviceName: 'Modular Kitchens & Bespoke Millwork' },
-                { serviceCode: 'TURNKEY', serviceName: 'Turnkey Execution & Site Management' },
-              ]}
-              canonicalSpecialties={[
-                { specialtyCode: 'WARM_CONTEMPORARY', specialtyName: 'Warm Contemporary' },
-                { specialtyCode: 'INDIAN_TRADITIONAL', specialtyName: 'Indian Traditional Modern' },
-              ]}
-              canonicalServiceAreas={[
-                { cityName: 'Bengaluru', locality: 'Indiranagar' },
-                { cityName: 'Bengaluru', locality: 'Koramangala' },
-              ]}
-              visibleSections={sortedSections
-                .filter((s) => s.isVisible)
-                .map((s) => ({
-                  sectionId: s.id,
-                  sectionType: s.sectionType,
-                  displayOrder: s.displayOrder,
-                  schemaVersion: s.schemaVersion,
-                  content: s.content,
-                }))}
-              isMobilePreview={isMobilePreview}
-            />
+            <ActiveTemplateComponent {...previewProps} />
           </div>
         </div>
       </div>

@@ -28,8 +28,8 @@ const mockSections: PortfolioSectionDto[] = [
     isVisible: true,
     schemaVersion: 1,
     content: {
-      title: 'Architectural Interiors & Refined Living',
-      subtitle: 'Harmonious spatial design crafted with light and quiet materiality.',
+      headlineOverride: 'Architectural Interiors & Refined Living',
+      subheadlineOverride: 'Harmonious spatial design crafted with light and quiet materiality.',
     },
     updatedAt: '2026-09-18T12:00:00Z',
   },
@@ -40,8 +40,7 @@ const mockSections: PortfolioSectionDto[] = [
     isVisible: true,
     schemaVersion: 1,
     content: {
-      heading: 'About the Studio',
-      text: 'Specializing in residential architecture and turnkey curation.',
+      narrativeOverride: 'Specializing in residential architecture and turnkey curation.',
     },
     updatedAt: '2026-09-18T12:00:00Z',
   },
@@ -52,7 +51,7 @@ const mockSections: PortfolioSectionDto[] = [
     isVisible: true,
     schemaVersion: 1,
     content: {
-      heading: 'Practice Services',
+      sectionHeadline: 'Practice Services',
     },
     updatedAt: '2026-09-18T12:00:00Z',
   },
@@ -63,24 +62,24 @@ const mockSections: PortfolioSectionDto[] = [
     isVisible: true,
     schemaVersion: 1,
     content: {
-      heading: 'Selected Portfolios',
+      sectionHeadline: 'Selected Portfolios',
     },
     updatedAt: '2026-09-18T12:00:00Z',
   },
   {
-    id: 'sec-philosophy-5',
-    sectionType: 'DESIGN_PHILOSOPHY',
+    id: 'sec-process-5',
+    sectionType: 'DESIGN_PROCESS',
     displayOrder: 4,
     isVisible: true,
     schemaVersion: 1,
     content: {
-      text: 'Design that endures through materiality and quiet balance.',
+      sectionHeadline: 'Design Process',
     },
     updatedAt: '2026-09-18T12:00:00Z',
   },
   {
     id: 'sec-contact-6',
-    sectionType: 'CONTACT_FORM',
+    sectionType: 'CONTACT',
     displayOrder: 5,
     isVisible: true,
     schemaVersion: 1,
@@ -88,8 +87,8 @@ const mockSections: PortfolioSectionDto[] = [
     updatedAt: '2026-09-18T12:00:00Z',
   },
   {
-    id: 'sec-footer-7',
-    sectionType: 'FOOTER',
+    id: 'sec-cta-7',
+    sectionType: 'CTA',
     displayOrder: 6,
     isVisible: true,
     schemaVersion: 1,
@@ -111,7 +110,7 @@ const mockPortfolioData: PortfolioDetailResponse = {
   primaryColor: '#1F2937',
   secondaryColor: '#F3F4F6',
   accentColor: '#C5A880',
-  fontPairing: 'PLAYFAIR_INTER',
+  fontPairing: 'CLASSIC_SERIF',
   version: 1,
   isReadyForPublish: true,
   readinessMissingRequirements: [],
@@ -148,7 +147,7 @@ const mockPreviewData: PortfolioPreviewResponse = {
   primaryColor: '#1F2937',
   secondaryColor: '#F3F4F6',
   accentColor: '#C5A880',
-  fontPairing: 'PLAYFAIR_INTER',
+  fontPairing: 'CLASSIC_SERIF',
   publicContacts: [
     { kind: 'EMAIL', contactValue: 'studio@aarav.in' },
     { kind: 'PHONE', contactValue: '+919876543210' },
@@ -287,6 +286,7 @@ describe('Phase 10: Portfolio Builder Engine', () => {
       'sec-hero-1',
       expect.objectContaining({
         isVisible: false,
+        version: 1,
       })
     );
 
@@ -295,7 +295,8 @@ describe('Phase 10: Portfolio Builder Engine', () => {
     fireEvent.click(moveAboutUpBtn);
 
     expect(reorderSpy).toHaveBeenCalledWith({
-      orderedSectionIds: expect.arrayContaining(['sec-about-2', 'sec-hero-1']),
+      sectionIds: expect.arrayContaining(['sec-about-2', 'sec-hero-1']),
+      version: 1,
     });
   });
 
@@ -369,6 +370,7 @@ describe('Phase 10: Portfolio Builder Engine', () => {
     await waitFor(() => {
       expect(createVerSpy).toHaveBeenCalledWith({
         label: 'Editorial Milestone',
+        version: 1,
       });
     });
 
@@ -394,6 +396,18 @@ describe('Phase 10: Portfolio Builder Engine', () => {
         headline="Architectural Interiors & Refined Living"
         subheadline="Harmonious spatial design crafted with light and quiet materiality."
         bio="A multidisciplinary interior architecture atelier."
+        navigationSettings={{
+          sticky: true,
+          showPrimaryCta: true,
+          primaryCtaLabel: 'Request Consultation',
+          primaryCtaAnchor: '#contact',
+          navItems: [
+            { sectionId: 'sec-hero-1', sectionType: 'HERO', label: 'Hero', anchor: '#hero' },
+            { sectionId: 'sec-about-2', sectionType: 'ABOUT', label: 'About', anchor: '#about' },
+            { sectionId: 'sec-services-3', sectionType: 'SERVICES', label: 'Services', anchor: '#services' },
+            { sectionId: 'sec-contact-6', sectionType: 'CONTACT', label: 'Contact', anchor: '#contact' },
+          ],
+        }}
         publicContacts={[
           { kind: 'EMAIL', contactValue: 'studio@aarav.in' },
         ]}

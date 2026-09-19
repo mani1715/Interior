@@ -6,6 +6,7 @@ import { ArrowLeft, Monitor, Smartphone, RefreshCw, AlertCircle, Shield } from '
 import { fetchPortfolioPreview } from '@/lib/portfolio/api';
 import { PortfolioPreviewResponse } from '@/lib/portfolio/types';
 import { TEMPLATE_REGISTRY } from '@/lib/portfolio/template-registry';
+import { normalizePortfolioProps } from '@/lib/portfolio/normalize-props';
 
 export default function PortfolioPreviewPage() {
   const [preview, setPreview] = useState<PortfolioPreviewResponse | null>(null);
@@ -56,6 +57,7 @@ export default function PortfolioPreviewPage() {
 
   const templateDef = TEMPLATE_REGISTRY[preview.templateKey] || TEMPLATE_REGISTRY.BASIC;
   const TemplateComponent = templateDef.component;
+  const normalizedProps = normalizePortfolioProps(preview, { isMobilePreview: isMobile });
 
   return (
     <div className="min-h-screen bg-sand-100/50 flex flex-col">
@@ -116,32 +118,7 @@ export default function PortfolioPreviewPage() {
       {/* Preview Body Container */}
       <div className="flex-1 p-4 sm:p-8 flex justify-center items-start">
         <div className={`transition-all duration-300 ${isMobile ? 'w-[375px]' : 'w-full max-w-6xl'}`}>
-          <TemplateComponent
-            portfolioId={preview.portfolioId}
-            studioId={preview.studioId}
-            studioName={preview.studioName}
-            studioSlug={preview.studioSlug}
-            professionalType={preview.professionalType}
-            professionalTitle={preview.professionalTitle}
-            studioCity={preview.studioCity}
-            studioState={preview.studioState}
-            templateKey={preview.templateKey}
-            headline={preview.headline}
-            subheadline={preview.subheadline}
-            bio={preview.bio}
-            designPhilosophy={preview.designPhilosophy}
-            yearsOfExperience={preview.yearsOfExperience}
-            primaryColor={preview.primaryColor}
-            secondaryColor={preview.secondaryColor}
-            accentColor={preview.accentColor}
-            fontPairing={preview.fontPairing}
-            publicContacts={preview.publicContacts}
-            canonicalServices={preview.canonicalServices}
-            canonicalSpecialties={preview.canonicalSpecialties}
-            canonicalServiceAreas={preview.canonicalServiceAreas}
-            visibleSections={preview.visibleSections}
-            isMobilePreview={isMobile}
-          />
+          <TemplateComponent {...normalizedProps} />
         </div>
       </div>
     </div>

@@ -9,32 +9,125 @@ export type PortfolioTemplateKey =
 export type PortfolioStatus = 'DRAFT' | 'READY' | 'UNPUBLISHED';
 
 export type FontPairing =
-  | 'PLAYFAIR_INTER'
-  | 'CORMORANT_PLUS_JAKARTA'
-  | 'CINZEL_MANROPE'
-  | 'SYNE_SPACE_GROTESK'
-  | 'FRAUNCES_OUTFIT'
-  | 'BODONI_INTER';
+  | 'SYSTEM_SANS'
+  | 'CLASSIC_SERIF'
+  | 'MODERN_CLEAN'
+  | 'EDITORIAL'
+  | 'WARM_EDITORIAL'
+  | 'BOLD_CINEMATIC';
 
 export type SectionType =
   | 'HERO'
   | 'ABOUT'
   | 'SERVICES'
   | 'FEATURED_PROJECTS'
-  | 'PROJECT_GALLERY'
+  | 'PROJECT_GRID'
   | 'BEFORE_AFTER'
-  | 'DESIGN_PHILOSOPHY'
-  | 'PROCESS'
+  | 'BEFORE_AI_REALITY'
+  | 'DESIGN_PROCESS'
   | 'TESTIMONIALS'
-  | 'PRESS'
-  | 'AWARDS'
   | 'TEAM'
+  | 'AWARDS'
+  | 'PRESS'
+  | 'SERVICE_AREAS'
   | 'FAQ'
-  | 'CONTACT_FORM'
-  | 'LOCATION_MAP'
-  | 'INSTAGRAM_FEED'
-  | 'CONSULTATION_CTA'
-  | 'FOOTER';
+  | 'CONTACT'
+  | 'CTA'
+  | 'VIDEO'
+  | 'CUSTOM_NOTE';
+
+export const CANONICAL_SECTION_TYPES: SectionType[] = [
+  'HERO',
+  'ABOUT',
+  'SERVICES',
+  'FEATURED_PROJECTS',
+  'PROJECT_GRID',
+  'BEFORE_AFTER',
+  'BEFORE_AI_REALITY',
+  'DESIGN_PROCESS',
+  'TESTIMONIALS',
+  'TEAM',
+  'AWARDS',
+  'PRESS',
+  'SERVICE_AREAS',
+  'FAQ',
+  'CONTACT',
+  'CTA',
+  'VIDEO',
+  'CUSTOM_NOTE',
+];
+
+export const CANONICAL_FONT_PAIRINGS: FontPairing[] = [
+  'SYSTEM_SANS',
+  'CLASSIC_SERIF',
+  'MODERN_CLEAN',
+  'EDITORIAL',
+  'WARM_EDITORIAL',
+  'BOLD_CINEMATIC',
+];
+
+// Typed Section Content Models matching Backend Validator
+export interface HeroSectionContent {
+  badgeText?: string;
+  headlineOverride?: string;
+  subheadlineOverride?: string;
+  ctaText?: string;
+  ctaLink?: string;
+}
+
+export interface AboutSectionContent {
+  narrativeOverride?: string;
+  philosophyOverride?: string;
+  quote?: string;
+}
+
+export interface ServicesSectionContent {
+  sectionHeadline?: string;
+  sectionDescription?: string;
+}
+
+export interface ServiceAreasSectionContent {
+  sectionHeadline?: string;
+  coverageNote?: string;
+}
+
+export interface ContactSectionContent {
+  contactIntro?: string;
+  preferredChannel?: string;
+  inquiryFormEnabled?: boolean;
+}
+
+export interface CtaSectionContent {
+  headline?: string;
+  description?: string;
+  buttonText?: string;
+  buttonLink?: string;
+}
+
+export interface DesignProcessSectionContent {
+  sectionHeadline?: string;
+  steps?: Array<{ step: string; title: string; desc: string }>;
+}
+
+export interface TestimonialsSectionContent {
+  sectionHeadline?: string;
+  items?: Array<{ clientName: string; quote: string; projectLocation?: string }>;
+}
+
+export interface FaqSectionContent {
+  sectionHeadline?: string;
+  items?: Array<{ question: string; answer: string }>;
+}
+
+export interface TeamSectionContent {
+  sectionHeadline?: string;
+  members?: Array<{ name: string; role: string; bio?: string }>;
+}
+
+export interface CustomNoteSectionContent {
+  title?: string;
+  body?: string;
+}
 
 export interface PortfolioSectionDto {
   id: string;
@@ -133,6 +226,7 @@ export interface PortfolioPreviewResponse {
   previewGeneratedAt: string;
 }
 
+// Canonical Request DTOs with mandatory optimistic concurrency version
 export interface InitializePortfolioRequest {
   templateKey?: PortfolioTemplateKey;
 }
@@ -152,12 +246,14 @@ export interface UpdatePortfolioRequest {
 }
 
 export interface UpdateSectionRequest {
-  isVisible: boolean;
-  content: Record<string, any>;
+  isVisible?: boolean;
+  content?: Record<string, any>;
+  version: number;
 }
 
 export interface ReorderSectionsRequest {
-  orderedSectionIds: string[];
+  sectionIds: string[];
+  version: number;
 }
 
 export interface SwitchTemplateRequest {
@@ -167,6 +263,7 @@ export interface SwitchTemplateRequest {
 
 export interface CreateVersionSnapshotRequest {
   label: string;
+  version: number;
 }
 
 export interface RestoreVersionRequest {
