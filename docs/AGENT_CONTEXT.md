@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-21, Phase 19 — Media Engine & Watermarks COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 20 (Before / After Engine) pending instruction.
+Last updated: 2026-09-21, Phase 21 — AI Visualizer Foundation COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 22 (Reference Image System) pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -329,5 +329,45 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
   - Typecheck: **PASS** (`tsc --noEmit` clean).
   - Lint: **PASS** (`eslint .` clean).
   - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
+  - Working tree: clean. local HEAD == origin/main.
+
+## PHASE 21 — AI VISUALIZER FOUNDATION (2026-09-21)
+
+- Built complete production AI visualizer foundation spanning `apps/api` (`com.interior.platform.ai`) and `apps/web` (`src/lib/ai/`, `src/components/ai/`, `/workspace/ai`).
+- Durable Asynchronous AI Job Pipeline:
+  - Database schema Flyway `V010__ai_visualizer_foundation.sql` for PostgreSQL 18 with RLS forced for tenant isolation, UUIDv7 primary keys, and H2 test parity in `test-migration/V010__ai_visualizer_foundation.sql`.
+  - Tables `ai_visualization_jobs` and `ai_usage_events` with strict foreign key cascading to `designer_studios`, `studio_projects`, and `media_assets`.
+  - Durable job lifecycle state machine: `QUEUED` -> `PROCESSING` -> `SUCCEEDED` / `FAILED` / `CANCELLED`.
+  - Idempotency deduplication: `uq_ai_jobs_studio_idempotency` unique constraint ensures duplicate submissions with the same key return the existing job.
+  - Quota and rate limiting: Daily studio limit tracking (`countTodayUsage`) and burst rate protection (`RateLimiterService`).
+- Provider Abstraction & Truthful Execution:
+  - `AiImageProvider` interface with `isConfigured()`, `submitGeneration()`, `checkStatus()`, and `cancel()`.
+  - `DisabledAiImageProvider` and `ConfigurableAiImageProvider`: fail-fast with HTTP 503 `AiProviderNotConfiguredException` when unconfigured.
+  - Truthful AI behavior: zero fake AI, zero fake progress percentages, no fake placeholder images.
+- Media Engine Ingestion & Derivative Watermarking:
+  - Generated images validated (`validateAndGetDimensions`), stored into canonical storage keys via `StorageService`.
+  - Registered as `MediaType.AI_CONCEPT` with `MediaVisibility.PUBLIC`.
+  - Public derivatives generated with permanent, non-removable `✦ AI Concept Visualization` badge burned into the image pixels alongside studio watermark.
+  - Never allowed to process `CLIENT_PRIVATE` confidential media assets.
+- Interactive Workspace UI (`/workspace/ai`):
+  - Upgraded from `COMING_SOON` to `READY` (or `NOT_CONFIGURED` if provider disabled) in `WorkspaceService`.
+  - Locked UI palette compliance: `#FAF8F5` background, `#1F1F1F` text, `#FFFFFF` cards, `#E7E1D8` borders, `#B88A5A` warm bronze accents.
+  - Unconfigured banner explains required backend environment variables.
+  - Project and unfinished room photo selector with visual previews.
+  - Natural language prompt input with 500-char counter and 5 architectural design presets.
+  - Real-time generation state with cancel action.
+  - Side-by-side / split comparison viewer (Original vs AI Concept) with permanent legal disclaimer:
+    "✦ AI Concept Visualization — final colors, materials, proportions, and execution may differ."
+  - Bounded recent generation history with quick-load into comparison workspace.
+  - Deep-link support: `?projectId=...&mediaId=...` preselects project and media directly from project editor ("Visualize with AI").
+- Project Editor Integration:
+  - Added "Visualize with AI" link button on eligible media items in `ProjectMediaManager.tsx`.
+- Verification Baseline:
+  - Backend: **171 / 171 PASS** (13 new AI visualizer unit and integration tests added, 0 failures, 0 errors).
+  - Frontend: **189 / 189 PASS** (5 new AI visualizer frontend tests added, 0 failures, 0 errors).
+  - Typecheck: **PASS** (`tsc --noEmit` clean).
+  - Lint: **PASS** (`eslint .` clean).
+  - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
+
 
 

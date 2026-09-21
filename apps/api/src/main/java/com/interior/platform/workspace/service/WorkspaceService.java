@@ -26,13 +26,14 @@ public class WorkspaceService {
     private final AuthorizationService authorizationService;
     private final com.interior.platform.portfolio.service.PortfolioService portfolioService;
     private final com.interior.platform.projects.repository.ProjectRepository projectRepository;
+    private final com.interior.platform.ai.provider.AiImageProvider aiImageProvider;
 
     public WorkspaceService(
             SecurityRepository securityRepository,
             StudioRepository studioRepository,
             AuthorizationService authorizationService
     ) {
-        this(securityRepository, studioRepository, authorizationService, null, null);
+        this(securityRepository, studioRepository, authorizationService, null, null, null);
     }
 
     public WorkspaceService(
@@ -41,7 +42,17 @@ public class WorkspaceService {
             AuthorizationService authorizationService,
             com.interior.platform.portfolio.service.PortfolioService portfolioService
     ) {
-        this(securityRepository, studioRepository, authorizationService, portfolioService, null);
+        this(securityRepository, studioRepository, authorizationService, portfolioService, null, null);
+    }
+
+    public WorkspaceService(
+            SecurityRepository securityRepository,
+            StudioRepository studioRepository,
+            AuthorizationService authorizationService,
+            com.interior.platform.portfolio.service.PortfolioService portfolioService,
+            com.interior.platform.projects.repository.ProjectRepository projectRepository
+    ) {
+        this(securityRepository, studioRepository, authorizationService, portfolioService, projectRepository, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -50,13 +61,15 @@ public class WorkspaceService {
             StudioRepository studioRepository,
             AuthorizationService authorizationService,
             com.interior.platform.portfolio.service.PortfolioService portfolioService,
-            com.interior.platform.projects.repository.ProjectRepository projectRepository
+            com.interior.platform.projects.repository.ProjectRepository projectRepository,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.interior.platform.ai.provider.AiImageProvider aiImageProvider
     ) {
         this.securityRepository = securityRepository;
         this.studioRepository = studioRepository;
         this.authorizationService = authorizationService;
         this.portfolioService = portfolioService;
         this.projectRepository = projectRepository;
+        this.aiImageProvider = aiImageProvider;
     }
 
     /**
@@ -508,9 +521,9 @@ public class WorkspaceService {
                         "ai",
                         "AI Studio",
                         "Transform site photos and room dimensions into conceptual spatial renders.",
-                        "COMING_SOON",
+                        aiImageProvider != null && aiImageProvider.isConfigured() ? "READY" : "NOT_CONFIGURED",
                         "/workspace/ai",
-                        "Learn About This Feature"
+                        aiImageProvider != null && aiImageProvider.isConfigured() ? "Generate Concepts" : "Configure Provider"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "leads",

@@ -70,6 +70,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    @ExceptionHandler(AiProviderNotConfiguredException.class)
+    public ResponseEntity<ApiErrorResponse> handleAiProviderNotConfigured(AiProviderNotConfiguredException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("PROVIDER_NOT_CONFIGURED", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("INVALID_STATE", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
         String requestId = getRequestId(request);

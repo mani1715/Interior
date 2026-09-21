@@ -172,7 +172,7 @@ class WorkspaceIntegrationTest {
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("projects") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("business") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("media") && m.status().equals("READY")));
-        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("NOT_CONFIGURED")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("leads") && m.status().equals("COMING_SOON")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("seo") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("analytics") && m.status().equals("COMING_SOON")));

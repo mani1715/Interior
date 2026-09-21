@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import {
   Upload,
   Image as ImageIcon,
@@ -18,6 +19,7 @@ import {
   Eye,
   Sliders,
   X,
+  Wand2,
 } from 'lucide-react';
 import {
   MediaDetailResponse,
@@ -556,6 +558,15 @@ export function ProjectMediaManager({
                       </div>
 
                       <div className="flex items-center gap-1">
+                        {!isPrivate && media.mediaType !== 'CLIENT_PRIVATE' && media.mediaType !== 'AI_CONCEPT' && (
+                          <Link
+                            href={`/workspace/ai?projectId=${projectId}&mediaId=${media.id}`}
+                            className="p-1 rounded hover:bg-sand-100 text-charcoal-600 hover:text-bronze-700 transition-colors"
+                            title="Visualize with AI"
+                          >
+                            <Wand2 className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
                         {!media.isCover && !isPrivate && (
                           <button
                             type="button"
