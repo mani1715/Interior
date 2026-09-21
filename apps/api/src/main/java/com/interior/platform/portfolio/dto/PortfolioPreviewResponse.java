@@ -5,6 +5,7 @@ import com.interior.platform.portfolio.domain.FontPairing;
 import com.interior.platform.portfolio.domain.PortfolioStatus;
 import com.interior.platform.portfolio.domain.PortfolioTemplateKey;
 import com.interior.platform.portfolio.domain.SectionType;
+import com.interior.platform.projects.dto.ProjectPresentationDto;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,6 +36,7 @@ public record PortfolioPreviewResponse(
         List<PreviewSpecialtyDto> canonicalSpecialties,
         List<PreviewServiceAreaDto> canonicalServiceAreas,
         List<PreviewSectionDto> visibleSections,
+        List<ProjectPresentationDto> portfolioProjects,
         Instant previewGeneratedAt
 ) {
     public record PreviewContactDto(String kind, String contactValue) {}

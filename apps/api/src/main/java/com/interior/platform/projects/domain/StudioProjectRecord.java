@@ -1,0 +1,40 @@
+package com.interior.platform.projects.domain;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+public record StudioProjectRecord(
+        UUID id,
+        UUID studioId,
+        String slug,
+        String title,
+        String shortDescription,
+        String fullDescription,
+        ProjectCategory categoryCode,
+        ProjectStatus projectStatus,
+        VisibilityStatus visibilityStatus,
+        boolean featured,
+        int displayOrder,
+        String city,
+        String district,
+        String state,
+        String country,
+        PropertyType propertyType,
+        ProjectScope projectScope,
+        Integer completionYear,
+        BudgetVisibility budgetVisibility,
+        BigDecimal budgetMin,
+        BigDecimal budgetMax,
+        String currency,
+        ClientNameVisibility clientNameVisibility,
+        String clientDisplayName,
+        BigDecimal areaValue,
+        AreaUnit areaUnit,
+        String internalNotes,
+        long version,
+        UUID createdBy,
+        Instant createdAt,
+        Instant updatedAt,
+        Instant archivedAt
+) {}

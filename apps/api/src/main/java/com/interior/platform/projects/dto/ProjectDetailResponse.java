@@ -1,0 +1,56 @@
+package com.interior.platform.projects.dto;
+
+import com.interior.platform.projects.domain.AreaUnit;
+import com.interior.platform.projects.domain.BudgetVisibility;
+import com.interior.platform.projects.domain.ClientNameVisibility;
+import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectScope;
+import com.interior.platform.projects.domain.ProjectStatus;
+import com.interior.platform.projects.domain.ProjectStyle;
+import com.interior.platform.projects.domain.PropertyType;
+import com.interior.platform.projects.domain.VisibilityStatus;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record ProjectDetailResponse(
+        UUID id,
+        UUID studioId,
+        String slug,
+        String title,
+        String shortDescription,
+        String fullDescription,
+        ProjectCategory categoryCode,
+        String categoryDisplayName,
+        ProjectStatus projectStatus,
+        VisibilityStatus visibilityStatus,
+        boolean featured,
+        int displayOrder,
+        String city,
+        String district,
+        String state,
+        String country,
+        PropertyType propertyType,
+        ProjectScope projectScope,
+        List<ProjectStyle> styleCodes,
+        List<String> styleDisplayNames,
+        Integer completionYear,
+        BudgetVisibility budgetVisibility,
+        BigDecimal budgetMin,
+        BigDecimal budgetMax,
+        String currency,
+        ClientNameVisibility clientNameVisibility,
+        String clientDisplayName,
+        BigDecimal areaValue,
+        AreaUnit areaUnit,
+        String internalNotes,
+        long version,
+        UUID createdBy,
+        Instant createdAt,
+        Instant updatedAt,
+        Instant archivedAt,
+        boolean isReady,
+        List<String> missingReadinessFields
+) {}

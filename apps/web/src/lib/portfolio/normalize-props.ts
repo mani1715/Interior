@@ -156,6 +156,7 @@ export function normalizePortfolioProps(
     canonicalSpecialties: preview.canonicalSpecialties || [],
     canonicalServiceAreas: preview.canonicalServiceAreas || [],
     visibleSections,
+    portfolioProjects: preview.portfolioProjects || [],
     isMobilePreview: options.isMobilePreview ?? false,
   };
 }

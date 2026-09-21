@@ -402,7 +402,7 @@ class WorkspaceServiceTest {
 
         assertEquals("READY", moduleMap.get("business"), "Business profile is implemented and usable");
         assertEquals("NOT_CONFIGURED", moduleMap.get("portfolio"), "Portfolio is not yet configured for this studio");
-        assertEquals("COMING_SOON", moduleMap.get("projects"), "Project CMS is not yet built");
+        assertEquals("READY", moduleMap.get("projects"), "Project CMS is now implemented in Phase 18");
         assertEquals("COMING_SOON", moduleMap.get("media"), "Media engine is not yet built");
         assertEquals("COMING_SOON", moduleMap.get("ai"), "AI visualizer is not yet built");
         assertEquals("COMING_SOON", moduleMap.get("leads"), "Leads/CRM is not yet built");

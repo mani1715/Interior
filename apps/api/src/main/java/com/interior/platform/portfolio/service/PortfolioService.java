@@ -61,6 +61,8 @@ public class PortfolioService {
     private final PortfolioSectionValidator sectionValidator;
     private final ObjectMapper objectMapper;
 
+    private final com.interior.platform.projects.service.ProjectService projectService;
+
     public PortfolioService(
             PortfolioRepository portfolioRepository,
             StudioRepository studioRepository,
@@ -69,12 +71,26 @@ public class PortfolioService {
             PortfolioSectionValidator sectionValidator,
             ObjectMapper objectMapper
     ) {
+        this(portfolioRepository, studioRepository, securityRepository, authorizationService, sectionValidator, objectMapper, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PortfolioService(
+            PortfolioRepository portfolioRepository,
+            StudioRepository studioRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            PortfolioSectionValidator sectionValidator,
+            ObjectMapper objectMapper,
+            com.interior.platform.projects.service.ProjectService projectService
+    ) {
         this.portfolioRepository = portfolioRepository;
         this.studioRepository = studioRepository;
         this.securityRepository = securityRepository;
         this.authorizationService = authorizationService;
         this.sectionValidator = sectionValidator;
         this.objectMapper = objectMapper;
+        this.projectService = projectService;
     }
 
     @Transactional(readOnly = true)
@@ -514,6 +530,10 @@ public class PortfolioService {
                 ))
                 .toList();
 
+        List<com.interior.platform.projects.dto.ProjectPresentationDto> portfolioProjects = projectService != null
+                ? projectService.getPortfolioProjects(studio.id())
+                : List.of();
+
         return new PortfolioPreviewResponse(
                 portfolio.id(),
                 studio.id(),
@@ -539,6 +559,7 @@ public class PortfolioService {
                 canonicalSpecialties,
                 canonicalAreas,
                 visibleSections,
+                portfolioProjects,
                 Instant.now()
         );
     }

@@ -223,6 +223,7 @@ export interface PortfolioPreviewResponse {
   canonicalSpecialties: PreviewSpecialtyDto[];
   canonicalServiceAreas: PreviewServiceAreaDto[];
   visibleSections: PreviewSectionDto[];
+  portfolioProjects?: import('../projects/types').ProjectPresentationDto[];
   previewGeneratedAt: string;
 }
 

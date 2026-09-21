@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-21, Phase 17 — Portfolio Integration & QA PASS. All six templates complete, verified, and committed. Next: Phase 18 (Project CMS) pending review.
+Last updated: 2026-09-21, Phase 18 — Project CMS COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 19 (Media Engine) pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -71,7 +71,8 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 15 — PASS:** WARM_NATURAL 1.0.0 is AVAILABLE and selectable. Warm, tactile, residential renderer, soft ivory surfaces, restrained sage/terracotta accents, and biophilic focus.
 - **PHASE 16 — PASS:** DARK_CINEMATIC 1.0.0 is AVAILABLE and selectable. Deep layered charcoal surfaces, warm ivory type, restrained bronze accents, and dramatic cinematic aesthetic.
 - **PHASE 17 — PASS:** Portfolio Integration, Hardening & QA. Full six-template system verified: canonical registry (all 6 AVAILABLE, selectable, 1.0.0), builder selector, cross-template switching with 100% content preservation, optimistic locking, pure-props contract, non-null navigation derivation via `normalizePortfolioProps()`, shared `PortfolioMotion.tsx` island (IntersectionObserver, cleanup, reduced-motion, SSR visible), contrast-safe palettes, empty state handling, terminology audit clean ("project photography" replaced with "project visuals"), no migration required, 155/155 frontend tests (19 files) passed, 125/125 backend tests passed, Next.js production build clean.
-- **NEXT ACTION:** STOP AFTER PHASE 17. DO NOT START THE NEXT FEATURE PHASE (Phase 18 Project CMS) without explicit authorization.
+- **PHASE 18 — PASS:** Professional Project CMS (Production Implementation). Production system for managing interior design project stories. PostgreSQL Flyway migration `V007__project_cms.sql` with `studio_projects` (UUIDv7, tenant isolation, RLS) and `project_styles`. Server-derived readiness (`READY` vs `DRAFT`), optimistic locking (`version`, HTTP 409), client privacy safeguards (confidential client name, budget privacy), canonical categories (15) and styles (8). Integration with Portfolio Engine (`ProjectPresentationDto` for `FEATURED_PROJECTS` and `PROJECT_GRID` sections). Workspace UI at `/workspace/projects` (KPIs, filtering, search, quick reorder, archiving) and `/workspace/projects/[projectId]` (full story editor, classification, location, privacy controls, readiness checklist). Module readiness updated to `READY`. Zero media upload (strictly truthful note for Phase 19). 136/136 backend tests PASS, 165/165 frontend tests (20 files) PASS, TypeScript clean, ESLint clean, production build clean.
+- **NEXT ACTION:** STOP AFTER PHASE 18. Phase 19 (Media Engine) is the next milestone. Do not implement without explicit authorization.
 
 ## CURRENT TECHNICAL FOUNDATION
 

@@ -169,7 +169,7 @@ class WorkspaceIntegrationTest {
         // Module readiness assertions
         assertEquals(9, summary.modules().size());
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("portfolio") && m.status().equals("NOT_CONFIGURED")));
-        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("projects") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("projects") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("business") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("media") && m.status().equals("COMING_SOON")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("COMING_SOON")));

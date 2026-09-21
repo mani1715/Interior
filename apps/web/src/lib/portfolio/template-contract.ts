@@ -50,6 +50,7 @@ export interface PortfolioTemplateProps {
   canonicalSpecialties: PreviewSpecialtyDto[];
   canonicalServiceAreas: PreviewServiceAreaDto[];
   visibleSections: PreviewSectionDto[];
+  portfolioProjects?: import('../projects/types').ProjectPresentationDto[];
   isMobilePreview?: boolean;
 }
 

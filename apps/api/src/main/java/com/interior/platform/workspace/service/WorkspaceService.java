@@ -25,13 +25,23 @@ public class WorkspaceService {
     private final StudioRepository studioRepository;
     private final AuthorizationService authorizationService;
     private final com.interior.platform.portfolio.service.PortfolioService portfolioService;
+    private final com.interior.platform.projects.repository.ProjectRepository projectRepository;
 
     public WorkspaceService(
             SecurityRepository securityRepository,
             StudioRepository studioRepository,
             AuthorizationService authorizationService
     ) {
-        this(securityRepository, studioRepository, authorizationService, null);
+        this(securityRepository, studioRepository, authorizationService, null, null);
+    }
+
+    public WorkspaceService(
+            SecurityRepository securityRepository,
+            StudioRepository studioRepository,
+            AuthorizationService authorizationService,
+            com.interior.platform.portfolio.service.PortfolioService portfolioService
+    ) {
+        this(securityRepository, studioRepository, authorizationService, portfolioService, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -39,12 +49,14 @@ public class WorkspaceService {
             SecurityRepository securityRepository,
             StudioRepository studioRepository,
             AuthorizationService authorizationService,
-            com.interior.platform.portfolio.service.PortfolioService portfolioService
+            com.interior.platform.portfolio.service.PortfolioService portfolioService,
+            com.interior.platform.projects.repository.ProjectRepository projectRepository
     ) {
         this.securityRepository = securityRepository;
         this.studioRepository = studioRepository;
         this.authorizationService = authorizationService;
         this.portfolioService = portfolioService;
+        this.projectRepository = projectRepository;
     }
 
     /**
@@ -102,14 +114,18 @@ public class WorkspaceService {
                 ? portfolioService.getPortfolioReadinessStatus(studio.id())
                 : "NOT_CONFIGURED";
 
+        // Projects readiness & count
+        int projectCount = projectRepository != null ? projectRepository.countProjects(studio.id()) : 0;
+        int readyProjectCount = projectRepository != null ? projectRepository.countReadyProjects(studio.id()) : 0;
+
         // Completeness calculation
-        WorkspaceSummaryResponse.CompletenessDto completeness = calculateCompleteness(studio, portfolioStatus);
+        WorkspaceSummaryResponse.CompletenessDto completeness = calculateCompleteness(studio, portfolioStatus, readyProjectCount);
 
         // Dynamic setup checklist
-        List<WorkspaceSummaryResponse.SetupChecklistItemDto> checklist = buildSetupChecklist(studio, portfolioStatus);
+        List<WorkspaceSummaryResponse.SetupChecklistItemDto> checklist = buildSetupChecklist(studio, portfolioStatus, projectCount);
 
         // Module readiness
-        List<WorkspaceSummaryResponse.ModuleReadinessDto> modules = deriveModuleReadiness(studio, portfolioStatus);
+        List<WorkspaceSummaryResponse.ModuleReadinessDto> modules = deriveModuleReadiness(studio, portfolioStatus, projectCount);
 
         // Truthful activity feed (derived strictly from business lifecycle timestamps; NEVER from raw audit events)
         List<WorkspaceSummaryResponse.ActivityItemDto> activityFeed = buildActivityFeed(studio);
@@ -282,7 +298,7 @@ public class WorkspaceService {
 
         int profileScore = identityScore + locationScore + servicesScore + specialtiesScore + contactsScore;
 
-        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, "NOT_CONFIGURED");
+        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, "NOT_CONFIGURED", 0);
     }
 
     public WorkspaceSummaryResponse.CompletenessDto calculateCompleteness(StudioDetailRecord studio, String portfolioStatus) {
@@ -309,7 +325,34 @@ public class WorkspaceService {
 
         int profileScore = identityScore + locationScore + servicesScore + specialtiesScore + contactsScore;
 
-        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, portfolioStatus);
+        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, portfolioStatus, 0);
+    }
+
+    public WorkspaceSummaryResponse.CompletenessDto calculateCompleteness(StudioDetailRecord studio, String portfolioStatus, int readyProjectCount) {
+        int identityScore = 0;
+        if (studio.name() != null && !studio.name().isBlank() &&
+            studio.slug() != null && !studio.slug().isBlank() &&
+            studio.professionalType() != null && !studio.professionalType().isBlank() &&
+            studio.professionalTitle() != null && !studio.professionalTitle().isBlank()) {
+            identityScore = 20;
+        }
+
+        int locationScore = 0;
+        if (studio.city() != null && !studio.city().isBlank() &&
+            studio.state() != null && !studio.state().isBlank()) {
+            locationScore += 10;
+        }
+        if (studio.serviceAreas() != null && !studio.serviceAreas().isEmpty()) {
+            locationScore += 10;
+        }
+
+        int servicesScore = (studio.services() != null && !studio.services().isEmpty()) ? 20 : 0;
+        int specialtiesScore = (studio.specialties() != null && !studio.specialties().isEmpty()) ? 20 : 0;
+        int contactsScore = (studio.contacts() != null && !studio.contacts().isEmpty()) ? 20 : 0;
+
+        int profileScore = identityScore + locationScore + servicesScore + specialtiesScore + contactsScore;
+
+        return calculateCompletenessWithScores(studio, profileScore, identityScore, locationScore, servicesScore, specialtiesScore, contactsScore, portfolioStatus, readyProjectCount);
     }
 
     private WorkspaceSummaryResponse.CompletenessDto calculateCompletenessWithScores(
@@ -320,12 +363,13 @@ public class WorkspaceService {
             int servicesScore,
             int specialtiesScore,
             int contactsScore,
-            String portfolioStatus
+            String portfolioStatus,
+            int readyProjectCount
     ) {
-        // Platform Launch Readiness (Portfolio contributes 25% when READY; Projects is Phase 18)
+        // Platform Launch Readiness (Portfolio contributes 25% when READY; Projects contributes 25% when ready)
         int portfolioScore = "READY".equalsIgnoreCase(portfolioStatus) ? 25 : 0;
-        int projectsScore = 0;  // Phase 18
-        int platformReadiness = Math.round(profileScore * 0.5f) + portfolioScore; // Up to 75% when profile + portfolio are complete
+        int projectsScore = (readyProjectCount > 0) ? 25 : 0;
+        int platformReadiness = Math.round(profileScore * 0.5f) + portfolioScore + projectsScore;
 
         String status = (profileScore == 100) ? "PROFILE_COMPLETED" : "IN_PROGRESS";
 
@@ -346,6 +390,10 @@ public class WorkspaceService {
     }
 
     private List<WorkspaceSummaryResponse.SetupChecklistItemDto> buildSetupChecklist(StudioDetailRecord studio, String portfolioStatus) {
+        return buildSetupChecklist(studio, portfolioStatus, 0);
+    }
+
+    private List<WorkspaceSummaryResponse.SetupChecklistItemDto> buildSetupChecklist(StudioDetailRecord studio, String portfolioStatus, int projectCount) {
         List<WorkspaceSummaryResponse.SetupChecklistItemDto> items = new ArrayList<>();
 
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
@@ -412,12 +460,13 @@ public class WorkspaceService {
                 "/workspace/portfolio"
         ));
 
+        boolean projectsReady = projectCount > 0;
         items.add(new WorkspaceSummaryResponse.SetupChecklistItemDto(
                 "projects",
                 "Publish First Project Story",
-                "Showcase completed residential or commercial interior work. Available when Project CMS launches.",
-                false,
-                "View Overview",
+                projectsReady ? "Projects configured and managed in Project CMS." : "Create and organize your residential or commercial interior projects.",
+                projectsReady,
+                projectsReady ? "Manage Projects" : "Create Project",
                 "/workspace/projects"
         ));
 
@@ -425,6 +474,10 @@ public class WorkspaceService {
     }
 
     private List<WorkspaceSummaryResponse.ModuleReadinessDto> deriveModuleReadiness(StudioDetailRecord studio, String portfolioStatus) {
+        return deriveModuleReadiness(studio, portfolioStatus, 0);
+    }
+
+    private List<WorkspaceSummaryResponse.ModuleReadinessDto> deriveModuleReadiness(StudioDetailRecord studio, String portfolioStatus, int projectCount) {
         String portfolioAction = "READY".equalsIgnoreCase(portfolioStatus) ? "Manage Portfolio" : "Configure Portfolio";
         return List.of(
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
@@ -439,9 +492,9 @@ public class WorkspaceService {
                         "projects",
                         "Projects",
                         "Showcase completed residential and commercial interior projects and case studies.",
-                        "COMING_SOON",
+                        "READY",
                         "/workspace/projects",
-                        "View Overview"
+                        projectCount > 0 ? "Manage Projects" : "Add Project"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "media",
