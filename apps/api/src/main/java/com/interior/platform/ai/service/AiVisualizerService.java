@@ -408,7 +408,7 @@ public class AiVisualizerService {
                     job.studioId(),
                     job.projectId(),
                     MediaType.AI_CONCEPT,
-                    MediaVisibility.PUBLIC,
+                    MediaVisibility.PRIVATE,
                     MediaProcessingStatus.PROCESSING,
                     originalStorageKey,
                     "image/jpeg",
@@ -427,46 +427,17 @@ public class AiVisualizerService {
             );
             mediaRepository.createMediaAsset(outputAsset);
 
-            // Generate public derivatives with permanent AI Concept badge
+            // Generate private preview derivative with mandatory AI Concept disclosure badge (no public derivatives)
             StudioWatermarkSettingsRecord watermarkSettings = getOrCreateWatermarkSettings(job.studioId());
-            List<MediaDerivativeRecord> derivatives = new ArrayList<>();
-
-            for (DerivativeVariant variant : DerivativeVariant.values()) {
-                ImageProcessingService.ProcessedDerivative pd = imageProcessingService.createDerivative(
-                        outputBytes,
-                        variant,
-                        watermarkSettings,
-                        true,
-                        MediaType.AI_CONCEPT
-                );
-
-                String derivativeKey = storageService.generateDerivativeKey(
-                        job.studioId(),
-                        job.projectId(),
-                        outputMediaId,
-                        variant.name(),
-                        pd.format()
-                );
-
-                storageService.store(derivativeKey, pd.content(), "image/jpeg");
-                String publicUrl = storageService.resolvePublicUrl(derivativeKey);
-
-                derivatives.add(new MediaDerivativeRecord(
-                        UuidV7.randomUuid(),
-                        outputMediaId,
-                        job.studioId(),
-                        variant,
-                        pd.width(),
-                        pd.height(),
-                        pd.format(),
-                        pd.fileSize(),
-                        derivativeKey,
-                        publicUrl,
-                        pd.isWatermarked(),
-                        now
-                ));
-            }
-            mediaRepository.saveDerivatives(derivatives);
+            ImageProcessingService.ProcessedDerivative pd = imageProcessingService.createDerivative(
+                    outputBytes,
+                    DerivativeVariant.MEDIUM,
+                    watermarkSettings,
+                    true,
+                    MediaType.AI_CONCEPT
+            );
+            String previewKey = "studio/" + job.studioId() + "/previews/" + outputMediaId + ".jpg";
+            storageService.store(previewKey, pd.content(), "image/jpeg");
 
             // Mark asset ready
             MediaAssetRecord readyAsset = new MediaAssetRecord(
@@ -563,6 +534,17 @@ public class AiVisualizerService {
 
     private String resolvePreviewUrl(UUID mediaId, UUID studioId) {
         if (mediaId == null) return null;
+        Optional<MediaAssetRecord> assetOpt = mediaRepository.findMediaAsset(mediaId, studioId);
+        if (assetOpt.isEmpty()) {
+            return null;
+        }
+        MediaAssetRecord asset = assetOpt.get();
+
+        // Safe private preview for all PRIVATE assets (including AI concepts)
+        if (asset.visibility() == MediaVisibility.PRIVATE) {
+            return "/api/v1/media/" + mediaId + "/preview";
+        }
+
         List<MediaDerivativeRecord> derivatives = mediaRepository.findDerivativesByMediaId(mediaId, studioId);
         for (MediaDerivativeRecord d : derivatives) {
             if (d.variantName() == DerivativeVariant.MEDIUM) return d.publicUrl();
@@ -573,10 +555,7 @@ public class AiVisualizerService {
         for (MediaDerivativeRecord d : derivatives) {
             if (d.variantName() == DerivativeVariant.THUMBNAIL) return d.publicUrl();
         }
-        // Fallback to original asset public url resolution
-        return mediaRepository.findMediaAsset(mediaId, studioId)
-                .map(a -> storageService.resolvePublicUrl(a.originalStorageKey()))
-                .orElse(null);
+        return "/api/v1/media/" + mediaId + "/preview";
     }
 
     private StudioWatermarkSettingsRecord getOrCreateWatermarkSettings(UUID studioId) {

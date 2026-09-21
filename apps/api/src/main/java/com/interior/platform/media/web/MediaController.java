@@ -174,6 +174,24 @@ public class MediaController {
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
+    @GetMapping("/{mediaId}/preview")
+    @Operation(summary = "Authenticated workspace media preview", description = "Serves private authenticated preview with burned-in disclosure/watermark. Never exposes original raw master.")
+    public ResponseEntity<byte[]> getMediaPreview(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("mediaId") UUID mediaId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        byte[] bytes = mediaService.getAuthenticatedMediaPreview(actor, studioId, mediaId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .contentType(org.springframework.http.MediaType.IMAGE_JPEG)
+                .body(bytes);
+    }
+
     @GetMapping("/public/**")
     @Operation(summary = "Public derivative image CDN delivery", description = "Serves public optimized, watermarked derivatives with long-term immutable caching.")
     public ResponseEntity<byte[]> getPublicDerivative(HttpServletRequest request) {
@@ -188,6 +206,10 @@ public class MediaController {
         // Defense-in-depth: only keys starting with "public/" are served
         if (!storageKey.startsWith("public/")) {
             storageKey = "public/" + storageKey;
+        }
+
+        if (!mediaService.isDerivativePubliclyDeliverable(storageKey)) {
+            return ResponseEntity.notFound().build();
         }
 
         byte[] bytes = storageService.load(storageKey);

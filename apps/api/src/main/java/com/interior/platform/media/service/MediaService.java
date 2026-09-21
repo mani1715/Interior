@@ -11,6 +11,7 @@ import com.interior.platform.media.dto.*;
 import com.interior.platform.media.repository.MediaRepository;
 import com.interior.platform.media.storage.StorageService;
 import com.interior.platform.projects.domain.StudioProjectRecord;
+import com.interior.platform.projects.domain.VisibilityStatus;
 import com.interior.platform.projects.repository.ProjectRepository;
 import com.interior.platform.security.domain.ActorContext;
 import com.interior.platform.security.domain.StudioMemberRecord;
@@ -418,6 +419,16 @@ public class MediaService {
 
         mediaRepository.updateMediaAsset(updated);
 
+        // Invalidation: Transitioning to PRIVATE purges all public derivatives from storage and database
+        if (newVisibility == MediaVisibility.PRIVATE && asset.visibility() != MediaVisibility.PRIVATE) {
+            List<MediaDerivativeRecord> existing = mediaRepository.findDerivativesByMediaId(asset.id(), context.studioId());
+            for (MediaDerivativeRecord d : existing) {
+                storageService.delete(d.storageKey());
+            }
+            mediaRepository.deleteDerivativesByMediaId(asset.id(), context.studioId());
+            storageService.delete("studio/" + context.studioId() + "/previews/" + asset.id() + ".jpg");
+        }
+
         if (regenerateDerivatives) {
             mediaRepository.deleteDerivativesByMediaId(asset.id(), context.studioId());
             byte[] originalBytes = storageService.load(asset.originalStorageKey());
@@ -502,6 +513,7 @@ public class MediaService {
             storageService.delete(d.storageKey());
         }
         mediaRepository.deleteDerivativesByMediaId(asset.id(), context.studioId());
+        storageService.delete("studio/" + context.studioId() + "/previews/" + asset.id() + ".jpg");
 
         // If it was cover, reassign cover to another active media if exists
         if (asset.isCover()) {
@@ -716,6 +728,90 @@ public class MediaService {
             }
         }
         return Optional.empty();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] getAuthenticatedMediaPreview(ActorContext actor, UUID requestedStudioId, UUID mediaId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        MediaAssetRecord asset = mediaRepository.findMediaAsset(mediaId, context.studioId())
+                .filter(a -> a.deletedAt() == null)
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
+
+        String previewKey = "studio/" + context.studioId() + "/previews/" + mediaId + ".jpg";
+        if (storageService.exists(previewKey)) {
+            byte[] cached = storageService.load(previewKey);
+            if (cached != null && cached.length > 0) {
+                return cached;
+            }
+        }
+
+        byte[] originalBytes = storageService.load(asset.originalStorageKey());
+        if (originalBytes == null || originalBytes.length == 0) {
+            throw new ResourceNotFoundException("Original media content not found");
+        }
+
+        StudioWatermarkSettingsRecord wmSettings = getOrCreateWatermarkSettings(context.studioId());
+        ImageProcessingService.ProcessedDerivative pd = imageProcessingService.createDerivative(
+                originalBytes,
+                DerivativeVariant.MEDIUM,
+                wmSettings,
+                asset.watermarkEnabled(),
+                asset.mediaType()
+        );
+
+        storageService.store(previewKey, pd.content(), "image/jpeg");
+        return pd.content();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isDerivativePubliclyDeliverable(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            return false;
+        }
+        String normalizedKey = storageKey.startsWith("public/") ? storageKey : "public/" + storageKey;
+        String[] parts = normalizedKey.split("/");
+        // Expected format: public/studio/{studioId}/projects/{projectId}/derivatives/{variant}_{mediaAssetId}.{format}
+        if (parts.length < 7 || !"public".equals(parts[0]) || !"studio".equals(parts[1]) || !"projects".equals(parts[3]) || !"derivatives".equals(parts[5])) {
+            return false;
+        }
+
+        UUID studioId;
+        UUID projectId;
+        UUID mediaAssetId;
+        try {
+            studioId = UUID.fromString(parts[2]);
+            projectId = UUID.fromString(parts[4]);
+            String filename = parts[6];
+            int underscoreIdx = filename.indexOf('_');
+            int dotIdx = filename.lastIndexOf('.');
+            if (underscoreIdx == -1 || dotIdx == -1 || dotIdx <= underscoreIdx) {
+                return false;
+            }
+            mediaAssetId = UUID.fromString(filename.substring(underscoreIdx + 1, dotIdx));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+        var studioOpt = studioRepository.findStudioById(studioId);
+        if (studioOpt.isEmpty() || !"PUBLISHED".equalsIgnoreCase(studioOpt.get().publicationStatus())) {
+            return false;
+        }
+
+        var projectOpt = projectRepository.findProjectById(studioId, projectId);
+        if (projectOpt.isEmpty() || projectOpt.get().archivedAt() != null || projectOpt.get().visibilityStatus() == VisibilityStatus.PRIVATE) {
+            return false;
+        }
+
+        var mediaOpt = mediaRepository.findMediaAsset(mediaAssetId, studioId);
+        if (mediaOpt.isEmpty() || mediaOpt.get().deletedAt() != null || mediaOpt.get().visibility() == MediaVisibility.PRIVATE || !mediaOpt.get().mediaType().isPublicEligible()) {
+            return false;
+        }
+
+        return true;
     }
 
     public long getActiveMediaCount(UUID studioId) {

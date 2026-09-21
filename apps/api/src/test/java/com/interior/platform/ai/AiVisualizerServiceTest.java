@@ -344,9 +344,9 @@ class AiVisualizerServiceTest {
         verify(aiJobRepository).updateStatus(eq(jobId), eq(AiJobStatus.PROCESSING), any(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(0L));
         verify(aiJobRepository).updateStatus(eq(jobId), eq(AiJobStatus.SUCCEEDED), isNull(), any(), isNull(), isNull(), isNull(), any(UUID.class), anyString(), eq(1L));
 
-        // Verify AI_CONCEPT media asset and derivatives saved
-        verify(mediaRepository).createMediaAsset(argThat(asset -> asset.mediaType() == MediaType.AI_CONCEPT));
-        verify(mediaRepository).saveDerivatives(argThat(derivatives -> !derivatives.isEmpty()));
+        // Verify AI_CONCEPT media asset is PRIVATE by default (no public derivatives)
+        verify(mediaRepository).createMediaAsset(argThat(asset -> asset.mediaType() == MediaType.AI_CONCEPT && asset.visibility() == MediaVisibility.PRIVATE));
+        verify(mediaRepository, never()).saveDerivatives(any());
 
         // Verify usage event recorded
         verify(aiJobRepository).recordUsageEvent(argThat(event -> "GENERATION_SUCCESS".equals(event.eventType())));

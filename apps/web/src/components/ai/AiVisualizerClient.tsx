@@ -578,9 +578,14 @@ export function AiVisualizerClient() {
                 <span className="text-[10px] font-semibold text-bronze-700 uppercase tracking-wider block">
                   Comparison Workspace
                 </span>
-                <h3 className="font-serif text-lg text-charcoal-900 font-medium">
-                  Concept vs. Site Reality
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif text-lg text-charcoal-900 font-medium">
+                    Concept vs. Site Reality
+                  </h3>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-sand-100 text-charcoal-700 border border-sand-200">
+                    <Shield className="w-2.5 h-2.5 text-bronze-700" /> Private Concept
+                  </span>
+                </div>
               </div>
 
               {/* View Mode Toggle */}

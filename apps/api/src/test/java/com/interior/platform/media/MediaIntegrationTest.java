@@ -230,9 +230,15 @@ class MediaIntegrationTest {
         assertNotNull(coverUrl, "Cover image URL must be populated by Media Engine in Phase 19");
         assertTrue(coverUrl.contains("/media/public/"));
 
-        // 6. Test Public Derivative Delivery route
+        // 6. Test Public Derivative Delivery route: Rejected when studio is UNPUBLISHED
         MockHttpServletRequest publicReq = new MockHttpServletRequest();
         publicReq.setRequestURI(coverUrl);
+        ResponseEntity<byte[]> unpublishedResp = mediaController.getPublicDerivative(publicReq);
+        assertEquals(HttpStatus.NOT_FOUND, unpublishedResp.getStatusCode());
+
+        // Publish studio to allow public CDN delivery
+        jdbcTemplate.update("UPDATE designer_studios SET publication_status = 'PUBLISHED' WHERE id = ?", studioId);
+
         ResponseEntity<byte[]> publicResp = mediaController.getPublicDerivative(publicReq);
         assertEquals(HttpStatus.OK, publicResp.getStatusCode());
         assertNotNull(publicResp.getBody());

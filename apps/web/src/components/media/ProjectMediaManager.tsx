@@ -246,11 +246,14 @@ export function ProjectMediaManager({
   };
 
   const getThumbnailUrl = (media: MediaDetailResponse): string => {
+    if (media.visibility === 'PRIVATE') {
+      return `/api/v1/media/${media.id}/preview`;
+    }
     const thumb = media.derivatives.find((d) => d.variantName === 'THUMBNAIL');
     if (thumb) return thumb.publicUrl;
     const med = media.derivatives.find((d) => d.variantName === 'MEDIUM');
     if (med) return med.publicUrl;
-    return '';
+    return `/api/v1/media/${media.id}/preview`;
   };
 
   return (
