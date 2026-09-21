@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-21, Phase 18 — Project CMS COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 19 (Media Engine) pending instruction.
+Last updated: 2026-09-21, Phase 19 — Media Engine & Watermarks COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 20 (Before / After Engine) pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -72,7 +72,8 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 16 — PASS:** DARK_CINEMATIC 1.0.0 is AVAILABLE and selectable. Deep layered charcoal surfaces, warm ivory type, restrained bronze accents, and dramatic cinematic aesthetic.
 - **PHASE 17 — PASS:** Portfolio Integration, Hardening & QA. Full six-template system verified: canonical registry (all 6 AVAILABLE, selectable, 1.0.0), builder selector, cross-template switching with 100% content preservation, optimistic locking, pure-props contract, non-null navigation derivation via `normalizePortfolioProps()`, shared `PortfolioMotion.tsx` island (IntersectionObserver, cleanup, reduced-motion, SSR visible), contrast-safe palettes, empty state handling, terminology audit clean ("project photography" replaced with "project visuals"), no migration required, 155/155 frontend tests (19 files) passed, 125/125 backend tests passed, Next.js production build clean.
 - **PHASE 18 — PASS:** Professional Project CMS (Production Implementation). Production system for managing interior design project stories. PostgreSQL Flyway migration `V007__project_cms.sql` with `studio_projects` (UUIDv7, tenant isolation, RLS) and `project_styles`. Server-derived readiness (`READY` vs `DRAFT`), optimistic locking (`version`, HTTP 409), client privacy safeguards (confidential client name, budget privacy), canonical categories (15) and styles (8). Integration with Portfolio Engine (`ProjectPresentationDto` for `FEATURED_PROJECTS` and `PROJECT_GRID` sections). Workspace UI at `/workspace/projects` (KPIs, filtering, search, quick reorder, archiving) and `/workspace/projects/[projectId]` (full story editor, classification, location, privacy controls, readiness checklist). Module readiness updated to `READY`. Zero media upload (strictly truthful note for Phase 19). 136/136 backend tests PASS, 165/165 frontend tests (20 files) PASS, TypeScript clean, ESLint clean, production build clean.
-- **NEXT ACTION:** STOP AFTER PHASE 18. Phase 19 (Media Engine) is the next milestone. Do not implement without explicit authorization.
+- **PHASE 19 — PASS:** Media Engine + Automatic Watermarks (Production Implementation). Complete media lifecycle with direct upload pipeline and pre-authenticated upload intents (`pending/{studioId}/{intentId}/{mediaAssetId}`), quarantine validation (25MB max, MIME checks), and promotion to canonical private originals (`studio/{studioId}/projects/{projectId}/original/{mediaAssetId}`). Core Architectural Invariant: ORIGINAL MEDIA != PUBLIC MEDIA. Original masters are clean, private, never exposed publicly. Public responsive derivatives (`THUMBNAIL` 400px, `MEDIUM` 1200px, `LARGE` 1920px) generated in WebP with all EXIF metadata stripped. Automatic studio watermarking with configurable position (5 options), opacity (0.10–1.00), and fallback text. Mandatory permanent AI Concept disclosure badge (`✦ AI Concept Visualization`) automatically embedded on all public AI_CONCEPT derivatives for truth in advertising. Strict privacy invariant: CLIENT_PRIVATE and REFERENCE media remain strictly private (never watermarked, never generated into public derivatives, never served via public endpoints). Full ProjectMediaManager component integrated into Project Story Editor (`/workspace/projects/[projectId]`) with upload, reorder, cover selection, and metadata editing. Upgraded Studio Media Library at `/workspace/media` from placeholder to READY with asset metrics, project/type/visibility filters, and watermark settings modal. WorkspaceService media module updated to READY. Integrated real project cover image URLs into ProjectPresentationDto and Portfolio Engine. 147/147 backend tests PASS, 173/173 frontend tests (21 files) PASS, TypeScript clean, ESLint clean, Next.js build clean.
+- **NEXT ACTION:** STOP AFTER PHASE 19. Phase 20 (Before / After Engine) is the next milestone. Do not implement without explicit authorization.
 
 ## CURRENT TECHNICAL FOUNDATION
 
@@ -275,3 +276,26 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
 - Automated verification: 155/155 frontend tests across 19 files with two workers, typecheck PASS, lint PASS, production build PASS. Initial heavily concurrent frontend run had a timeout; rerun passed without altering timeout/assertions. Fresh backend regression PASS: 125/125 (approved Maven cache access), superseding prior blocked-baseline reports.
 - Five new tests cover SSR visibility, missing browser API fallback, reduced-motion opt-out/change/cleanup, custom palette contrast and supplied comparison media. No fake projects added: Project CMS/media DTO integration remains outside the current props contract.
 - Git: all legitimate Phase 11–16 work preserved locally; no commit or push during this pass. Temporary preview/build-helper files removed after QA. Next = PHASE 17 — ANTIGRAVITY INTEGRATION & QA; do not start Phase 17 from Astra.
+
+## PHASE 18 — PROFESSIONAL PROJECT CMS (2026-09-21)
+
+- Production system for managing interior design project stories feeding discovery, portfolio, and media engines.
+- Database & Migrations: Flyway `V007__project_cms.sql` with `studio_projects` (UUIDv7, tenant isolation, RLS) and `project_styles`.
+- Server-derived readiness: projects evaluate mandatory attributes for `READY` state.
+- Optimistic locking: version tracking prevents concurrent write conflicts (HTTP 409).
+- Privacy protection: confidential client names and budget ranges strictly guarded.
+- Verification: 136/136 backend tests PASS, 165/165 frontend tests PASS.
+
+## PHASE 19 — MEDIA ENGINE & AUTOMATIC WATERMARKS (2026-09-21)
+
+- Built complete production media engine in `apps/api` (`com.interior.platform.media`) and `apps/web` (`src/components/media/`, `src/lib/media/`, `/workspace/media`).
+- Database & Migrations: Flyway `V008__media_engine.sql` with PostgreSQL Row Level Security (RLS) for `studio_watermark_settings`, `upload_intents`, `media_assets`, and `media_derivatives`. Corresponding H2 test migration in `test-migration/V008__media_engine.sql`.
+- Direct Upload Flow: Client initiates upload via `POST /media/upload-intent` with MIME, size, project, and type validation; streams bytes via `PUT /media/upload/{id}` into quarantined storage; calls `POST /media/commit` to trigger server-side verification, image dimension extraction, and derivative generation.
+- Derivative & Watermark Pipeline: `ImageProcessingService` strips EXIF metadata, resizes to responsive variants (`THUMBNAIL` 400px, `MEDIUM` 1200px, `LARGE` 1920px), compresses to modern WebP format, applies subtle studio watermark, and embeds mandatory permanent `✦ AI Concept Visualization` badge on all public variants of `AI_CONCEPT` media.
+- Strict Privacy Invariants: `CLIENT_PRIVATE` and `REFERENCE` media are strictly private to the studio team. No public derivatives are generated for private assets, and their original masters cannot be accessed via the public endpoint `/api/v1/media/public/**`.
+- Project Story Integration: Replaced Phase 18 placeholder banner in `/workspace/projects/[projectId]` with interactive `ProjectMediaManager` (real-time progress upload, drag/order reordering, cover photo selection, metadata editing, and deletion with derivative purge).
+- Studio Media Library: Upgraded `/workspace/media` from placeholder to `READY` status in `WorkspaceService`. Provides multi-metric asset analytics, project/type/visibility filtering, detail modal inspection of public derivatives, and interactive Watermark Settings configuration.
+- Real Cover Media in Portfolios: `ProjectService` dynamically resolves the project's cover image or lowest-sort-order image, injecting it into `ProjectPresentationDto.coverImageUrl` for portfolio showcases.
+- Locked UI Palette Compliance: All platform UI strictly respects the platform theme (`#FAF8F5` background, `#1F1F1F` text, `#B88A5A` accents, `#FFFFFF` cards with `#E7E1D8` borders).
+- Verification: 147/147 backend tests PASS, 173/173 frontend tests PASS, TypeScript clean, ESLint clean, Next.js production build clean.
+

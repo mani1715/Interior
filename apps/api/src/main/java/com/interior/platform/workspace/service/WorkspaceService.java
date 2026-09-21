@@ -500,9 +500,9 @@ public class WorkspaceService {
                         "media",
                         "Media Library",
                         "Centralized storage for high-resolution project photography, plans, and brand assets.",
-                        "COMING_SOON",
+                        "READY",
                         "/workspace/media",
-                        "Learn About This Feature"
+                        "Manage Media"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "ai",

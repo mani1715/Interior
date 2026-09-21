@@ -41,9 +41,14 @@ import java.util.UUID;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final com.interior.platform.media.service.MediaService mediaService;
 
-    public ProjectController(ProjectService projectService) {
+    public ProjectController(
+            ProjectService projectService,
+            com.interior.platform.media.service.MediaService mediaService
+    ) {
         this.projectService = projectService;
+        this.mediaService = mediaService;
     }
 
     @GetMapping
@@ -209,6 +214,35 @@ public class ProjectController {
 
         ProjectDetailResponse restored = projectService.restoreProject(actor, requestedStudioId, projectId, actionRequest.version());
         return createPrivateNoCacheResponse(restored, HttpStatus.OK);
+    }
+
+    @GetMapping("/{projectId}/media")
+    @Operation(summary = "List project media", description = "Lists media assets associated with a specific project.")
+    public ResponseEntity<List<com.interior.platform.media.dto.MediaDetailResponse>> listProjectMedia(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        List<com.interior.platform.media.dto.MediaDetailResponse> list = mediaService.listProjectMedia(actor, requestedStudioId, projectId);
+        return createPrivateNoCacheResponse(list, HttpStatus.OK);
+    }
+
+    @PostMapping("/{projectId}/media/reorder")
+    @Operation(summary = "Reorder project media", description = "Reorders media assets within a project.")
+    public ResponseEntity<Void> reorderProjectMedia(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @Valid @RequestBody com.interior.platform.media.dto.ReorderMediaRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        mediaService.reorderMedia(actor, requestedStudioId, projectId, req);
+        return ResponseEntity.noContent().build();
     }
 
     private <T> ResponseEntity<T> createPrivateNoCacheResponse(T body, HttpStatus status) {

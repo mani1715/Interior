@@ -41,6 +41,7 @@ import {
   UpdateProjectRequest,
 } from '@/lib/projects/types';
 import { fetchProject, updateProject, archiveProject, restoreProject } from '@/lib/projects/api';
+import { ProjectMediaManager } from '@/components/media/ProjectMediaManager';
 
 export default function ProjectEditPage() {
   const params = useParams();
@@ -851,16 +852,12 @@ export default function ProjectEditPage() {
             </div>
           </div>
 
-          {/* Section 5: Media Engine Truthfulness Banner */}
-          <div className="bg-sand-50/70 border border-sand-200 rounded-xl p-5 shadow-sm space-y-2">
-            <div className="flex items-center gap-2 text-charcoal-800">
-              <ImageIcon className="w-4 h-4 text-bronze-700" />
-              <h3 className="font-serif text-sm font-medium">Project Photography & Media</h3>
-            </div>
-            <p className="text-xs text-charcoal-600 leading-relaxed">
-              High-resolution photography, before/after comparison sliders, and room-by-room media will be managed here once the Phase 19 Media Engine is deployed. No placeholder media uploads are active in Phase 18.
-            </p>
-          </div>
+          {/* Section 5: Project Photography & Media Engine */}
+          <ProjectMediaManager
+            projectId={project.id}
+            studioId={project.studioId}
+            isReadOnly={isArchived}
+          />
 
           {/* Section 6: Internal Studio Notes */}
           <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-3">

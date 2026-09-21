@@ -49,6 +49,7 @@ public class ProjectService {
     private final SecurityRepository securityRepository;
     private final AuthorizationService authorizationService;
     private final AuditService auditService;
+    private final com.interior.platform.media.service.MediaService mediaService;
 
     public ProjectService(
             ProjectRepository projectRepository,
@@ -56,10 +57,22 @@ public class ProjectService {
             AuthorizationService authorizationService,
             AuditService auditService
     ) {
+        this(projectRepository, securityRepository, authorizationService, auditService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ProjectService(
+            ProjectRepository projectRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            @org.springframework.context.annotation.Lazy com.interior.platform.media.service.MediaService mediaService
+    ) {
         this.projectRepository = projectRepository;
         this.securityRepository = securityRepository;
         this.authorizationService = authorizationService;
         this.auditService = auditService;
+        this.mediaService = mediaService;
     }
 
     @Transactional(readOnly = true)
@@ -626,6 +639,8 @@ public class ProjectService {
         List<String> styleCodes = styles != null ? styles.stream().map(Enum::name).toList() : Collections.emptyList();
         List<String> styleNames = styles != null ? styles.stream().map(ProjectStyle::getDisplayName).toList() : Collections.emptyList();
 
+        String coverUrl = mediaService != null ? mediaService.getProjectCoverImageUrl(p.studioId(), p.id()).orElse(null) : null;
+
         return new ProjectPresentationDto(
                 p.id(),
                 p.slug(),
@@ -645,7 +660,7 @@ public class ProjectService {
                 clientName,
                 budgetFormatted,
                 areaFormatted,
-                null // Cover image URL placeholder until Phase 19 Media Engine
+                coverUrl
         );
     }
 
