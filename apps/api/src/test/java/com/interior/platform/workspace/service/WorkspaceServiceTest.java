@@ -406,7 +406,7 @@ class WorkspaceServiceTest {
         assertEquals("READY", moduleMap.get("media"), "Media engine is now implemented in Phase 19");
         assertEquals("COMING_SOON", moduleMap.get("ai"), "AI visualizer is not yet built");
         assertEquals("COMING_SOON", moduleMap.get("leads"), "Leads/CRM is not yet built");
-        assertEquals("COMING_SOON", moduleMap.get("seo"), "SEO center is not yet built");
+        assertEquals("READY", moduleMap.get("seo"), "SEO center is now implemented in Phase 20");
         assertEquals("COMING_SOON", moduleMap.get("analytics"), "Analytics engine is not yet built");
         assertEquals("COMING_SOON", moduleMap.get("notifications"), "Notification product model is not yet built");
     }

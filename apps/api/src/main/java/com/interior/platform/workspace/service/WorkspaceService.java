@@ -524,9 +524,9 @@ public class WorkspaceService {
                         "seo",
                         "SEO Center",
                         "Optimize search appearance, local keywords, and portfolio discoverability.",
-                        "COMING_SOON",
+                        "READY",
                         "/workspace/seo",
-                        "Learn About This Feature"
+                        "Manage SEO"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "analytics",

@@ -299,3 +299,35 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
 - Locked UI Palette Compliance: All platform UI strictly respects the platform theme (`#FAF8F5` background, `#1F1F1F` text, `#B88A5A` accents, `#FFFFFF` cards with `#E7E1D8` borders).
 - Verification: 147/147 backend tests PASS, 173/173 frontend tests PASS, TypeScript clean, ESLint clean, Next.js production build clean.
 
+## PHASE 20 — PRODUCTION SEO ENGINE (2026-09-21)
+
+- Built complete production SEO engine spanning `apps/api` (`com.interior.platform.seo`) and `apps/web` (`src/lib/seo/`, `src/app/robots.ts`, `src/app/sitemap.ts`, `/workspace/seo`, `/professionals/[professionalSlug]`, `/projects/[projectSlug]`, `/categories/[categorySlug]`, `/locations/[locationSlug]`).
+- Publication Gate & Truthful Indexing:
+  - Private by default: newly onboarded studios start `UNPUBLISHED` (draft).
+  - Explicit publication gate: `/seo/publish` validates strict prerequisites (profile completeness, ready portfolio, consented public contact, published project, cover photography).
+  - Instant unpublish: `/seo/unpublish` immediately revokes public access and search indexing (returns HTTP 404, never 200 with "draft" notices).
+  - Private routes (`/workspace/**`, `/account/**`, `/auth/**`, preview routes) strictly disallowed in `robots.ts` and set to `noindex, nofollow`.
+- Truthful Metadata & Structured Data:
+  - Meta titles & descriptions built truthfully without false ranking claims, fake review stars, or doorway spam.
+  - Safe JSON-LD serialization: `SafeJsonLd` escapes `<`, `>`, and `&` to eliminate script breakout XSS vulnerabilities.
+  - Generates Schema.org `ProfessionalService` / `LocalBusiness`, `CreativeWork`, and `BreadcrumbList` schemas.
+- High-Performance XML Sitemap & Image SEO:
+  - Automated dynamic Next.js `sitemap.ts` (`/sitemap.xml`) combining core platform routes, canonical categories, canonical locations, and live published studios and projects.
+  - Image SEO strictly delivers responsive WebP derivatives with explicit dimensions (preventing CLS) and permanent `✦ AI Concept Visualization` badge preservation for AI imagery.
+- SEO Center Workspace (`/workspace/seo`):
+  - Upgraded from `COMING_SOON` to `READY` status in `WorkspaceService`.
+  - Real-time publication status badge, live Publish / Unpublish actions.
+  - Automated 6-point SEO readiness checklist diagnostics with actionable remediation links.
+  - Live Google SERP appearance preview (desktop & mobile simulation).
+  - Live Social Share preview card (OpenGraph / Twitter card).
+  - Custom meta title and description overrides with character counters and HTML stripping.
+- Locked UI Palette Compliance:
+  - Fully compliant with platform rules (`#FAF8F5` cream canvas, `#1F1F1F` charcoal typography, `#B88A5A` warm bronze accents, `#FFFFFF` cards, `#E7E1D8` borders).
+- Verification:
+  - Backend: **158 / 158 PASS** (11 new SEO unit and integration tests added, 0 failures, 0 errors).
+  - Frontend: **184 / 184 PASS** (11 new SEO engine tests added, 0 failures, 0 errors).
+  - Typecheck: **PASS** (`tsc --noEmit` clean).
+  - Lint: **PASS** (`eslint .` clean).
+  - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
+
+

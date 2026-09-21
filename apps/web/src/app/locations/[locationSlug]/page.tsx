@@ -8,6 +8,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectCard } from '@/components/discovery/ProjectCard';
 import { ProfessionalCard } from '@/components/discovery/ProfessionalCard';
 import { getLocationBySlug, getProjects, getProfessionals } from '@/lib/discovery/queries';
+import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
   params: Promise<{
@@ -81,10 +82,7 @@ export default async function LocationLandingPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <SafeJsonLd data={breadcrumbJsonLd} />
 
       <PublicHeader currentPath="/projects" />
 

@@ -12,6 +12,7 @@ import { BeforeAfterSlider } from '@/components/media/BeforeAfterSlider';
 import { BeforeAiReality } from '@/components/media/BeforeAiReality';
 import { AIConceptBadge } from '@/components/ui/Badge';
 import { getProjectBySlug, getRelatedProjects, getProfessionalBySlug } from '@/lib/discovery/queries';
+import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
   params: Promise<{
@@ -86,13 +87,26 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     ],
   };
 
+  const projectJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    name: project.title,
+    headline: `${project.title} | ${project.studioName}`,
+    description: project.description,
+    url: `/projects/${project.slug}`,
+    creator: {
+      '@type': 'Organization',
+      name: project.studioName,
+      url: `/professionals/${project.professionalSlug}`,
+    },
+    image: project.coverImage,
+  };
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)] pb-16 sm:pb-0">
       {/* Truthful Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <SafeJsonLd data={breadcrumbJsonLd} />
+      <SafeJsonLd data={projectJsonLd} />
 
       <PublicHeader currentPath="/projects" />
 
