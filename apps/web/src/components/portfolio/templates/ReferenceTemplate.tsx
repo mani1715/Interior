@@ -262,7 +262,7 @@ export const ReferenceTemplate: React.FC<PortfolioTemplateProps> = ({
                     <Award className="w-8 h-8 text-bronze-700 mx-auto opacity-70" />
                     <h3 className="text-sm font-semibold text-charcoal-800">Projects In Curation</h3>
                     <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
-                      Case studies and project photography are currently being prepared for presentation.
+                      Case studies and project visuals are currently being prepared for presentation.
                     </p>
                   </div>
                 </section>

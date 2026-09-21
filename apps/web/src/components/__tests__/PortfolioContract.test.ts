@@ -52,16 +52,16 @@ describe('Phase 10.1: Portfolio Frontend/Backend Contract Validation', () => {
     expect(CANONICAL_FONT_PAIRINGS).toEqual(expected6);
   });
 
-  it('verifies all 6 templates have status SCAFFOLD and version 1.0.0', () => {
+  it('verifies the exact canonical lifecycle at version 1.0.0', () => {
     const templateKeys = ['BASIC', 'MODERN', 'LUXURY', 'ARCHITECTURAL', 'WARM_NATURAL', 'DARK_CINEMATIC'] as const;
 
     for (const key of templateKeys) {
       const tpl = TEMPLATE_REGISTRY[key];
       expect(tpl).toBeDefined();
       expect(tpl.key).toBe(key);
-      expect(tpl.status).toBe('SCAFFOLD');
+      expect(tpl.status).toBe('AVAILABLE');
       expect(tpl.version).toBe('1.0.0');
-      expect(tpl.isSelectable).toBe(false);
+      expect(tpl.isSelectable).toBe(true);
       expect(tpl.supportedSections).toEqual(CANONICAL_SECTION_TYPES);
     }
   });

@@ -2,6 +2,12 @@ import React from 'react';
 import { PortfolioTemplateKey, CANONICAL_SECTION_TYPES } from './types';
 import { PortfolioTemplateProps, TemplateDefinition } from './template-contract';
 import { ReferenceTemplate } from '@/components/portfolio/templates/ReferenceTemplate';
+import { BasicTemplate } from '@/components/portfolio/templates/basic/BasicTemplate';
+import { ModernTemplate } from '@/components/portfolio/templates/modern/ModernTemplate';
+import { LuxuryTemplate } from '@/components/portfolio/templates/luxury/LuxuryTemplate';
+import { ArchitecturalTemplate } from '@/components/portfolio/templates/architectural/ArchitecturalTemplate';
+import { WarmNaturalTemplate } from '@/components/portfolio/templates/warm-natural/WarmNaturalTemplate';
+import { DarkCinematicTemplate } from '@/components/portfolio/templates/dark-cinematic/DarkCinematicTemplate';
 
 function createScaffoldWrapper(
   name: string,
@@ -34,12 +40,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Simple, typography-driven portfolio for emerging designers',
     description: 'Clean whitespace, classic layout, and direct visual hierarchy prioritizing core practice information.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 11)',
     phase: 'Phase 11',
-    component: ReferenceTemplate,
+    component: BasicTemplate,
   },
   MODERN: {
     key: 'MODERN',
@@ -47,12 +53,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Asymmetric grids, bold headlines, and sleek contemporary lines',
     description: 'Generous white space, high-contrast typography, and avant-garde layout for modern design practices.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 12)',
     phase: 'Phase 12',
-    component: createScaffoldWrapper('Modern Minimalist', 'Phase 12', '#2D3748'),
+    component: ModernTemplate,
   },
   LUXURY: {
     key: 'LUXURY',
@@ -60,12 +66,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Opulent serif typography, warm gold accents, and magazine-like editorial pacing',
     description: 'Tailored for high-end residential interior studios catering to ultra-high-net-worth clients.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 13)',
     phase: 'Phase 13',
-    component: createScaffoldWrapper('Luxury Atelier', 'Phase 13', '#D4AF37'),
+    component: LuxuryTemplate,
   },
   ARCHITECTURAL: {
     key: 'ARCHITECTURAL',
@@ -73,12 +79,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Structured modular grid, technical drafting aesthetics, and geometric rigor',
     description: 'Engineered for spatial design, turnkey architecture, and interior construction studios.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 14)',
     phase: 'Phase 14',
-    component: createScaffoldWrapper('Architectural Monograph', 'Phase 14', '#4A5568'),
+    component: ArchitecturalTemplate,
   },
   WARM_NATURAL: {
     key: 'WARM_NATURAL',
@@ -86,12 +92,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Earthy terracotta tones, soft organic curves, and biophilic tactile focus',
     description: 'Suited for sustainable, slow-living, and artisanal interior design studios.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 15)',
     phase: 'Phase 15',
-    component: createScaffoldWrapper('Warm & Natural', 'Phase 15', '#C27D58'),
+    component: WarmNaturalTemplate,
   },
   DARK_CINEMATIC: {
     key: 'DARK_CINEMATIC',
@@ -99,12 +105,12 @@ export const TEMPLATE_REGISTRY: Record<PortfolioTemplateKey, TemplateDefinition>
     tagline: 'Deep obsidian backgrounds, dramatic lighting highlights, and high-glamour finishes',
     description: 'Immersive visual aesthetic for hospitality, lounge, and dramatic residential spaces.',
     version: '1.0.0',
-    status: 'SCAFFOLD',
-    isSelectable: false,
+    status: 'AVAILABLE',
+    isSelectable: true,
     supportedSections: CANONICAL_SECTION_TYPES,
     designer: 'Astra (Phase 16)',
     phase: 'Phase 16',
-    component: createScaffoldWrapper('Dark Cinematic', 'Phase 16', '#E2E8F0'),
+    component: DarkCinematicTemplate,
   },
 };
 

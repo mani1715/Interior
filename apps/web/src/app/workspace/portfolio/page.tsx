@@ -703,10 +703,13 @@ export default function PortfolioBuilderPage() {
                 {getAllTemplates().map((tpl) => {
                   const isSelected = portfolio.templateKey === tpl.key;
                   return (
-                    <div
+                    <button
                       key={tpl.key}
+                      type="button"
+                      disabled={!tpl.isSelectable}
+                      aria-pressed={isSelected}
                       onClick={() => handleSwitchTemplate(tpl.key)}
-                      className={`p-4 rounded-xl border-2 text-left cursor-pointer transition-all ${
+                      className={`p-4 rounded-xl border-2 text-left cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                         isSelected
                           ? 'border-bronze-700 bg-sand-50/50 shadow-sm'
                           : 'border-sand-200 hover:border-sand-300 bg-white'
@@ -727,7 +730,7 @@ export default function PortfolioBuilderPage() {
                         <span>v{tpl.version}</span>
                         <span className="text-bronze-700 font-sans font-medium">{tpl.status}</span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

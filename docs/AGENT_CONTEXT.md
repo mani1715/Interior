@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-19, Antigravity Phase 10.1 Portfolio Contract Alignment Closure PASS. Next: Phase 11 Basic Portfolio Design (Astra).
+Last updated: 2026-09-21, Phase 17 — Portfolio Integration & QA PASS. All six templates complete, verified, and committed. Next: Phase 18 (Project CMS) pending review.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -64,7 +64,14 @@ Paths below are relative to this document; filenames are the canonical repositor
 - **PHASE 10 — PASS:** Portfolio Builder Engine (Production Implementation). Shared, reusable portfolio builder engine decoupling content from presentation (`CONTENT != TEMPLATE`). 18 canonical section types, optimistic locking, two-pass reordering, immutable version snapshotting & restore, privacy-filtered preview, neutral `ReferenceTemplate` tolerating 0 projects/testimonials, full interactive builder UI (`/workspace/portfolio`), and private preview (`/workspace/portfolio/preview` with `noindex, nofollow`). 118 backend tests, 89 frontend tests PASS.
 - **PHASE 11 — BLOCKED (2026-09-19):** Astra conducted intake verification and halted Phase 11 due to engine-owned contract mismatches between frontend and backend (endpoint path, versioning on mutations, field names, section and font enums).
 - **PHASE 10.1 — PASS:** Portfolio Contract Alignment Closure. All 7 engine blockers resolved. Aligned initialization endpoint to `POST /portfolio`. Enforced `version` on all mutation request bodies (`UpdateSectionRequest`, `ReorderSectionsRequest`, `CreateVersionSnapshotRequest`, `RestoreVersionRequest`). Aligned reorder payload to `sectionIds`. Canonicalized 18 `SectionType` and 6 `FontPairing` enums. Introduced centralized `normalizePortfolioProps()` in `normalize-props.ts` supplying strongly-typed, non-null `NavigationSettings`. Aligned section content properties with `PortfolioSectionValidator.java`. Versioned template registry entries (`1.0.0`, `SCAFFOLD`, `isSelectable: false`). Added contract test suites `PortfolioContractTest.java` and `PortfolioContract.test.ts`. 125 backend tests, 94 frontend tests PASS.
-- **NEXT ACTION:** Resume **PHASE 11 — BASIC PORTFOLIO DESIGN** (Assigned to: **ASTRA**). Contract alignment complete; Astra can implement `BasicTemplate.tsx` cleanly. Phase 12 has not started.
+- **PHASE 11 — PASS:** BASIC 1.0.0 is AVAILABLE and selectable. Pure props-based editorial renderer, scoped CSS, responsive container queries, mobile navigation, semantic section rendering and privacy-filtered contact actions.
+- **PHASE 12 — PASS:** MODERN 1.0.0 is AVAILABLE and selectable. Distinct contemporary renderer, offset grid, high-contrast typography, and accessible navigation.
+- **PHASE 13 — PASS:** LUXURY 1.0.0 is AVAILABLE and selectable. Tailored restrained editorial renderer, generous serif hierarchy, fine rules, and quiet luxury aesthetic.
+- **PHASE 14 — PASS:** ARCHITECTURAL 1.0.0 is AVAILABLE and selectable. Structured monograph renderer, drafting-grid alignment rails, project-oriented indexes, and geometric discipline.
+- **PHASE 15 — PASS:** WARM_NATURAL 1.0.0 is AVAILABLE and selectable. Warm, tactile, residential renderer, soft ivory surfaces, restrained sage/terracotta accents, and biophilic focus.
+- **PHASE 16 — PASS:** DARK_CINEMATIC 1.0.0 is AVAILABLE and selectable. Deep layered charcoal surfaces, warm ivory type, restrained bronze accents, and dramatic cinematic aesthetic.
+- **PHASE 17 — PASS:** Portfolio Integration, Hardening & QA. Full six-template system verified: canonical registry (all 6 AVAILABLE, selectable, 1.0.0), builder selector, cross-template switching with 100% content preservation, optimistic locking, pure-props contract, non-null navigation derivation via `normalizePortfolioProps()`, shared `PortfolioMotion.tsx` island (IntersectionObserver, cleanup, reduced-motion, SSR visible), contrast-safe palettes, empty state handling, terminology audit clean ("project photography" replaced with "project visuals"), no migration required, 155/155 frontend tests (19 files) passed, 125/125 backend tests passed, Next.js production build clean.
+- **NEXT ACTION:** STOP AFTER PHASE 17. DO NOT START THE NEXT FEATURE PHASE (Phase 18 Project CMS) without explicit authorization.
 
 ## CURRENT TECHNICAL FOUNDATION
 
@@ -132,8 +139,8 @@ Paths below are relative to this document; filenames are the canonical repositor
   5. `WARM_NATURAL`: Warm & Natural Biophilic (Phase 15 — Astra)
   6. `DARK_CINEMATIC`: Dark Cinematic Moodboard (Phase 16 — Astra)
 - **Current Implementation Status**:
-  - All six template keys are registered in `apps/web/src/lib/portfolio/template-registry.tsx` with status **`SCAFFOLD`**, version **`1.0.0`**, and `isSelectable: false`.
-  - No finished production template exists yet.
+  - BASIC, MODERN, LUXURY, ARCHITECTURAL, WARM_NATURAL and DARK_CINEMATIC are all **AVAILABLE**, version **1.0.0**, `isSelectable: true`, using their own template directories.
+  - See the 2026-09-21 visual excellence entry below for the latest verification and remaining limitations.
   - `ReferenceTemplate` (`apps/web/src/components/portfolio/templates/ReferenceTemplate.tsx`) is an **ENGINE TEST / STRUCTURAL REFERENCE ONLY**. It is **NOT** the final Basic design and must not be used as a production portfolio.
   - Astra will design and implement the real visual templates in Phases 11–16.
 
@@ -161,15 +168,17 @@ Paths below are relative to this document; filenames are the canonical repositor
 - The `PortfolioTemplateProps` contract interface (`apps/web/src/lib/portfolio/template-contract.ts`)
 - Global workspace shell and navigation (`apps/web/src/components/workspace/**`, `apps/web/src/app/workspace/page.tsx`).
 
-## CURRENT TEST BASELINE (PHASE 10.1 PASS)
+## CURRENT TEST BASELINE (PHASE 17 PASS)
 
-- **Backend (Maven)**: **125 / 125 PASSED** across 15 test classes (0 failures, 0 errors), including `PortfolioContractTest`.
-- **Frontend (Vitest)**: **94 / 94 PASSED** across 12 test files (0 failures), including `PortfolioContract.test.ts`.
-- **Typecheck**: **PASS** (`npm run typecheck` / `tsc --noEmit` exit code 0)
-- **Lint**: **PASS** (`npm run lint` / `eslint .` exit code 0)
-- **Production Build**: **PASS** (`npm run build` / Next.js Turbopack build clean)
-- **Terminology Audit**: **PASS** (0 occurrences of wedding, photoshoot, photographer, bride, groom)
-- **Git State**: Local commit `phase-10.1: align portfolio frontend backend contracts` pushed to `https://github.com/mani1715/Interior.git`, with `local HEAD == origin/main`.
+- **Backend (Maven)**: **125 / 125 PASSED** across 15 test classes (0 failures, 0 errors).
+- **Frontend (Vitest)**: **155 / 155 PASSED** across 19 test files (0 failures).
+- **Typecheck**: **PASS** (`npm run typecheck` / `tsc --noEmit` exit code 0).
+- **Lint**: **PASS** (`npm run lint` / `eslint .` exit code 0).
+- **Production Build**: **PASS** (`npm run build` / Next.js Turbopack build clean).
+- **Terminology Audit**: **PASS** (0 occurrences of wedding, photographer, photography, bride, groom in template code; "project photography" replaced with "project visuals").
+- **Git State**: Local commit `phase-11-17: complete portfolio templates and integration qa` pushed to `https://github.com/mani1715/Interior.git`, with `local HEAD == origin/main`.
+- **Database**: NO MIGRATION REQUIRED.
+
 
 ## REPOSITORY INTAKE QUALIFICATION & PHASE 10.1 RESOLUTION
 
@@ -184,5 +193,84 @@ Antigravity executed Phase 10.1 to resolve all engine-owned contract blockers wi
 6. Template registry entries updated to `version: '1.0.0'`, `status: 'SCAFFOLD'`, `isSelectable: false`.
 7. Full regression passing: 125 backend tests and 94 frontend tests.
 
-Astra can now proceed directly with **PHASE 11 — BASIC PORTFOLIO DESIGN**.
+Astra proceeded with Phase 11 after this closure. The following section is the current handoff.
 
+## PHASE 11 — BASIC COMPLETION (2026-09-19)
+
+- **Implementation:** `apps/web/src/components/portfolio/templates/basic/` owns `BasicTemplate.tsx`, `BasicHeader.tsx`, `BasicSections.tsx`, `presentation.ts`, and `BasicTemplate.module.css`. BASIC remains version **1.0.0**, **AVAILABLE**, and selectable. Other five themes remain unchanged. The only builder integration is semantic theme buttons honoring the existing `isSelectable` flag; no save, concurrency, security, API, schema, or backend changes.
+- **Content behavior:** Canonical sections render in engine order when usable; unknown/empty content disappears without blank sections or broken navigation. Project IDs cannot yet resolve to project/media DTOs, so project sections are omitted until the engine supplies that contract. No fabricated content or stock images. The current AI comparison contract supplies concept/result images, not a before image; these are visibly labeled `AI Concept Visualization` and `Real Result`. Video is an explicit link, not an invented embed pipeline. Contacts use only the supplied public contacts.
+- **Responsive validation:** Browser inspection of the actual BASIC renderer in an isolated, clearly labeled QA fixture at **360, 390, 430, 768, 1024 and 1440px**; no horizontal overflow. Long name/headline/story, many services, empty content and a 375px embedded frame also checked. Production global styles were included. This was component visual QA, not a live authenticated backend session; private preview integration remains covered by the existing mocked preview test. Temporary QA server/files removed before commit.
+- **Accessibility/performance:** One meaningful h1, semantic landmarks and logical headings, skip link, visible focus, native FAQ disclosure, mobile menu Enter/Escape/focus return, and >=44px visible controls checked. Contrast-safe color fallbacks have automated coverage. Reduced-motion CSS included. Server rendering tested; only navigation is a client island. No dependencies or remote fonts added. This is an accessibility review, not independent WCAG certification.
+- **Validation:** **110 frontend tests across 13 files**, including **16 BASIC tests**; **125 backend tests**, all passing. Typecheck, lint, production build and diff whitespace check pass. Existing registry/switch tests updated for BASIC availability without removing coverage. Backend regression uses the existing H2 test environment.
+- **Audit:** BASIC rendering has no API/auth/storage imports, mutations, raw HTML injection, tenant logic, or unrelated-domain terminology. Synthetic data is limited to the explicitly labeled test fixture.
+- **Git handoff:** Implementation commit is the commit containing this section, titled `phase-11: implement basic portfolio design` on `main`. The exact resulting SHA and normal push verification are reported in the task completion response; no self-referential commit hash is embedded here.
+- **Next:** Phase 12 MODERN via Astra. Do not begin automatically. Use the normalized props and existing canonical enums; BASIC styles and presentation helpers are BASIC-owned, not a mandatory visual system for MODERN.
+
+## PHASE 12 — MODERN COMPLETION (2026-09-19)
+
+- **Implementation:** `apps/web/src/components/portfolio/templates/modern/` owns `ModernTemplate.tsx`, `ModernHeader.tsx`, `ModernSections.tsx`, `modern.ts`, and `ModernTemplate.module.css`. MODERN is **AVAILABLE**, selectable, and remains version **1.0.0**. Its visual system uses offset editorial hierarchy, an index-style header, numbered service rows, a vertical process rhythm, high-contrast CTA bands, and a distinct footer. BASIC visual files were not changed.
+- **Validation:** Frontend **121 tests across 14 files** passed, including 11 MODERN tests. Typecheck, lint, and production build passed. Backend source was unchanged; the existing Phase 10.1 regression baseline is 125 passed. A browser visual fixture was prepared but localhost approval was blocked by the Codex usage limit, so six-width visual QA is not claimed.
+- **Boundary:** No backend, database, auth, portfolio contract, API, tenant, or BASIC visual changes. No new dependency. MODERN is props-driven, SSR-renderable, uses native disclosure/menu interactions, safe URL filtering, explicit AI labels, and no fake media/data.
+- **Git policy:** Phase 11 changes remain uncommitted in the working tree. No Phase 12 commit or GitHub push was made, as instructed. Final commit organization and push remain deferred until Phase 16.
+- **Next:** Phase 13 LUXURY via Astra. Do not begin automatically.
+
+## PHASE 13 — LUXURY COMPLETION (2026-09-19)
+
+- **Implementation:** `apps/web/src/components/portfolio/templates/luxury/` owns `LuxuryTemplate.tsx`, `LuxuryHeader.tsx`, `LuxurySections.tsx`, `luxury.ts`, and `LuxuryTemplate.module.css`. LUXURY is **AVAILABLE**, selectable, and remains version **1.0.0**. Its visual system uses refined serif hierarchy, generous editorial proportions, fine rules, quiet metadata, numbered service/process lists, and an understated invitation CTA. BASIC and MODERN visual files were not changed.
+- **Validation:** Frontend **130 tests across 15 files** passed, including 9 LUXURY tests. Typecheck, lint, and production build passed. Backend source was unchanged; the existing Phase 10.1 regression baseline is 125 passed. Manual browser visual QA at 360–1440px is pending because localhost approval was blocked by the Codex usage limit.
+- **Boundary:** No backend, database, auth, portfolio contract, API, tenant, or BASIC/MODERN visual changes. No new dependency. LUXURY is props-driven, SSR-renderable, uses native FAQ/menu interactions, safe URL filtering, explicit AI labels, and no fake media/data.
+- **Git policy:** Phase 11–13 changes remain uncommitted in the working tree. No GitHub push was made, as instructed. Final commit organization and push remain deferred until Phase 16.
+- **Next:** Phase 14 ARCHITECTURAL via Astra. Do not begin automatically.
+
+## PHASE 14 — ARCHITECTURAL COMPLETION (2026-09-19)
+
+- Canonical six verified across backend enum, frontend registry, and contract: BASIC, MODERN, LUXURY, ARCHITECTURAL, WARM_NATURAL, DARK_CINEMATIC. No ORGANIC/MINIMAL drift was present.
+- ARCHITECTURAL 1.0.0 graduated to AVAILABLE/selectable with an independent structured monograph renderer under `apps/web/src/components/portfolio/templates/architectural/`.
+- Visual system: drafting-grid alignment rails, numbered section index, restrained technical palette, project-documentation rhythm, structured metadata, and editorial geometry.
+- Pure props renderer; no backend, database, auth, contract, API, tenant, or earlier-template visual changes.
+- Validation: frontend 137/137, typecheck PASS, lint PASS, production build PASS. Backend source unchanged; existing 125-test baseline retained because rerun was blocked by approval usage limits. Manual browser QA remains pending for the same reason.
+- Git policy: preserve Phase 11–14 changes locally; no commit or push. Final push remains deferred until all six templates are complete.
+- Next: Phase 15 WARM_NATURAL only; do not start automatically.
+
+## PHASE 15 — WARM NATURAL COMPLETION (2026-09-19)
+
+- WARM_NATURAL 1.0.0 graduated to AVAILABLE/selectable with an independent warm, tactile, residential renderer under `apps/web/src/components/portfolio/templates/warm-natural/`.
+- Visual system: warm ivory surfaces, restrained sage/terracotta accents, controlled radius, comfortable widths, human-friendly process, testimonials, contact actions, and calm footer treatment.
+- Pure props renderer; no backend, database, auth, contract, API, tenant, or earlier-template visual changes.
+- Validation: frontend 144/144, typecheck PASS, lint PASS, production build PASS, diff check PASS. Security/terminology scan clean. Backend source unchanged; existing 125-test baseline retained because rerun was blocked by approval usage limits. Manual browser QA remains pending for the same reason.
+- Git policy: preserve Phase 11–15 changes locally; no commit or push. Final push remains deferred until all six templates are complete.
+- Next: Phase 16 DARK_CINEMATIC only; do not start automatically.
+
+## PHASE 16 — DARK CINEMATIC COMPLETION (2026-09-19)
+
+- DARK_CINEMATIC 1.0.0 graduated to AVAILABLE/selectable, completing the initial six-template registry set.
+- Independent visual system: deep layered charcoal surfaces, warm ivory type, restrained bronze accent, cinematic hero treatment without media dependency, high-contrast editorial sections, and lightweight CSS-only motion readiness.
+- Pure props renderer; no backend, database, auth, contract, API, tenant, or earlier-template visual changes.
+- Validation: frontend 150/150, typecheck PASS, lint PASS, production build PASS, diff check PASS. Security/terminology scan clean. Backend source unchanged; fresh rerun pending because approval limits blocked it; last verified baseline remains 125/125. Manual browser QA remains pending for the same reason.
+- All six canonical keys are AVAILABLE, selectable, and version 1.0.0. No ORGANIC, MINIMAL, or alternate keys.
+- Git policy: preserve Phase 11–16 changes locally; no commit or push. Final six-template QA and Git finalization are next.
+- Phase 17 has not started.
+
+## FINAL SIX-TEMPLATE QA (2026-09-19)
+
+- Verified exact canonical keys: BASIC, MODERN, LUXURY, ARCHITECTURAL, WARM_NATURAL, DARK_CINEMATIC. All six are AVAILABLE, selectable, and version 1.0.0.
+- Cross-template QA confirms distinct visual systems: clean editorial, expressive modern, refined luxury, structured architectural, warm tactile natural, and immersive dark cinematic.
+- Pure props/security boundary preserved across all template folders. No API, auth, CSRF, tenant, persistence, or unsafe HTML access. Style isolation remains template-specific.
+- Fresh frontend validation: 150/150 tests across 18 files, typecheck PASS, lint PASS, production build PASS. Backend source unchanged; fresh rerun blocked by `AccessDeniedException: C:\.m2`, last verified baseline 125/125. Manual browser QA pending due approval limits.
+- Accessibility coverage includes semantic landmarks, single h1, keyboard menus with Escape focus restoration, skip links, native FAQ disclosure, 44px controls, contrast-aware dark theme, and reduced-motion handling.
+- Performance: no new dependencies, SSR-compatible renderers, CSS-only presentation, no WebGL/carousels/autoplay video.
+- Created `docs/ANTIGRAVITY_PHASE_17_HANDOFF.md`. Phase 17 belongs to Antigravity integration/QA and has not started.
+- Git finalization remains pending because commit/push approval is unavailable; preserve all Phase 11–16 changes locally.
+
+## VISUAL EXCELLENCE PASS (2026-09-21)
+
+- All six canonical templates remain AVAILABLE, selectable, version 1.0.0. Backend, database, auth, API, tenant logic, PortfolioTemplateProps and section contracts were not changed.
+- Presentation-only `PortfolioMotion` island: one IntersectionObserver per mounted portfolio, one-shot section/photo entrances, cleanup and live reduced-motion preference handling. Content is visible in SSR HTML and remains visible without JS, matchMedia or IntersectionObserver. No scroll listeners, parallax loop, WebGL, animation dependency or new package.
+- Responsive motion uses container widths (including embedded previews): mobile <768 uses short 12px movement; tablet 768–1199 uses restrained theme-specific reveals; desktop >=1200 adds selective photographic perspective/scale. Reduced-motion CSS disables animations and transitions, scoped inside each template. Native scrolling is preserved. Section text remains fully opaque during entrance.
+- Distinct photo treatments: BASIC lift; MODERN offset crop; LUXURY slow vertical mask/zoom; ARCHITECTURAL aligned horizontal clip; WARM_NATURAL gentle scale/elevation; DARK_CINEMATIC restrained 3-degree perspective. Hover effects require a fine pointer and wide container. Effects attach only to actual supplied media.
+- Real defects corrected: missing brand-link anchors in five templates; label-only comparisons in Architectural/Warm Natural/Dark Cinematic now render supplied images; global heading color/font interference on dark surfaces; global reduced-motion leakage; insufficiently safe custom text colors; missing hero CTA fallbacks in the later three templates. Removed template version labels from visitor footers and invented fallback practice descriptions. Warm Natural no longer wraps every section in a rounded card.
+- Shared visual-palette helper retains valid brand surfaces/accent and derives heading/link/button text with >=4.5:1 contrast. Canonical font pairings are respected, no remote fonts added. Scope remains presentation-only; this is not independent WCAG certification.
+- Live browser QA used actual renderer components, production global CSS and explicitly synthetic test data (no portfolio stock images). All six tested at 360, 390, 430, 768, 1024 and 1440px. Final 36-case long-content matrix had zero horizontal overflow and zero missing anchors. Screenshot review covered all six mobile pages, desktop heroes and tablet contact/footer; no claim of physical low-power device profiling. All six mobile menus opened/closed, restored focus on Escape, and measured >=44px.
+- Automated verification: 155/155 frontend tests across 19 files with two workers, typecheck PASS, lint PASS, production build PASS. Initial heavily concurrent frontend run had a timeout; rerun passed without altering timeout/assertions. Fresh backend regression PASS: 125/125 (approved Maven cache access), superseding prior blocked-baseline reports.
+- Five new tests cover SSR visibility, missing browser API fallback, reduced-motion opt-out/change/cleanup, custom palette contrast and supplied comparison media. No fake projects added: Project CMS/media DTO integration remains outside the current props contract.
+- Git: all legitimate Phase 11–16 work preserved locally; no commit or push during this pass. Temporary preview/build-helper files removed after QA. Next = PHASE 17 — ANTIGRAVITY INTEGRATION & QA; do not start Phase 17 from Astra.

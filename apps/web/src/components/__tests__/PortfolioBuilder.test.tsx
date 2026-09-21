@@ -304,7 +304,7 @@ describe('Phase 10: Portfolio Builder Engine', () => {
     vi.spyOn(portfolioApi, 'fetchPortfolio').mockResolvedValue(mockPortfolioData);
     const switchSpy = vi.spyOn(portfolioApi, 'switchTemplate').mockResolvedValue({
       ...mockPortfolioData,
-      templateKey: 'MODERN',
+      templateKey: 'BASIC',
       version: 2,
     });
 
@@ -317,8 +317,9 @@ describe('Phase 10: Portfolio Builder Engine', () => {
     // Go to Design tab
     fireEvent.click(screen.getByRole('button', { name: /design & themes/i }));
 
-    // Click "Modern Minimalist" card
-    const modernCard = screen.getByText('Modern Minimalist');
+    // Completed themes are selectable; future scaffold themes remain disabled.
+    const modernCard = screen.getByRole('button', { name: /Modern Minimalist/i });
+    expect((modernCard as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(modernCard);
 
     await waitFor(() => {
@@ -432,7 +433,7 @@ describe('Phase 10: Portfolio Builder Engine', () => {
     expect(screen.getByText('Architectural Interiors & Refined Living')).toBeDefined();
     // Zero projects graceful empty state
     expect(screen.getByText('Projects In Curation')).toBeDefined();
-    expect(screen.getByText(/case studies and project photography are currently being prepared/i)).toBeDefined();
+    expect(screen.getByText(/case studies and project visuals are currently being prepared/i)).toBeDefined();
     // Public contact present
     expect(screen.getByText('studio@aarav.in')).toBeDefined();
   });
