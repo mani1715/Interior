@@ -23,6 +23,8 @@ export default function robots(): MetadataRoute.Robots {
           '/auth/*',
           '/sign-in',
           '/sign-up',
+          '/review/',
+          '/review/*',
           '/api/',
           '/_next/',
         ],

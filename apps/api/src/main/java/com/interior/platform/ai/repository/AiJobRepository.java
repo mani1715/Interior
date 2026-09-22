@@ -3,6 +3,7 @@ package com.interior.platform.ai.repository;
 import com.interior.platform.ai.domain.AiJobRecord;
 import com.interior.platform.ai.domain.AiJobStatus;
 import com.interior.platform.ai.domain.AiUsageEventRecord;
+import com.interior.platform.ai.domain.EditingMode;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,6 +23,28 @@ public interface AiJobRepository {
     List<AiJobRecord> findByStudio(UUID studioId, UUID projectId, int limit, int offset);
 
     int countByStudio(UUID studioId, UUID projectId);
+
+    List<AiJobRecord> findHistory(
+            UUID studioId,
+            UUID projectId,
+            EditingMode editingMode,
+            AiJobStatus status,
+            Boolean shortlistedOnly,
+            int limit,
+            int offset
+    );
+
+    long countHistory(
+            UUID studioId,
+            UUID projectId,
+            EditingMode editingMode,
+            AiJobStatus status,
+            Boolean shortlistedOnly
+    );
+
+    void updateShortlist(UUID studioId, UUID jobId, boolean isShortlisted);
+
+    void updateStudioSelected(UUID studioId, UUID jobId, boolean isStudioSelected);
 
     void updateStatus(
             UUID jobId,

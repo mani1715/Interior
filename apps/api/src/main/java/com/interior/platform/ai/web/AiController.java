@@ -1,5 +1,7 @@
 package com.interior.platform.ai.web;
 
+import com.interior.platform.ai.domain.AiJobStatus;
+import com.interior.platform.ai.domain.EditingMode;
 import com.interior.platform.ai.domain.ReferencePurpose;
 import com.interior.platform.ai.dto.*;
 import com.interior.platform.ai.service.AiVisualizerService;
@@ -214,6 +216,168 @@ public class AiController {
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
                 .header(HttpHeaders.PRAGMA, "no-cache")
                 .build();
+    }
+
+    // ============================================================================
+    // VARIATIONS & HISTORY ENDPOINTS
+    // ============================================================================
+
+    @PostMapping("/jobs/{jobId}/variations")
+    @Operation(summary = "Create variation from existing AI job", description = "Generates a variation of an existing concept (refine original or evolve concept).")
+    public ResponseEntity<AiJobDetailResponse> createVariation(
+            HttpServletRequest request,
+            @PathVariable("jobId") UUID jobId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @Valid @RequestBody CreateVariationRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        AiJobDetailResponse res = aiVisualizerService.createVariation(actor, studioId, jobId, req);
+        return createPrivateNoCacheResponse(res, HttpStatus.ACCEPTED);
+    }
+
+    @PostMapping("/jobs/{jobId}/shortlist")
+    @Operation(summary = "Toggle concept shortlist status", description = "Shortlists or removes concept from shortlist.")
+    public ResponseEntity<AiJobDetailResponse> toggleShortlist(
+            HttpServletRequest request,
+            @PathVariable("jobId") UUID jobId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        AiJobDetailResponse res = aiVisualizerService.toggleShortlist(actor, studioId, jobId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @PostMapping("/jobs/{jobId}/select")
+    @Operation(summary = "Toggle studio selection status", description = "Marks or unmarks concept as the studio's primary selection.")
+    public ResponseEntity<AiJobDetailResponse> toggleStudioSelected(
+            HttpServletRequest request,
+            @PathVariable("jobId") UUID jobId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        AiJobDetailResponse res = aiVisualizerService.toggleStudioSelected(actor, studioId, jobId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "List AI generation history", description = "Returns filterable paginated history of AI jobs including lineage and shortlist status.")
+    public ResponseEntity<AiJobHistoryResponse> listHistory(
+            HttpServletRequest request,
+            @RequestParam(value = "projectId", required = false) UUID projectId,
+            @RequestParam(value = "editingMode", required = false) EditingMode editingMode,
+            @RequestParam(value = "status", required = false) AiJobStatus status,
+            @RequestParam(value = "shortlistedOnly", required = false) Boolean shortlistedOnly,
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        AiJobHistoryResponse res = aiVisualizerService.listJobHistory(actor, studioId, projectId, editingMode, status, shortlistedOnly, page, limit);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    // ============================================================================
+    // CLIENT REVIEW STUDIO ENDPOINTS
+    // ============================================================================
+
+    @PostMapping("/client-reviews")
+    @Operation(summary = "Create client review link", description = "Packages shortlisted AI concepts into a shareable client review link.")
+    public ResponseEntity<CreateClientReviewResponse> createClientReview(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @Valid @RequestBody CreateClientReviewRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        CreateClientReviewResponse res = aiVisualizerService.createClientReview(actor, studioId, req);
+        return createPrivateNoCacheResponse(res, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/client-reviews")
+    @Operation(summary = "List studio client reviews", description = "Returns client review links created for the studio or project.")
+    public ResponseEntity<List<ClientReviewDetailResponse>> listClientReviews(
+            HttpServletRequest request,
+            @RequestParam(value = "projectId", required = false) UUID projectId,
+            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "limit", required = false, defaultValue = "20") int limit,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        List<ClientReviewDetailResponse> res = aiVisualizerService.listStudioReviews(actor, studioId, projectId, page, limit);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @GetMapping("/client-reviews/{reviewId}")
+    @Operation(summary = "Get studio client review detail", description = "Fetches review details including all items, decisions, and comments.")
+    public ResponseEntity<ClientReviewDetailResponse> getClientReviewDetail(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        ClientReviewDetailResponse res = aiVisualizerService.getStudioReviewDetail(actor, studioId, reviewId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/close")
+    @Operation(summary = "Close client review", description = "Closes review link, preventing further decisions or comments.")
+    public ResponseEntity<Void> closeReview(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        aiVisualizerService.closeReview(actor, studioId, reviewId);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .build();
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/revoke")
+    @Operation(summary = "Revoke client review", description = "Revokes review link and invalidates all active sessions immediately.")
+    public ResponseEntity<Void> revokeReview(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        aiVisualizerService.revokeReview(actor, studioId, reviewId);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .build();
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/rotate-token")
+    @Operation(summary = "Rotate client review token", description = "Generates a new access token for the review and invalidates previous sessions.")
+    public ResponseEntity<CreateClientReviewResponse> rotateReviewToken(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        CreateClientReviewResponse res = aiVisualizerService.rotateReviewToken(actor, studioId, reviewId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
     private <T> ResponseEntity<T> createPrivateNoCacheResponse(T body, HttpStatus status) {

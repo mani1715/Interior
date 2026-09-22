@@ -1,13 +1,7 @@
 package com.interior.platform.ai.service;
 
 import com.interior.platform.ai.config.AiVisualizerProperties;
-import com.interior.platform.ai.domain.AiJobRecord;
-import com.interior.platform.ai.domain.AiJobReferenceRecord;
-import com.interior.platform.ai.domain.AiJobStatus;
-import com.interior.platform.ai.domain.AiReferenceMetadataRecord;
-import com.interior.platform.ai.domain.AiUsageEventRecord;
-import com.interior.platform.ai.domain.EditingMode;
-import com.interior.platform.ai.domain.ReferencePurpose;
+import com.interior.platform.ai.domain.*;
 import com.interior.platform.ai.dto.*;
 import com.interior.platform.ai.provider.AiGenerationReference;
 import com.interior.platform.ai.provider.AiImageProvider;
@@ -47,6 +41,20 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.interior.platform.ai.domain.ClientReviewDecisionType;
+import com.interior.platform.ai.domain.ClientReviewStatus;
+import com.interior.platform.ai.domain.CommentAuthorType;
+import com.interior.platform.ai.domain.VariationStrategy;
+import com.interior.platform.ai.repository.AiClientReviewRepository;
+import com.interior.platform.common.exception.ConflictException;
+import com.interior.platform.common.exception.UnauthorizedException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+
 @Service
 public class AiVisualizerService {
 
@@ -54,6 +62,7 @@ public class AiVisualizerService {
 
     private final AiJobRepository aiJobRepository;
     private final AiReferenceRepository aiReferenceRepository;
+    private final AiClientReviewRepository aiClientReviewRepository;
     private final AiImageProvider aiImageProvider;
     private final AiVisualizerProperties properties;
     private final MediaRepository mediaRepository;
@@ -67,6 +76,39 @@ public class AiVisualizerService {
     private final ImageProcessingService imageProcessingService;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AiVisualizerService(
+            AiJobRepository aiJobRepository,
+            AiReferenceRepository aiReferenceRepository,
+            AiClientReviewRepository aiClientReviewRepository,
+            AiImageProvider aiImageProvider,
+            AiVisualizerProperties properties,
+            MediaRepository mediaRepository,
+            ProjectRepository projectRepository,
+            StudioRepository studioRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            RateLimiterService rateLimiterService,
+            StorageService storageService,
+            ImageProcessingService imageProcessingService
+    ) {
+        this.aiJobRepository = aiJobRepository;
+        this.aiReferenceRepository = aiReferenceRepository;
+        this.aiClientReviewRepository = aiClientReviewRepository;
+        this.aiImageProvider = aiImageProvider;
+        this.properties = properties;
+        this.mediaRepository = mediaRepository;
+        this.projectRepository = projectRepository;
+        this.studioRepository = studioRepository;
+        this.securityRepository = securityRepository;
+        this.authorizationService = authorizationService;
+        this.auditService = auditService;
+        this.rateLimiterService = rateLimiterService;
+        this.storageService = storageService;
+        this.imageProcessingService = imageProcessingService;
+    }
 
     public AiVisualizerService(
             AiJobRepository aiJobRepository,
@@ -83,19 +125,22 @@ public class AiVisualizerService {
             StorageService storageService,
             ImageProcessingService imageProcessingService
     ) {
-        this.aiJobRepository = aiJobRepository;
-        this.aiReferenceRepository = aiReferenceRepository;
-        this.aiImageProvider = aiImageProvider;
-        this.properties = properties;
-        this.mediaRepository = mediaRepository;
-        this.projectRepository = projectRepository;
-        this.studioRepository = studioRepository;
-        this.securityRepository = securityRepository;
-        this.authorizationService = authorizationService;
-        this.auditService = auditService;
-        this.rateLimiterService = rateLimiterService;
-        this.storageService = storageService;
-        this.imageProcessingService = imageProcessingService;
+        this(
+                aiJobRepository,
+                aiReferenceRepository,
+                null,
+                aiImageProvider,
+                properties,
+                mediaRepository,
+                projectRepository,
+                studioRepository,
+                securityRepository,
+                authorizationService,
+                auditService,
+                rateLimiterService,
+                storageService,
+                imageProcessingService
+        );
     }
 
     @PreDestroy
@@ -873,7 +918,12 @@ public class AiVisualizerService {
                 job.preserveStructure(),
                 refResponses,
                 job.editingMode() != null ? job.editingMode() : EditingMode.FULL_IMAGE,
-                maskPreviewUrl
+                maskPreviewUrl,
+                job.parentJobId(),
+                job.rootJobId(),
+                job.isShortlisted(),
+                job.isStudioSelected(),
+                job.conceptLabel()
         );
     }
 
@@ -1051,6 +1101,902 @@ public class AiVisualizerService {
             throw new ResourceNotFoundException("Mask file not found in storage");
         }
         return maskBytes;
+    }
+
+    // =========================================================================
+    // Phase 24: AI Variations, History Lineage & Shortlisting
+    // =========================================================================
+
+    public AiJobDetailResponse createVariation(ActorContext actor, UUID requestedStudioId, UUID parentJobId, CreateVariationRequest request) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        if (!aiImageProvider.isConfigured()) {
+            throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
+        }
+
+        rateLimiterService.acquire("ai_generate:" + studioId, 10, Duration.ofMinutes(1));
+        int usedToday = aiJobRepository.countTodayUsage(studioId);
+        if (usedToday >= properties.getDailyStudioLimit()) {
+            throw new RateLimitExceededException("Daily AI concept generation quota reached (" + properties.getDailyStudioLimit() + " per day). Please try again tomorrow.");
+        }
+
+        if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
+            Optional<AiJobRecord> existing = aiJobRepository.findByIdempotencyKey(studioId, request.idempotencyKey().trim());
+            if (existing.isPresent()) {
+                return toJobDetail(existing.get(), studioId);
+            }
+        }
+
+        AiJobRecord parent = aiJobRepository.findById(studioId, parentJobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent generation job not found"));
+
+        if (parent.status() != AiJobStatus.SUCCEEDED) {
+            throw new BadRequestException("Cannot create a variation from a job that has not succeeded");
+        }
+
+        UUID rootJobId = parent.rootJobId() != null ? parent.rootJobId() : parent.id();
+
+        VariationStrategy strategy = request.resolvedStrategy();
+        UUID inputMediaId;
+        if (strategy == VariationStrategy.EVOLVE_CONCEPT) {
+            if (parent.outputMediaId() == null) {
+                throw new BadRequestException("Cannot evolve concept: parent job does not have an output image");
+            }
+            inputMediaId = parent.outputMediaId();
+        } else {
+            inputMediaId = parent.inputMediaId();
+        }
+
+        String prompt = (request.prompt() != null && !request.prompt().isBlank())
+                ? request.prompt().trim()
+                : parent.prompt();
+        if (prompt.length() > properties.getMaxPromptLength()) {
+            throw new BadRequestException("Prompt exceeds maximum allowed length of " + properties.getMaxPromptLength() + " characters.");
+        }
+
+        boolean preserveStructure = request.preserveStructure() != null
+                ? request.preserveStructure()
+                : parent.preserveStructure();
+
+        EditingMode mode = request.editingMode() != null ? request.editingMode() : parent.editingMode();
+        String maskStorageKey = null;
+
+        if (mode == EditingMode.PRECISION_MASK) {
+            if (!aiImageProvider.supportsMaskEditing()) {
+                throw new BadRequestException("Configured AI provider does not support precision mask editing");
+            }
+            if (Boolean.TRUE.equals(request.reuseParentMask())) {
+                if (parent.editingMode() != EditingMode.PRECISION_MASK || parent.maskStorageKey() == null) {
+                    throw new BadRequestException("Parent job has no precision mask to reuse");
+                }
+                maskStorageKey = parent.maskStorageKey();
+            } else if (request.newMaskSourceJobId() != null) {
+                AiJobRecord maskSource = aiJobRepository.findById(studioId, request.newMaskSourceJobId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Specified mask source job not found"));
+                if (maskSource.maskStorageKey() == null) {
+                    throw new BadRequestException("Specified mask source job does not have a mask");
+                }
+                maskStorageKey = maskSource.maskStorageKey();
+            } else {
+                throw new BadRequestException("Precision edit variation requires either reusing parent mask or specifying a valid mask");
+            }
+        }
+
+        List<AiJobReferenceInput> refInputs = request.references();
+        List<AiJobReferenceRecord> refsToSnapshot = new ArrayList<>();
+        Instant now = Instant.now();
+        UUID newJobId = UuidV7.randomUuid();
+
+        if (refInputs != null) {
+            if (!refInputs.isEmpty()) {
+                if (!aiImageProvider.supportsReferenceImages()) {
+                    throw new BadRequestException("Configured AI provider does not support reference images");
+                }
+                if (refInputs.size() > properties.getMaxReferenceImages()) {
+                    throw new BadRequestException("Maximum of " + properties.getMaxReferenceImages() + " reference images allowed.");
+                }
+                int order = 0;
+                for (AiJobReferenceInput ref : refInputs) {
+                    MediaAssetRecord refMedia = mediaRepository.findMediaAsset(ref.mediaId(), studioId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Reference media asset not found in studio: " + ref.mediaId()));
+                    if (refMedia.deletedAt() != null || refMedia.processingStatus() != MediaProcessingStatus.READY) {
+                        throw new BadRequestException("Reference media asset is not ready: " + ref.mediaId());
+                    }
+                    if (refMedia.mediaType() != MediaType.REFERENCE) {
+                        throw new BadRequestException("Attached media must have media type REFERENCE: " + ref.mediaId());
+                    }
+                    refsToSnapshot.add(new AiJobReferenceRecord(
+                            UuidV7.randomUuid(),
+                            newJobId,
+                            studioId,
+                            ref.mediaId(),
+                            ref.purpose(),
+                            ref.label() != null ? ref.label().trim() : null,
+                            ref.instruction() != null ? ref.instruction().trim() : null,
+                            order++,
+                            now
+                    ));
+                }
+            }
+        } else {
+            List<AiJobReferenceRecord> parentRefs = aiReferenceRepository.findReferencesByJobIdAndStudio(studioId, parent.id());
+            int order = 0;
+            for (AiJobReferenceRecord pr : parentRefs) {
+                refsToSnapshot.add(new AiJobReferenceRecord(
+                        UuidV7.randomUuid(),
+                        newJobId,
+                        studioId,
+                        pr.mediaId(),
+                        pr.purposeSnapshot(),
+                        pr.labelSnapshot(),
+                        pr.instructionSnapshot(),
+                        order++,
+                        now
+                ));
+            }
+        }
+
+        int variationCount = aiJobRepository.countByStudio(studioId, parent.projectId());
+        String conceptLabel = "Variation " + (variationCount + 1);
+
+        AiJobRecord job = new AiJobRecord(
+                newJobId,
+                studioId,
+                parent.projectId(),
+                inputMediaId,
+                null,
+                aiImageProvider.getProviderKey(),
+                null,
+                prompt,
+                null,
+                AiJobStatus.QUEUED,
+                null,
+                null,
+                0,
+                request.idempotencyKey(),
+                actor.userId(),
+                now,
+                null,
+                null,
+                null,
+                null,
+                0,
+                preserveStructure,
+                mode,
+                maskStorageKey,
+                parent.id(),
+                rootJobId,
+                false,
+                false,
+                conceptLabel
+        );
+
+        aiJobRepository.createJob(job);
+        if (!refsToSnapshot.isEmpty()) {
+            aiReferenceRepository.createJobReferences(refsToSnapshot);
+        }
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "AI_VARIATION_SUBMITTED",
+                "AI_JOB",
+                job.id().toString(),
+                Map.of(
+                        "projectId", parent.projectId().toString(),
+                        "parentJobId", parent.id().toString(),
+                        "rootJobId", rootJobId.toString(),
+                        "strategy", strategy.name(),
+                        "editingMode", mode.name()
+                ),
+                null,
+                null
+        );
+
+        executor.submit(() -> executeJobInternal(job.id()));
+
+        return toJobDetail(job, studioId);
+    }
+
+    public AiJobDetailResponse toggleShortlist(ActorContext actor, UUID requestedStudioId, UUID jobId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiJobRecord job = aiJobRepository.findById(context.studioId(), jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("AI generation job not found"));
+
+        boolean newShortlist = !job.isShortlisted();
+        aiJobRepository.updateShortlist(context.studioId(), jobId, newShortlist);
+
+        AiJobRecord updated = aiJobRepository.findById(context.studioId(), jobId).orElseThrow();
+        return toJobDetail(updated, context.studioId());
+    }
+
+    public AiJobDetailResponse toggleStudioSelected(ActorContext actor, UUID requestedStudioId, UUID jobId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiJobRecord job = aiJobRepository.findById(context.studioId(), jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("AI generation job not found"));
+
+        boolean newSelected = !job.isStudioSelected();
+        aiJobRepository.updateStudioSelected(context.studioId(), jobId, newSelected);
+
+        AiJobRecord updated = aiJobRepository.findById(context.studioId(), jobId).orElseThrow();
+        return toJobDetail(updated, context.studioId());
+    }
+
+    public AiJobHistoryResponse listJobHistory(
+            ActorContext actor,
+            UUID requestedStudioId,
+            UUID projectId,
+            EditingMode editingMode,
+            AiJobStatus status,
+            Boolean shortlistedOnly,
+            int page,
+            int limit
+    ) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        int safeLimit = Math.max(1, Math.min(50, limit));
+        int safePage = Math.max(0, page);
+        int offset = safePage * safeLimit;
+
+        List<AiJobRecord> jobs = aiJobRepository.findHistory(
+                context.studioId(),
+                projectId,
+                editingMode,
+                status,
+                shortlistedOnly,
+                safeLimit,
+                offset
+        );
+        long total = aiJobRepository.countHistory(
+                context.studioId(),
+                projectId,
+                editingMode,
+                status,
+                shortlistedOnly
+        );
+
+        List<AiJobDetailResponse> items = jobs.stream()
+                .map(j -> toJobDetail(j, context.studioId()))
+                .toList();
+        int totalPages = (int) Math.ceil((double) total / safeLimit);
+
+        return new AiJobHistoryResponse(items, safePage, safeLimit, total, totalPages);
+    }
+
+    // =========================================================================
+    // Phase 24: Client Review Lifecycle & Token Exchange
+    // =========================================================================
+
+    public CreateClientReviewResponse createClientReview(ActorContext actor, UUID requestedStudioId, CreateClientReviewRequest request) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        StudioProjectRecord project = projectRepository.findProjectById(studioId, request.projectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found in studio"));
+
+        if (request.conceptJobIds() == null || request.conceptJobIds().isEmpty()) {
+            throw new BadRequestException("At least one concept must be selected");
+        }
+        if (request.conceptJobIds().size() > 10) {
+            throw new BadRequestException("Cannot include more than 10 concepts in a single review");
+        }
+
+        List<AiJobRecord> validJobs = new ArrayList<>();
+        for (UUID jobId : request.conceptJobIds()) {
+            AiJobRecord job = aiJobRepository.findById(studioId, jobId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Concept job not found in studio: " + jobId));
+            if (!job.projectId().equals(project.id())) {
+                throw new BadRequestException("Cross-project concept inclusion denied: " + jobId);
+            }
+            if (job.status() != AiJobStatus.SUCCEEDED || job.outputMediaId() == null) {
+                throw new BadRequestException("Only succeeded concepts with output images can be shared: " + jobId);
+            }
+            validJobs.add(job);
+        }
+
+        String rawToken = generateSecureToken();
+        byte[] tokenHash = hashSha256(rawToken);
+
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(request.resolvedExpiryDays(), ChronoUnit.DAYS);
+        UUID reviewId = UuidV7.randomUuid();
+
+        AiClientReviewRecord review = new AiClientReviewRecord(
+                reviewId,
+                studioId,
+                project.id(),
+                request.title().trim(),
+                request.customMessage() != null ? request.customMessage().trim() : null,
+                tokenHash,
+                ClientReviewStatus.OPEN,
+                request.resolvedIncludeOriginal(),
+                expiresAt,
+                null,
+                actor.userId(),
+                now,
+                now,
+                0
+        );
+
+        aiClientReviewRepository.createReview(review);
+
+        List<AiClientReviewItemRecord> items = new ArrayList<>();
+        List<ClientReviewItemDto> itemDtos = new ArrayList<>();
+        int order = 0;
+        for (AiJobRecord job : validJobs) {
+            UUID itemId = UuidV7.randomUuid();
+            String displayLabel = "Concept " + (order + 1);
+            AiClientReviewItemRecord item = new AiClientReviewItemRecord(
+                    itemId,
+                    reviewId,
+                    studioId,
+                    job.id(),
+                    job.outputMediaId(),
+                    displayLabel,
+                    order,
+                    now
+            );
+            items.add(item);
+            itemDtos.add(new ClientReviewItemDto(
+                    itemId,
+                    job.id(),
+                    job.outputMediaId(),
+                    displayLabel,
+                    order,
+                    resolvePreviewUrl(job.outputMediaId(), studioId)
+            ));
+            order++;
+        }
+
+        aiClientReviewRepository.createReviewItems(items);
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "CLIENT_REVIEW_CREATED",
+                "CLIENT_REVIEW",
+                reviewId.toString(),
+                Map.of("projectId", project.id().toString(), "itemCount", String.valueOf(items.size())),
+                null,
+                null
+        );
+
+        return new CreateClientReviewResponse(
+                reviewId,
+                project.id(),
+                review.title(),
+                review.customMessage(),
+                rawToken,
+                "/review/" + rawToken,
+                review.status().name(),
+                review.includeOriginal(),
+                expiresAt,
+                itemDtos,
+                now
+        );
+    }
+
+    public List<ClientReviewDetailResponse> listStudioReviews(ActorContext actor, UUID requestedStudioId, UUID projectId, int page, int limit) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        int safeLimit = Math.max(1, Math.min(50, limit));
+        int safePage = Math.max(0, page);
+        int offset = safePage * safeLimit;
+
+        List<AiClientReviewRecord> reviews = aiClientReviewRepository.listReviewsByStudio(context.studioId(), projectId, safeLimit, offset);
+        return reviews.stream()
+                .map(r -> toStudioReviewDetail(r, context.studioId()))
+                .toList();
+    }
+
+    public ClientReviewDetailResponse getStudioReviewDetail(ActorContext actor, UUID requestedStudioId, UUID reviewId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        return toStudioReviewDetail(review, context.studioId());
+    }
+
+    public void closeReview(ActorContext actor, UUID requestedStudioId, UUID reviewId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        aiClientReviewRepository.updateReviewStatus(context.studioId(), reviewId, ClientReviewStatus.CLOSED);
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "CLIENT_REVIEW_CLOSED",
+                "CLIENT_REVIEW",
+                reviewId.toString(),
+                null,
+                null,
+                null
+        );
+    }
+
+    public void revokeReview(ActorContext actor, UUID requestedStudioId, UUID reviewId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        aiClientReviewRepository.updateReviewStatus(context.studioId(), reviewId, ClientReviewStatus.REVOKED);
+        aiClientReviewRepository.revokeAllSessionsForReview(reviewId);
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "CLIENT_REVIEW_REVOKED",
+                "CLIENT_REVIEW",
+                reviewId.toString(),
+                null,
+                null,
+                null
+        );
+    }
+
+    public CreateClientReviewResponse rotateReviewToken(ActorContext actor, UUID requestedStudioId, UUID reviewId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        aiClientReviewRepository.revokeAllSessionsForReview(reviewId);
+
+        String newRawToken = generateSecureToken();
+        byte[] newTokenHash = hashSha256(newRawToken);
+
+        aiClientReviewRepository.updateTokenHash(context.studioId(), reviewId, newTokenHash);
+
+        List<AiClientReviewItemRecord> items = aiClientReviewRepository.findItemsByReviewId(reviewId);
+        List<ClientReviewItemDto> itemDtos = items.stream().map(it -> new ClientReviewItemDto(
+                it.id(),
+                it.jobId(),
+                it.mediaId(),
+                it.displayLabel(),
+                it.displayOrder(),
+                resolvePreviewUrl(it.mediaId(), context.studioId())
+        )).toList();
+
+        return new CreateClientReviewResponse(
+                reviewId,
+                review.projectId(),
+                review.title(),
+                review.customMessage(),
+                newRawToken,
+                "/review/" + newRawToken,
+                ClientReviewStatus.OPEN.name(),
+                review.includeOriginal(),
+                review.expiresAt(),
+                itemDtos,
+                review.createdAt()
+        );
+    }
+
+    public ExchangeReviewSessionResult exchangeReviewToken(String rawToken, String clientIp) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new BadRequestException("Review token is required");
+        }
+        rateLimiterService.acquire("review_exchange:" + clientIp, 20, Duration.ofMinutes(1));
+
+        byte[] tokenHash = hashSha256(rawToken.trim());
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewByTokenHash(tokenHash)
+                .orElseThrow(() -> new ResourceNotFoundException("Review link is invalid or unavailable"));
+
+        if (review.status() == ClientReviewStatus.REVOKED) {
+            throw new ResourceNotFoundException("Review link is no longer available");
+        }
+        if (review.isExpired(Instant.now())) {
+            throw new ResourceNotFoundException("Review link has expired");
+        }
+
+        String rawSessionToken = generateSecureToken();
+        String rawCsrfToken = generateSecureToken();
+
+        byte[] sessionHash = hashSha256(rawSessionToken);
+        byte[] csrfHash = hashSha256(rawCsrfToken);
+
+        AiClientReviewSessionRecord session = new AiClientReviewSessionRecord(
+                UuidV7.randomUuid(),
+                review.id(),
+                sessionHash,
+                csrfHash,
+                review.expiresAt(),
+                null,
+                Instant.now()
+        );
+
+        aiClientReviewRepository.createReviewSession(session);
+
+        return new ExchangeReviewSessionResult(
+                review.id(),
+                rawSessionToken,
+                rawCsrfToken,
+                review.expiresAt()
+        );
+    }
+
+    public PublicClientReviewResponse getPublicReview(String rawSessionToken, String clientIp) {
+        if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            throw new UnauthorizedException("Review session required");
+        }
+        rateLimiterService.acquire("review_fetch:" + clientIp, 60, Duration.ofMinutes(1));
+
+        byte[] sessionHash = hashSha256(rawSessionToken);
+        AiClientReviewSessionRecord session = aiClientReviewRepository.findReviewSessionByTokenHash(sessionHash)
+                .orElseThrow(() -> new UnauthorizedException("Review session is invalid"));
+
+        if (!session.isActive(Instant.now())) {
+            throw new UnauthorizedException("Review session has expired or been revoked");
+        }
+
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewByIdGlobal(session.reviewId())
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
+        if (review.status() == ClientReviewStatus.REVOKED) {
+            throw new ResourceNotFoundException("Review is no longer available");
+        }
+
+        String studioName = resolveStudioName(review.studioId());
+        String projectTitle = projectRepository.findProjectById(review.studioId(), review.projectId())
+                .map(StudioProjectRecord::title)
+                .orElse("Interior Project");
+
+        List<AiClientReviewItemRecord> items = aiClientReviewRepository.findItemsByReviewId(review.id());
+        List<PublicReviewItemDto> publicItems = new ArrayList<>();
+
+        for (AiClientReviewItemRecord item : items) {
+            Optional<AiClientReviewDecisionRecord> decOpt = aiClientReviewRepository.findCurrentDecisionForJob(review.id(), item.jobId());
+            String decisionStr = decOpt.map(d -> d.decision().name()).orElse(null);
+            publicItems.add(new PublicReviewItemDto(
+                    item.id(),
+                    item.jobId(),
+                    item.mediaId(),
+                    item.displayLabel(),
+                    item.displayOrder(),
+                    "/api/v1/client-review/media/" + item.mediaId(),
+                    decisionStr
+            ));
+        }
+
+        String originalPreviewUrl = null;
+        if (review.includeOriginal() && !items.isEmpty()) {
+            AiJobRecord firstJob = aiJobRepository.findByIdGlobal(items.get(0).jobId()).orElse(null);
+            if (firstJob != null && firstJob.inputMediaId() != null) {
+                originalPreviewUrl = "/api/v1/client-review/media/" + firstJob.inputMediaId();
+            }
+        }
+
+        List<PublicReviewDecisionDto> publicDecisions = aiClientReviewRepository.findDecisionsByReviewId(review.id()).stream()
+                .map(d -> new PublicReviewDecisionDto(
+                        d.id(),
+                        d.jobId(),
+                        d.decision(),
+                        d.clientName(),
+                        d.feedback(),
+                        d.isCurrent(),
+                        d.createdAt()
+                )).toList();
+
+        List<PublicReviewCommentDto> publicComments = aiClientReviewRepository.findCommentsByReviewId(review.id()).stream()
+                .map(c -> new PublicReviewCommentDto(
+                        c.id(),
+                        c.jobId(),
+                        c.authorType(),
+                        c.authorName(),
+                        c.commentText(),
+                        c.createdAt()
+                )).toList();
+
+        boolean isExpired = review.isExpired(Instant.now());
+
+        return new PublicClientReviewResponse(
+                review.id(),
+                studioName,
+                projectTitle,
+                review.title(),
+                review.customMessage(),
+                review.status().name(),
+                review.includeOriginal(),
+                originalPreviewUrl,
+                review.expiresAt(),
+                isExpired,
+                review.currentApprovedJobId(),
+                publicItems,
+                publicDecisions,
+                publicComments,
+                review.createdAt()
+        );
+    }
+
+    public byte[] getReviewMediaPreview(String rawSessionToken, UUID mediaId) {
+        if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            throw new UnauthorizedException("Review session required");
+        }
+        byte[] sessionHash = hashSha256(rawSessionToken);
+        AiClientReviewSessionRecord session = aiClientReviewRepository.findReviewSessionByTokenHash(sessionHash)
+                .orElseThrow(() -> new UnauthorizedException("Review session is invalid"));
+
+        if (!session.isActive(Instant.now())) {
+            throw new UnauthorizedException("Review session has expired or been revoked");
+        }
+
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewByIdGlobal(session.reviewId())
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
+        if (review.status() == ClientReviewStatus.REVOKED || review.isExpired(Instant.now())) {
+            throw new ResourceNotFoundException("Review is no longer available");
+        }
+
+        boolean isItemMedia = aiClientReviewRepository.isMediaInReview(review.id(), mediaId);
+        boolean isOriginalAllowed = false;
+        if (!isItemMedia && review.includeOriginal()) {
+            List<AiClientReviewItemRecord> items = aiClientReviewRepository.findItemsByReviewId(review.id());
+            for (AiClientReviewItemRecord it : items) {
+                AiJobRecord job = aiJobRepository.findByIdGlobal(it.jobId()).orElse(null);
+                if (job != null && mediaId.equals(job.inputMediaId())) {
+                    isOriginalAllowed = true;
+                    break;
+                }
+            }
+        }
+
+        if (!isItemMedia && !isOriginalAllowed) {
+            throw new ResourceNotFoundException("Media asset not found in this review");
+        }
+
+        MediaAssetRecord asset = mediaRepository.findMediaAsset(mediaId, review.studioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
+
+        List<MediaDerivativeRecord> derivatives = mediaRepository.findDerivativesByMediaId(mediaId, review.studioId());
+        String storageKey = null;
+        for (MediaDerivativeRecord d : derivatives) {
+            if (d.variantName() == DerivativeVariant.MEDIUM) {
+                storageKey = d.storageKey();
+                break;
+            }
+        }
+        if (storageKey == null) {
+            for (MediaDerivativeRecord d : derivatives) {
+                if (d.variantName() == DerivativeVariant.LARGE) {
+                    storageKey = d.storageKey();
+                    break;
+                }
+            }
+        }
+        if (storageKey == null && !derivatives.isEmpty()) {
+            storageKey = derivatives.get(0).storageKey();
+        }
+        if (storageKey == null) {
+            storageKey = asset.originalStorageKey();
+        }
+
+        byte[] bytes = storageService.load(storageKey);
+        if (bytes == null || bytes.length == 0) {
+            throw new ResourceNotFoundException("Media content unavailable");
+        }
+        return bytes;
+    }
+
+    @Transactional
+    public void submitClientDecision(String rawSessionToken, String csrfToken, SubmitClientDecisionRequest request, String clientIp) {
+        rateLimiterService.acquire("review_decision:" + clientIp, 20, Duration.ofMinutes(1));
+        AiClientReviewRecord review = verifySessionAndCsrf(rawSessionToken, csrfToken);
+
+        if (review.status() != ClientReviewStatus.OPEN || review.isExpired(Instant.now())) {
+            throw new BadRequestException("This review is closed or expired. New decisions cannot be submitted.");
+        }
+
+        aiClientReviewRepository.findItemByReviewAndJob(review.id(), request.jobId())
+                .orElseThrow(() -> new BadRequestException("Concept job is not part of this review"));
+
+        aiClientReviewRepository.clearCurrentDecisionsForReview(review.id());
+
+        AiClientReviewDecisionRecord decision = new AiClientReviewDecisionRecord(
+                UuidV7.randomUuid(),
+                review.id(),
+                review.studioId(),
+                request.jobId(),
+                request.decision(),
+                sanitize(request.clientName()),
+                sanitize(request.feedback()),
+                true,
+                Instant.now()
+        );
+        aiClientReviewRepository.createDecision(decision);
+
+        if (request.decision() == ClientReviewDecisionType.APPROVED) {
+            aiClientReviewRepository.updateReviewCurrentApprovedJob(review.id(), request.jobId());
+        }
+
+        auditService.record(
+                null,
+                review.studioId(),
+                "CLIENT_DECISION_RECORDED",
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                Map.of("decision", request.decision().name(), "jobId", request.jobId().toString()),
+                null,
+                null
+        );
+    }
+
+    public void submitClientComment(String rawSessionToken, String csrfToken, SubmitClientCommentRequest request, String clientIp) {
+        rateLimiterService.acquire("review_comment:" + clientIp, 20, Duration.ofMinutes(1));
+        AiClientReviewRecord review = verifySessionAndCsrf(rawSessionToken, csrfToken);
+
+        if (review.status() != ClientReviewStatus.OPEN || review.isExpired(Instant.now())) {
+            throw new BadRequestException("This review is closed or expired. Comments cannot be added.");
+        }
+
+        if (request.jobId() != null) {
+            aiClientReviewRepository.findItemByReviewAndJob(review.id(), request.jobId())
+                    .orElseThrow(() -> new BadRequestException("Concept job is not part of this review"));
+        }
+
+        AiClientReviewCommentRecord comment = new AiClientReviewCommentRecord(
+                UuidV7.randomUuid(),
+                review.id(),
+                review.studioId(),
+                request.jobId(),
+                CommentAuthorType.CLIENT,
+                sanitize(request.authorName()),
+                sanitize(request.commentText()),
+                Instant.now()
+        );
+        aiClientReviewRepository.createComment(comment);
+
+        auditService.record(
+                null,
+                review.studioId(),
+                "CLIENT_COMMENT_ADDED",
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                Map.of("authorName", comment.authorName()),
+                null,
+                null
+        );
+    }
+
+    private AiClientReviewRecord verifySessionAndCsrf(String rawSessionToken, String rawCsrfToken) {
+        if (rawSessionToken == null || rawSessionToken.isBlank()) {
+            throw new UnauthorizedException("Review session required");
+        }
+        if (rawCsrfToken == null || rawCsrfToken.isBlank()) {
+            throw new AccessDeniedException("CSRF token required");
+        }
+        byte[] sessionHash = hashSha256(rawSessionToken);
+        AiClientReviewSessionRecord session = aiClientReviewRepository.findReviewSessionByTokenHash(sessionHash)
+                .orElseThrow(() -> new UnauthorizedException("Invalid review session"));
+
+        if (!session.isActive(Instant.now())) {
+            throw new UnauthorizedException("Review session expired or revoked");
+        }
+
+        byte[] headerCsrfHash = hashSha256(rawCsrfToken);
+        if (!MessageDigest.isEqual(headerCsrfHash, session.csrfTokenHash())) {
+            throw new AccessDeniedException("Invalid CSRF token");
+        }
+
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewByIdGlobal(session.reviewId())
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
+        if (review.status() == ClientReviewStatus.REVOKED || review.isExpired(Instant.now())) {
+            throw new ResourceNotFoundException("Review is no longer available");
+        }
+
+        return review;
+    }
+
+    private ClientReviewDetailResponse toStudioReviewDetail(AiClientReviewRecord review, UUID studioId) {
+        String projectTitle = projectRepository.findProjectById(studioId, review.projectId())
+                .map(StudioProjectRecord::title)
+                .orElse("Interior Project");
+
+        List<AiClientReviewItemRecord> items = aiClientReviewRepository.findItemsByReviewId(review.id());
+        List<ClientReviewItemDto> itemDtos = items.stream().map(it -> new ClientReviewItemDto(
+                it.id(),
+                it.jobId(),
+                it.mediaId(),
+                it.displayLabel(),
+                it.displayOrder(),
+                resolvePreviewUrl(it.mediaId(), studioId)
+        )).toList();
+
+        List<ClientReviewDecisionDto> decisions = aiClientReviewRepository.findDecisionsByReviewId(review.id()).stream().map(d -> new ClientReviewDecisionDto(
+                d.id(),
+                d.jobId(),
+                d.decision(),
+                d.clientName(),
+                d.feedback(),
+                d.isCurrent(),
+                d.createdAt()
+        )).toList();
+
+        List<ClientReviewCommentDto> comments = aiClientReviewRepository.findCommentsByReviewId(review.id()).stream().map(c -> new ClientReviewCommentDto(
+                c.id(),
+                c.jobId(),
+                c.authorType(),
+                c.authorName(),
+                c.commentText(),
+                c.createdAt()
+        )).toList();
+
+        return new ClientReviewDetailResponse(
+                review.id(),
+                review.projectId(),
+                projectTitle,
+                review.title(),
+                review.customMessage(),
+                review.status().name(),
+                review.includeOriginal(),
+                review.expiresAt(),
+                review.currentApprovedJobId(),
+                itemDtos,
+                decisions,
+                comments,
+                review.createdAt(),
+                review.updatedAt()
+        );
+    }
+
+    private String sanitize(String input) {
+        if (input == null) return null;
+        return input.replace("<", "&lt;").replace(">", "&gt;").trim();
+    }
+
+    private String generateSecureToken() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public static byte[] hashSha256(String raw) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return digest.digest(raw.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 
     private UserRecord validateActiveUser(UUID userId) {

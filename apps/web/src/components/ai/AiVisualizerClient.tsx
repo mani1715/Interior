@@ -21,6 +21,8 @@ import {
   Palette,
   Sliders,
   Crosshair,
+  History,
+  Share2,
 } from 'lucide-react';
 import {
   fetchAiStudioStatus,
@@ -38,6 +40,8 @@ import { fetchProjectMedia } from '@/lib/media/api';
 import { MediaDetailResponse } from '@/lib/media/types';
 import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
 import { PrecisionMaskEditor } from './PrecisionMaskEditor';
+import { AiHistoryView } from './AiHistoryView';
+import { AiReviewsView } from './AiReviewsView';
 
 const PROMPT_PRESETS = [
   'Modern Minimalist with warm oak flooring, flush baseboards, and indirect recessed ceiling cove lighting',
@@ -59,6 +63,9 @@ export function AiVisualizerClient() {
   const searchParams = useSearchParams();
   const initialProjectId = searchParams.get('projectId');
   const initialMediaId = searchParams.get('mediaId');
+
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'create' | 'history' | 'reviews'>('create');
 
   // Status & Quota
   const [studioStatus, setStudioStatus] = useState<AiStudioStatus | null>(null);
@@ -357,8 +364,73 @@ export function AiVisualizerClient() {
         </div>
       )}
 
-      {/* Main Grid: Visualizer Studio & Comparison Viewer */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-sand-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('create')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+            activeTab === 'create'
+              ? 'bg-charcoal-900 text-white shadow-sm'
+              : 'bg-white text-charcoal-600 hover:text-charcoal-900 border border-sand-200 hover:bg-sand-50'
+          }`}
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+          <span>Studio & Generate</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+            activeTab === 'history'
+              ? 'bg-charcoal-900 text-white shadow-sm'
+              : 'bg-white text-charcoal-600 hover:text-charcoal-900 border border-sand-200 hover:bg-sand-50'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>History & Lineage</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('reviews')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+            activeTab === 'reviews'
+              ? 'bg-charcoal-900 text-white shadow-sm'
+              : 'bg-white text-charcoal-600 hover:text-charcoal-900 border border-sand-200 hover:bg-sand-50'
+          }`}
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          <span>Client Reviews</span>
+        </button>
+      </div>
+
+      {activeTab === 'history' && (
+        <AiHistoryView
+          projectId={selectedProjectId || undefined}
+          studioId={undefined}
+          onSelectJobForCompare={(job) => {
+            setSelectedComparisonJob(job);
+            setActiveTab('create');
+          }}
+          onVariationCreated={(job) => {
+            setActiveJob(job);
+            setSelectedComparisonJob(job);
+            setActiveTab('create');
+          }}
+        />
+      )}
+
+      {activeTab === 'reviews' && (
+        <AiReviewsView
+          projectId={selectedProjectId || undefined}
+          studioId={undefined}
+        />
+      )}
+
+      {activeTab === 'create' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Visualizer Controls & Inputs */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-2xl border border-sand-200 p-5 sm:p-6 shadow-sm space-y-5">
@@ -1020,6 +1092,7 @@ export function AiVisualizerClient() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

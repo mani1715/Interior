@@ -27,8 +27,64 @@ public record AiJobDetailResponse(
         boolean preserveStructure,
         List<AiJobReferenceResponse> references,
         EditingMode editingMode,
-        String maskPreviewUrl
+        String maskPreviewUrl,
+        UUID parentJobId,
+        UUID rootJobId,
+        boolean isShortlisted,
+        boolean isStudioSelected,
+        String conceptLabel
 ) {
+    public AiJobDetailResponse(
+            UUID id,
+            UUID studioId,
+            UUID projectId,
+            UUID inputMediaId,
+            String inputPreviewUrl,
+            UUID outputMediaId,
+            String outputPreviewUrl,
+            String providerKey,
+            String prompt,
+            AiJobStatus status,
+            String errorCode,
+            String errorMessageSafe,
+            Instant createdAt,
+            Instant startedAt,
+            Instant completedAt,
+            Instant failedAt,
+            boolean preserveStructure,
+            List<AiJobReferenceResponse> references,
+            EditingMode editingMode,
+            String maskPreviewUrl
+    ) {
+        this(
+                id,
+                studioId,
+                projectId,
+                inputMediaId,
+                inputPreviewUrl,
+                outputMediaId,
+                outputPreviewUrl,
+                providerKey,
+                prompt,
+                status,
+                errorCode,
+                errorMessageSafe,
+                createdAt,
+                startedAt,
+                completedAt,
+                failedAt,
+                preserveStructure,
+                references,
+                editingMode,
+                maskPreviewUrl,
+                null,
+                null,
+                false,
+                false,
+                null
+        );
+    }
+
     public AiJobDetailResponse(
             UUID id,
             UUID studioId,
@@ -69,6 +125,11 @@ public record AiJobDetailResponse(
                 preserveStructure,
                 references,
                 EditingMode.FULL_IMAGE,
+                null,
+                null,
+                null,
+                false,
+                false,
                 null
         );
     }
@@ -111,6 +172,11 @@ public record AiJobDetailResponse(
                 true,
                 List.of(),
                 EditingMode.FULL_IMAGE,
+                null,
+                null,
+                null,
+                false,
+                false,
                 null
         );
     }

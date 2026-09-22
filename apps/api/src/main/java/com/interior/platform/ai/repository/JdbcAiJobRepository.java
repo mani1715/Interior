@@ -51,7 +51,12 @@ public class JdbcAiJobRepository implements AiJobRepository {
             rs.getLong("version"),
             rs.getBoolean("preserve_structure"),
             rs.getString("editing_mode") != null ? EditingMode.valueOf(rs.getString("editing_mode")) : EditingMode.FULL_IMAGE,
-            rs.getString("mask_storage_key")
+            rs.getString("mask_storage_key"),
+            getUuid(rs, "parent_job_id"),
+            getUuid(rs, "root_job_id"),
+            rs.getBoolean("is_shortlisted"),
+            rs.getBoolean("is_studio_selected"),
+            rs.getString("concept_label")
     );
 
     @Override
@@ -61,8 +66,8 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 "provider_key, provider_job_id, prompt, system_prompt, status, " +
                 "error_code, error_message_safe, attempt_count, idempotency_key, " +
                 "created_by, created_at, started_at, completed_at, failed_at, usage_metadata, version, preserve_structure, " +
-                "editing_mode, mask_storage_key" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "editing_mode, mask_storage_key, parent_job_id, root_job_id, is_shortlisted, is_studio_selected, concept_label" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 job.id(),
@@ -88,7 +93,12 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 job.version(),
                 job.preserveStructure(),
                 (job.editingMode() != null ? job.editingMode() : EditingMode.FULL_IMAGE).name(),
-                job.maskStorageKey()
+                job.maskStorageKey(),
+                job.parentJobId(),
+                job.rootJobId(),
+                job.isShortlisted(),
+                job.isStudioSelected(),
+                job.conceptLabel()
         );
     }
 
@@ -108,9 +118,7 @@ public class JdbcAiJobRepository implements AiJobRepository {
 
     @Override
     public Optional<AiJobRecord> findByIdempotencyKey(UUID studioId, String idempotencyKey) {
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return Optional.empty();
-        }
+        if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
         String sql = "SELECT * FROM ai_visualization_jobs WHERE studio_id = ? AND idempotency_key = ?";
         List<AiJobRecord> list = jdbcTemplate.query(sql, jobMapper, studioId, idempotencyKey);
         return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
@@ -118,35 +126,105 @@ public class JdbcAiJobRepository implements AiJobRepository {
 
     @Override
     public List<AiJobRecord> findByStudio(UUID studioId, UUID projectId, int limit, int offset) {
-        List<Object> params = new ArrayList<>();
+        if (projectId != null) {
+            String sql = "SELECT * FROM ai_visualization_jobs WHERE studio_id = ? AND project_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+            return jdbcTemplate.query(sql, jobMapper, studioId, projectId, limit, offset);
+        }
+        String sql = "SELECT * FROM ai_visualization_jobs WHERE studio_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, jobMapper, studioId, limit, offset);
+    }
+
+    @Override
+    public int countByStudio(UUID studioId, UUID projectId) {
+        if (projectId != null) {
+            String sql = "SELECT count(*) FROM ai_visualization_jobs WHERE studio_id = ? AND project_id = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+            return count != null ? count : 0;
+        }
+        String sql = "SELECT count(*) FROM ai_visualization_jobs WHERE studio_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId);
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public List<AiJobRecord> findHistory(
+            UUID studioId,
+            UUID projectId,
+            EditingMode editingMode,
+            AiJobStatus status,
+            Boolean shortlistedOnly,
+            int limit,
+            int offset
+    ) {
         StringBuilder sql = new StringBuilder("SELECT * FROM ai_visualization_jobs WHERE studio_id = ?");
+        List<Object> params = new ArrayList<>();
         params.add(studioId);
 
         if (projectId != null) {
             sql.append(" AND project_id = ?");
             params.add(projectId);
         }
+        if (editingMode != null) {
+            sql.append(" AND editing_mode = ?");
+            params.add(editingMode.name());
+        }
+        if (status != null) {
+            sql.append(" AND status = ?");
+            params.add(status.name());
+        }
+        if (Boolean.TRUE.equals(shortlistedOnly)) {
+            sql.append(" AND is_shortlisted = true");
+        }
 
         sql.append(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
-        params.add(Math.max(1, Math.min(limit, 100)));
-        params.add(Math.max(0, offset));
+        params.add(limit);
+        params.add(offset);
 
         return jdbcTemplate.query(sql.toString(), jobMapper, params.toArray());
     }
 
     @Override
-    public int countByStudio(UUID studioId, UUID projectId) {
-        List<Object> params = new ArrayList<>();
+    public long countHistory(
+            UUID studioId,
+            UUID projectId,
+            EditingMode editingMode,
+            AiJobStatus status,
+            Boolean shortlistedOnly
+    ) {
         StringBuilder sql = new StringBuilder("SELECT count(*) FROM ai_visualization_jobs WHERE studio_id = ?");
+        List<Object> params = new ArrayList<>();
         params.add(studioId);
 
         if (projectId != null) {
             sql.append(" AND project_id = ?");
             params.add(projectId);
         }
+        if (editingMode != null) {
+            sql.append(" AND editing_mode = ?");
+            params.add(editingMode.name());
+        }
+        if (status != null) {
+            sql.append(" AND status = ?");
+            params.add(status.name());
+        }
+        if (Boolean.TRUE.equals(shortlistedOnly)) {
+            sql.append(" AND is_shortlisted = true");
+        }
 
-        Integer count = jdbcTemplate.queryForObject(sql.toString(), Integer.class, params.toArray());
-        return count != null ? count : 0;
+        Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+        return count != null ? count : 0L;
+    }
+
+    @Override
+    public void updateShortlist(UUID studioId, UUID jobId, boolean isShortlisted) {
+        String sql = "UPDATE ai_visualization_jobs SET is_shortlisted = ? WHERE studio_id = ? AND id = ?";
+        jdbcTemplate.update(sql, isShortlisted, studioId, jobId);
+    }
+
+    @Override
+    public void updateStudioSelected(UUID studioId, UUID jobId, boolean isStudioSelected) {
+        String sql = "UPDATE ai_visualization_jobs SET is_studio_selected = ? WHERE studio_id = ? AND id = ?";
+        jdbcTemplate.update(sql, isStudioSelected, studioId, jobId);
     }
 
     @Override

@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-22, Phase 23 — Precision Editing COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 24 pending instruction.
+Last updated: 2026-09-22, Phase 24 — AI Variations + History + Client Approval COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 25 pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -454,6 +454,47 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Lint: **PASS** (`eslint .` clean).
     - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
     - Working tree: clean. local HEAD == origin/main.
+- **PHASE 24 — PASS:** AI Variations + History + Client Approval.
+  - Lineage & Variation Architecture:
+    - Extended `ai_visualization_jobs` with `parent_job_id UUID REFERENCES ai_visualization_jobs(id) ON DELETE SET NULL`, `root_job_id UUID NOT NULL REFERENCES ai_visualization_jobs(id) ON DELETE CASCADE`, `variation_strategy text NULL`, `is_shortlisted boolean NOT NULL DEFAULT false`, `is_studio_selected boolean NOT NULL DEFAULT false`.
+    - Strategies: `REFINE_ORIGINAL` (preserves source room photo, prompt variations) and `EVOLVE_CONCEPT` (uses previous concept derivative as visual reference while maintaining original room photo bounds).
+    - Root propagation across long variation chains ensuring constant-time tree reconstruction.
+    - Safe precision mask reuse: rejects client-supplied `maskStorageKey`; accepts `reuseParentMask` (boolean) or `newMaskSourceJobId` (UUID) with strict tenant and ownership validation.
+  - Concept Shortlisting & Studio Picks:
+    - `POST /ai/jobs/{id}/shortlist`: toggles shortlisted status for filtering and review presentation bundles.
+    - `POST /ai/jobs/{id}/select`: designates canonical studio concept choice; strictly studio-internal, distinct from client approvals.
+  - Client Review Presentation Engine:
+    - Database Entities (`V013__ai_variations_client_approval.sql`):
+      - `ai_client_reviews`: Secure review bundles (`public_id`, `token_hash`, `title`, `notes`, `include_original`, `expires_at`, `status`).
+      - `ai_client_review_items`: Display order and item-level notes for concepts in review.
+      - `ai_client_review_sessions`: Scoped 256-bit session token, anti-CSRF token, expiration.
+      - `ai_client_review_decisions`: Client decision audit log (`decision_type`, `client_name`, `comment`, `is_current`).
+      - `ai_client_review_comments`: Discussion threads between client and studio (`author_type`, `author_name`, `comment`).
+    - Cryptographic Token & Session Exchange:
+      - 256-bit cryptographically secure token generated on review creation; only SHA-256 hash stored in DB.
+      - Public exchange endpoint `POST /api/v1/client-review/exchange` verifies raw token hash, issues HttpOnly `review_session` cookie + CSRF token, and client immediately navigates to `/review/view/{publicId}`. Raw token scrubbed from URL and browser history.
+      - Session validation on all public endpoints (`/session`, `/media/{mediaId}`, `/decisions`, `/comments`) with CSRF protection (`X-CSRF-Token` header) on all state mutations.
+    - Scoped Private Media Preview:
+      - `GET /api/v1/client-review/media/{mediaId}`: Strictly verifies media belongs to review bundle or is original room photo (if `include_original=true`).
+      - Serves medium derivative with studio watermark and `Cache-Control: private, no-store, max-age=0, must-revalidate`.
+      - Private masters, reference library images, and provider metadata are strictly barred from client review endpoints.
+    - Approval Supersession & Legal Invariant:
+      - Client decisions (`APPROVED`, `CHANGES_REQUESTED`) record complete audit history. A new approval automatically marks previous approvals `is_current = false`.
+      - Mandatory legal disclaimer: *"AI concept visualizations are artistic interpretations for creative exploration and design inspiration only. They do not constitute architectural drawings, engineering specifications, construction documents, or exact material specifications. All dimensions, finishes, structural elements, and materials must be independently verified on-site by licensed professionals prior to procurement or installation."*
+  - Frontend Workspace & Client Experience:
+    - Visualizer Studio Tabs: "Studio & Generate", "History & Lineage", "Client Reviews".
+    - `AiHistoryView.tsx`: Filterable generations, lineage tree badges, shortlist/studio pick toggles, variation generator modal, and client review bundling.
+    - `AiReviewsView.tsx`: Active/closed/expired reviews, link copying, token rotation, review closure, revocation, and detailed audit log modal.
+    - `ClientReviewView.tsx`: Client presentation UI adhering strictly to Warm Bronze / Cream locked palette, $\ge 44$px touch targets, Before/After comparison, concept cards, fullscreen zoom with persistent AI disclaimer, "Approve Concept" modal with non-contractual legal notice, "Request Changes" modal, and feedback discussion thread.
+    - Robots protection: Disallow `/review/` and `/review/*` in `robots.ts` to prevent search engine indexing of client presentations.
+  - Verification Baseline:
+    - Backend: **222 / 222 PASS** (8 tests in `AiVariationsTest`, 8 tests in `AiClientReviewTest`, 0 failures, 0 errors).
+    - Frontend: **216 / 216 PASS** (27 test files, 11 tests across `ClientReviewView.test.tsx` and `AiVariationsHistory.test.tsx`, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`npm run typecheck` clean).
+    - Lint: **PASS** (`npm run lint` clean).
+    - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean across all 33 routes).
+    - Working tree: clean. local HEAD == origin/main.
+- **NEXT ACTION:** STOP AFTER PHASE 24. Phase 25 is the next milestone. Do not implement without explicit authorization.
 
 
 

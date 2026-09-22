@@ -27,8 +27,72 @@ public record AiJobRecord(
         long version,
         boolean preserveStructure,
         EditingMode editingMode,
-        String maskStorageKey
+        String maskStorageKey,
+        UUID parentJobId,
+        UUID rootJobId,
+        boolean isShortlisted,
+        boolean isStudioSelected,
+        String conceptLabel
 ) {
+    public AiJobRecord(
+            UUID id,
+            UUID studioId,
+            UUID projectId,
+            UUID inputMediaId,
+            UUID outputMediaId,
+            String providerKey,
+            String providerJobId,
+            String prompt,
+            String systemPrompt,
+            AiJobStatus status,
+            String errorCode,
+            String errorMessageSafe,
+            int attemptCount,
+            String idempotencyKey,
+            UUID createdBy,
+            Instant createdAt,
+            Instant startedAt,
+            Instant completedAt,
+            Instant failedAt,
+            String usageMetadata,
+            long version,
+            boolean preserveStructure,
+            EditingMode editingMode,
+            String maskStorageKey
+    ) {
+        this(
+                id,
+                studioId,
+                projectId,
+                inputMediaId,
+                outputMediaId,
+                providerKey,
+                providerJobId,
+                prompt,
+                systemPrompt,
+                status,
+                errorCode,
+                errorMessageSafe,
+                attemptCount,
+                idempotencyKey,
+                createdBy,
+                createdAt,
+                startedAt,
+                completedAt,
+                failedAt,
+                usageMetadata,
+                version,
+                preserveStructure,
+                editingMode,
+                maskStorageKey,
+                null,
+                null,
+                false,
+                false,
+                null
+        );
+    }
+
     public AiJobRecord(
             UUID id,
             UUID studioId,
@@ -77,6 +141,11 @@ public record AiJobRecord(
                 version,
                 preserveStructure,
                 EditingMode.FULL_IMAGE,
+                null,
+                null,
+                null,
+                false,
+                false,
                 null
         );
     }
@@ -128,7 +197,32 @@ public record AiJobRecord(
                 version,
                 true,
                 EditingMode.FULL_IMAGE,
+                null,
+                null,
+                null,
+                false,
+                false,
                 null
+        );
+    }
+
+    public AiJobRecord withShortlist(boolean shortlisted) {
+        return new AiJobRecord(
+                id, studioId, projectId, inputMediaId, outputMediaId, providerKey, providerJobId,
+                prompt, systemPrompt, status, errorCode, errorMessageSafe, attemptCount,
+                idempotencyKey, createdBy, createdAt, startedAt, completedAt, failedAt,
+                usageMetadata, version, preserveStructure, editingMode, maskStorageKey,
+                parentJobId, rootJobId, shortlisted, isStudioSelected, conceptLabel
+        );
+    }
+
+    public AiJobRecord withStudioSelected(boolean studioSelected) {
+        return new AiJobRecord(
+                id, studioId, projectId, inputMediaId, outputMediaId, providerKey, providerJobId,
+                prompt, systemPrompt, status, errorCode, errorMessageSafe, attemptCount,
+                idempotencyKey, createdBy, createdAt, startedAt, completedAt, failedAt,
+                usageMetadata, version, preserveStructure, editingMode, maskStorageKey,
+                parentJobId, rootJobId, isShortlisted, studioSelected, conceptLabel
         );
     }
 }

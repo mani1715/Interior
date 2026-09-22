@@ -129,6 +129,11 @@ export interface AiJobDetail {
   references?: AiJobReference[];
   editingMode?: EditingMode;
   maskPreviewUrl?: string | null;
+  parentJobId?: string | null;
+  rootJobId?: string | null;
+  isShortlisted?: boolean;
+  isStudioSelected?: boolean;
+  conceptLabel?: string | null;
 }
 
 export interface AiJobListResponse {
@@ -147,4 +152,163 @@ export interface CreateAiJobPayload {
   references?: AiJobReferenceInput[];
   editingMode?: EditingMode;
   maskStorageKey?: string;
+}
+
+export type VariationStrategy = 'REFINE_ORIGINAL' | 'EVOLVE_CONCEPT';
+
+export interface CreateVariationPayload {
+  variationStrategy: VariationStrategy;
+  prompt?: string;
+  preserveStructure?: boolean;
+  editingMode?: EditingMode;
+  reuseParentMask?: boolean;
+  newMaskSourceJobId?: string;
+  references?: AiJobReferenceInput[];
+  idempotencyKey?: string;
+}
+
+export interface AiJobHistoryResponse {
+  items: AiJobDetail[];
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export type ClientReviewStatus = 'OPEN' | 'CLOSED' | 'REVOKED';
+export type ClientReviewDecisionType = 'APPROVED' | 'CHANGES_REQUESTED';
+export type CommentAuthorType = 'STUDIO' | 'CLIENT';
+
+export interface CreateClientReviewPayload {
+  projectId: string;
+  title: string;
+  customMessage?: string;
+  expiryDays?: number;
+  includeOriginal?: boolean;
+  conceptJobIds: string[];
+}
+
+export interface ClientReviewItemDto {
+  id: string;
+  jobId: string;
+  mediaId: string;
+  displayLabel: string;
+  displayOrder: number;
+  previewUrl?: string | null;
+}
+
+export interface ClientReviewDecisionDto {
+  id: string;
+  jobId: string;
+  decision: ClientReviewDecisionType;
+  clientName?: string | null;
+  feedback?: string | null;
+  isCurrent: boolean;
+  createdAt: string;
+}
+
+export interface ClientReviewCommentDto {
+  id: string;
+  jobId?: string | null;
+  authorType: CommentAuthorType;
+  authorName: string;
+  commentText: string;
+  createdAt: string;
+}
+
+export interface CreateClientReviewResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  customMessage?: string | null;
+  rawToken: string;
+  reviewUrl: string;
+  status: string;
+  includeOriginal: boolean;
+  expiresAt: string;
+  items: ClientReviewItemDto[];
+  createdAt: string;
+}
+
+export interface ClientReviewDetailResponse {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  title: string;
+  customMessage?: string | null;
+  status: string;
+  includeOriginal: boolean;
+  expiresAt: string;
+  currentApprovedJobId?: string | null;
+  items: ClientReviewItemDto[];
+  decisions: ClientReviewDecisionDto[];
+  comments: ClientReviewCommentDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExchangeReviewTokenResponse {
+  reviewPublicId: string;
+  csrfToken: string;
+  redirectUrl: string;
+}
+
+export interface PublicReviewItemDto {
+  id: string;
+  jobId: string;
+  mediaId: string;
+  displayLabel: string;
+  displayOrder: number;
+  previewUrl: string;
+  currentDecision?: ClientReviewDecisionType | null;
+}
+
+export interface PublicReviewDecisionDto {
+  id: string;
+  jobId: string;
+  decision: ClientReviewDecisionType;
+  clientName?: string | null;
+  feedback?: string | null;
+  isCurrent: boolean;
+  createdAt: string;
+}
+
+export interface PublicReviewCommentDto {
+  id: string;
+  jobId?: string | null;
+  authorType: CommentAuthorType;
+  authorName: string;
+  commentText: string;
+  createdAt: string;
+}
+
+export interface PublicClientReviewResponse {
+  id: string;
+  studioName: string;
+  projectTitle: string;
+  title: string;
+  customMessage?: string | null;
+  status: string;
+  includeOriginal: boolean;
+  originalPreviewUrl?: string | null;
+  expiresAt: string;
+  isExpired: boolean;
+  currentApprovedJobId?: string | null;
+  items: PublicReviewItemDto[];
+  decisions: PublicReviewDecisionDto[];
+  comments: PublicReviewCommentDto[];
+  createdAt: string;
+}
+
+export interface SubmitClientDecisionRequest {
+  jobId: string;
+  decision: ClientReviewDecisionType;
+  clientName?: string;
+  feedback?: string;
+}
+
+export interface SubmitClientCommentRequest {
+  jobId?: string;
+  authorName: string;
+  commentText: string;
 }
