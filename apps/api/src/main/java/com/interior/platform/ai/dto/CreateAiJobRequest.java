@@ -1,5 +1,6 @@
 package com.interior.platform.ai.dto;
 
+import com.interior.platform.ai.domain.EditingMode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -27,10 +28,19 @@ public record CreateAiJobRequest(
         Boolean preserveStructure,
 
         @Size(max = 4, message = "Maximum of 4 reference images can be attached")
-        List<@Valid AiJobReferenceInput> references
+        List<@Valid AiJobReferenceInput> references,
+
+        EditingMode editingMode,
+
+        @Size(max = 512, message = "maskStorageKey must not exceed 512 characters")
+        String maskStorageKey
 ) {
     public CreateAiJobRequest(UUID inputMediaId, UUID projectId, String prompt, String idempotencyKey) {
-        this(inputMediaId, projectId, prompt, idempotencyKey, true, List.of());
+        this(inputMediaId, projectId, prompt, idempotencyKey, true, List.of(), EditingMode.FULL_IMAGE, null);
+    }
+
+    public CreateAiJobRequest(UUID inputMediaId, UUID projectId, String prompt, String idempotencyKey, Boolean preserveStructure, List<AiJobReferenceInput> references) {
+        this(inputMediaId, projectId, prompt, idempotencyKey, preserveStructure, references, EditingMode.FULL_IMAGE, null);
     }
 
     public CreateAiJobRequest {
@@ -39,6 +49,9 @@ public record CreateAiJobRequest(
         }
         if (references == null) {
             references = List.of();
+        }
+        if (editingMode == null) {
+            editingMode = EditingMode.FULL_IMAGE;
         }
     }
 }

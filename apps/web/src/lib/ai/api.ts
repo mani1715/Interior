@@ -114,3 +114,33 @@ export async function archiveReference(
     method: 'DELETE',
   });
 }
+
+// ============================================================================
+// Precision Mask Editing API Functions
+// ============================================================================
+
+export async function uploadPrecisionMask(
+  inputMediaId: string,
+  maskBlob: Blob,
+  studioId?: string
+): Promise<import('./types').UploadMaskResponse> {
+  const formData = new FormData();
+  formData.append('inputMediaId', inputMediaId);
+  formData.append('file', maskBlob, 'mask.png');
+
+  const params = new URLSearchParams();
+  if (studioId) params.append('studioId', studioId);
+  params.append('inputMediaId', inputMediaId);
+  const qs = `?${params.toString()}`;
+
+  return apiFetch<import('./types').UploadMaskResponse>(`/ai/masks${qs}`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export function getJobMaskPreviewUrl(jobId: string, studioId?: string): string {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return `/api/ai/jobs/${encodeURIComponent(jobId)}/mask${qs}`;
+}
+

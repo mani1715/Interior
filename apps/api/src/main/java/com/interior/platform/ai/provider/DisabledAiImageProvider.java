@@ -25,8 +25,8 @@ public class DisabledAiImageProvider implements AiImageProvider {
     }
 
     @Override
-    public int getMaxReferenceImages() {
-        return 0;
+    public boolean supportsMaskEditing() {
+        return false;
     }
 
     @Override
@@ -34,6 +34,18 @@ public class DisabledAiImageProvider implements AiImageProvider {
             AiJobRecord job,
             byte[] inputImageBytes,
             String inputContentType,
+            List<AiGenerationReference> references
+    ) {
+        throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
+    }
+
+    @Override
+    public ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            byte[] maskBytes,
+            String maskContentType,
             List<AiGenerationReference> references
     ) {
         throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");

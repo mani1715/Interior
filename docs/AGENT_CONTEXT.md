@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-22, Phase 22 — AI Reference Image System COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 23 pending instruction.
+Last updated: 2026-09-22, Phase 23 — Precision Editing COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 24 pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -421,6 +421,39 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
   - Lint: **PASS** (`eslint .` clean).
   - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
   - Working tree: clean. local HEAD == origin/main.
+- **PHASE 23 — PASS:** Precision Editing (Targeted Inpainting / Region-Based Generation).
+  - Mode Separation: Full Concept (`FULL_IMAGE`) vs. Precision Edit (`PRECISION_MASK`).
+  - Database Schema (`V012__ai_precision_editing.sql`):
+    - `ai_visualization_jobs`: Added `editing_mode text NOT NULL DEFAULT 'FULL_IMAGE'`, `mask_storage_key text NULL`.
+    - Added index `idx_ai_jobs_studio_mode` on `(studio_id, editing_mode, created_at DESC)`.
+  - Mask Storage & Privacy Invariant:
+    - Masks uploaded as raw PNG to private storage under `studio/{studioId}/masks/{maskId}.png`.
+    - Masks are NEVER public assets, never registered as portfolio media, never exposed to public CDN, sitemap, or SEO.
+    - Tenant isolation enforced on mask retrieval (`GET /ai/jobs/{jobId}/mask`).
+  - Validation:
+    - Verifies PNG format and exact source image pixel dimensions (`width` and `height`).
+    - Validates mask coverage: rejects empty masks (<0.1%) and near-total/over-painted masks (>98%).
+  - Provider Abstraction:
+    - `AiImageProvider` extended with `supportsMaskEditing()` and 6-argument `submitGeneration` overload with `byte[] maskImageBytes`.
+    - `ConfigurableAiImageProvider` serializes `editing_mode` and `has_mask` safely.
+  - Coordinate Normalization & Math (`src/lib/ai/coordinates.ts`):
+    - Normalizes display coordinates to intrinsic source dimensions: `toNormalizedCoords`, `toSourceCoords`, `scaleCanvasToSource`, `calculateCoverageRatio`.
+  - Frontend Precision Mask Editor (`PrecisionMaskEditor.tsx`):
+    - Mobile/touch-friendly drawing canvas overlay with Pointer Events and `touch-action: none`.
+    - Minimum 44px touch targets.
+    - Brush and Eraser tools with selectable sizes (Small 12px, Medium 24px, Large 48px).
+    - 20-step bounded undo history stack and Clear Selection button.
+    - Real-time coverage percentage indicator and accessible ARIA live status announcements.
+    - Mandatory truthful disclaimer: *"AI will attempt to modify only the selected area. Minor changes outside the selection may occur."*
+    - Contextual prompt starter presets for precision edits.
+    - Comparison Viewer: "Precision Edit" badge and toggleable mask overlay view ("Show/Hide Target Region").
+  - Verification Baseline:
+    - Backend: **205 / 205 PASS** (12 comprehensive tests in `AiPrecisionEditingTest`, 0 failures, 0 errors).
+    - Frontend: **205 / 205 PASS** (25 test files, coordinates tests, editor tests, AI visualizer tests, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` clean).
+    - Lint: **PASS** (`eslint .` clean).
+    - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
+    - Working tree: clean. local HEAD == origin/main.
 
 
 

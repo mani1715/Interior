@@ -15,6 +15,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 
+import com.interior.platform.ai.domain.EditingMode;
+
 @Component
 @Primary
 public class ConfigurableAiImageProvider implements AiImageProvider {
@@ -59,14 +61,35 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
     }
 
     @Override
+    public boolean supportsMaskEditing() {
+        return properties.isSupportsMaskEditing();
+    }
+
+    @Override
     public ProviderGenerationResponse submitGeneration(
             AiJobRecord job,
             byte[] inputImageBytes,
             String inputContentType,
             List<AiGenerationReference> references
     ) {
+        return submitGeneration(job, inputImageBytes, inputContentType, null, null, references);
+    }
+
+    @Override
+    public ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            byte[] maskBytes,
+            String maskContentType,
+            List<AiGenerationReference> references
+    ) {
         if (!isConfigured()) {
             throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
+        }
+
+        if (job.editingMode() == EditingMode.PRECISION_MASK && !supportsMaskEditing()) {
+            return ProviderGenerationResponse.failure("MASK_EDITING_UNSUPPORTED", "The configured AI model does not support precision mask editing.");
         }
 
         String endpoint = properties.getEndpoint();
@@ -74,13 +97,15 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
             throw new AiProviderNotConfiguredException("AI generation provider endpoint is missing or invalid.");
         }
 
+        boolean hasMask = (maskBytes != null && maskBytes.length > 0);
+
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
                     .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                     .header("Authorization", "Bearer " + properties.getApiKey())
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(buildRequestBody(job, references)))
+                    .POST(HttpRequest.BodyPublishers.ofString(buildRequestBody(job, references, hasMask)))
                     .build();
 
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
@@ -123,13 +148,15 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
         return true;
     }
 
-    private String buildRequestBody(AiJobRecord job, List<AiGenerationReference> references) {
+    private String buildRequestBody(AiJobRecord job, List<AiGenerationReference> references, boolean hasMask) {
         String escapedPrompt = escapeJson(job.prompt());
         StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append("\"model\":\"").append(escapeJson(properties.getModel())).append("\",");
         sb.append("\"prompt\":\"").append(escapedPrompt).append("\",");
         sb.append("\"preserve_structure\":").append(job.preserveStructure()).append(",");
+        sb.append("\"editing_mode\":\"").append(job.editingMode() != null ? job.editingMode().name() : "FULL_IMAGE").append("\",");
+        sb.append("\"has_mask\":").append(hasMask).append(",");
         sb.append("\"num_outputs\":1,");
         sb.append("\"references\":[");
         if (references != null && !references.isEmpty()) {

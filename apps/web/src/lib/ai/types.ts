@@ -1,5 +1,15 @@
 export type AiJobStatus = 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
 
+export type EditingMode = 'FULL_IMAGE' | 'PRECISION_MASK';
+
+export interface UploadMaskResponse {
+  maskId: string;
+  maskStorageKey: string;
+  width: number;
+  height: number;
+  coverageRatio: number;
+}
+
 export type ReferencePurpose =
   | 'COLOR'
   | 'MATERIAL'
@@ -45,6 +55,7 @@ export interface AiStudioStatus {
   remainingToday: number;
   supportsReferenceImages?: boolean;
   maxReferenceImages?: number;
+  supportsMaskEditing?: boolean;
 }
 
 export interface AiJobReferenceInput {
@@ -116,6 +127,8 @@ export interface AiJobDetail {
   failedAt?: string | null;
   preserveStructure?: boolean;
   references?: AiJobReference[];
+  editingMode?: EditingMode;
+  maskPreviewUrl?: string | null;
 }
 
 export interface AiJobListResponse {
@@ -132,4 +145,6 @@ export interface CreateAiJobPayload {
   idempotencyKey?: string;
   preserveStructure?: boolean;
   references?: AiJobReferenceInput[];
+  editingMode?: EditingMode;
+  maskStorageKey?: string;
 }

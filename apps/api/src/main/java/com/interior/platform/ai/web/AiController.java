@@ -100,6 +100,43 @@ public class AiController {
     }
 
     // ============================================================================
+    // PRECISION MASK EDITING ENDPOINTS
+    // ============================================================================
+
+    @PostMapping(value = "/masks", consumes = "multipart/form-data")
+    @Operation(summary = "Upload precision editing mask", description = "Uploads a client-generated region selection mask PNG for a specific input media asset.")
+    public ResponseEntity<UploadMaskResponse> uploadMask(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @RequestParam("inputMediaId") UUID inputMediaId,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        UploadMaskResponse res = aiVisualizerService.uploadMask(actor, studioId, inputMediaId, file);
+        return createPrivateNoCacheResponse(res, HttpStatus.CREATED);
+    }
+
+    @GetMapping(value = "/jobs/{jobId}/mask", produces = "image/png")
+    @Operation(summary = "Get precision editing mask preview", description = "Fetches the raw private PNG mask for a precision editing job.")
+    public ResponseEntity<byte[]> getJobMask(
+            HttpServletRequest request,
+            @PathVariable("jobId") UUID jobId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        byte[] maskBytes = aiVisualizerService.getJobMask(actor, studioId, jobId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.CONTENT_TYPE, "image/png")
+                .body(maskBytes);
+    }
+
+    // ============================================================================
     // REFERENCE LIBRARY ENDPOINTS
     // ============================================================================
 

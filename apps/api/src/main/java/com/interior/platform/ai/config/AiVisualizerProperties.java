@@ -129,11 +129,24 @@ public class AiVisualizerProperties {
         this.supportsReferenceImages = supportsReferenceImages;
     }
 
+    /**
+     * Whether the active provider supports precision mask editing / inpainting.
+     */
+    private boolean supportsMaskEditing = true;
+
     public int getMaxReferenceImages() {
         return maxReferenceImages;
     }
 
     public void setMaxReferenceImages(int maxReferenceImages) {
         this.maxReferenceImages = maxReferenceImages;
+    }
+
+    public boolean isSupportsMaskEditing() {
+        return supportsMaskEditing;
+    }
+
+    public void setSupportsMaskEditing(boolean supportsMaskEditing) {
+        this.supportsMaskEditing = supportsMaskEditing;
     }
 }

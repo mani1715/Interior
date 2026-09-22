@@ -20,6 +20,7 @@ import {
   Layers,
   Palette,
   Sliders,
+  Crosshair,
 } from 'lucide-react';
 import {
   fetchAiStudioStatus,
@@ -28,13 +29,15 @@ import {
   cancelAiJob,
   listAiJobs,
   fetchReferences,
+  uploadPrecisionMask,
 } from '@/lib/ai/api';
-import { AiJobDetail, AiStudioStatus, ReferenceDetail } from '@/lib/ai/types';
+import { AiJobDetail, AiStudioStatus, ReferenceDetail, EditingMode } from '@/lib/ai/types';
 import { fetchProjects } from '@/lib/projects/api';
 import { ProjectSummaryDto } from '@/lib/projects/types';
 import { fetchProjectMedia } from '@/lib/media/api';
 import { MediaDetailResponse } from '@/lib/media/types';
 import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
+import { PrecisionMaskEditor } from './PrecisionMaskEditor';
 
 const PROMPT_PRESETS = [
   'Modern Minimalist with warm oak flooring, flush baseboards, and indirect recessed ceiling cove lighting',
@@ -42,6 +45,14 @@ const PROMPT_PRESETS = [
   'Scandinavian Japandi with pale timber cabinetry, wabi-sabi ceramic decor, and sheer linen drapery',
   'Industrial Loft with exposed concrete ceiling, raw brick accents, and matte black steel-framed glazing',
   'Neo-Classical Luxury with subtle wall mouldings, herringbone timber floor, and warm alabaster chandeliers',
+];
+
+const PRECISION_PRESETS = [
+  { label: 'Wardrobe Shutters', prompt: 'Change only these wardrobe shutters to fluted oak finish with sleek black recessed profiles' },
+  { label: 'Countertop & Backsplash', prompt: 'Apply Italian Calacatta Gold marble only to this countertop and backsplash' },
+  { label: 'Accent Wall Color', prompt: 'Repaint this accent wall in warm terracotta matte finish with subtle lime-wash texture' },
+  { label: 'Cabinet Doors & Handles', prompt: 'Replace cabinet doors with fluted glass and brushed brass minimal handles' },
+  { label: 'TV Feature Wall', prompt: 'Upgrade this TV feature wall with dark charcoal slatted acoustic panels' },
 ];
 
 export function AiVisualizerClient() {
@@ -76,6 +87,13 @@ export function AiVisualizerClient() {
   const [recentJobs, setRecentJobs] = useState<AiJobDetail[]>([]);
   const [selectedComparisonJob, setSelectedComparisonJob] = useState<AiJobDetail | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'original' | 'concept'>('split');
+
+  // Editing Mode & Precision Mask State
+  const [editingMode, setEditingMode] = useState<EditingMode>('FULL_IMAGE');
+  const [hasMask, setHasMask] = useState(false);
+  const [maskCoverageRatio, setMaskCoverageRatio] = useState(0);
+  const [showMaskOverlay, setShowMaskOverlay] = useState(true);
+  const exportMaskRef = useRef<(() => Promise<Blob | null>) | null>(null);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -201,6 +219,17 @@ export function AiVisualizerClient() {
       return;
     }
 
+    if (editingMode === 'PRECISION_MASK') {
+      if (!hasMask || maskCoverageRatio <= 0) {
+        setFormError('Please paint a target area on the room photo before submitting a precision edit.');
+        return;
+      }
+      if (maskCoverageRatio > 0.98) {
+        setFormError('The selected area covers almost the entire image (>98%). Please switch to Full Concept mode.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const idempotencyKey = `ai-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -212,6 +241,16 @@ export function AiVisualizerClient() {
         displayOrder: idx,
       }));
 
+      let maskStorageKey: string | undefined = undefined;
+      if (editingMode === 'PRECISION_MASK') {
+        const maskBlob = await exportMaskRef.current?.();
+        if (!maskBlob) {
+          throw new Error('Failed to export mask drawing. Please try painting the selection again.');
+        }
+        const uploadRes = await uploadPrecisionMask(selectedMediaId, maskBlob, selectedProjectId);
+        maskStorageKey = uploadRes.maskStorageKey;
+      }
+
       const job = await createAiJob({
         projectId: selectedProjectId,
         inputMediaId: selectedMediaId,
@@ -219,6 +258,8 @@ export function AiVisualizerClient() {
         idempotencyKey,
         preserveStructure,
         references: formattedReferences,
+        editingMode,
+        maskStorageKey,
       });
 
       setActiveJob(job);
@@ -247,6 +288,9 @@ export function AiVisualizerClient() {
   const selectedMediaThumbnail = selectedMediaAsset?.derivatives?.find(
     (d) => d.variantName === 'MEDIUM' || d.variantName === 'LARGE' || d.variantName === 'THUMBNAIL'
   )?.publicUrl;
+  const selectedMediaFullUrl =
+    selectedMediaAsset?.derivatives?.find((d) => d.variantName === 'LARGE' || d.variantName === 'MEDIUM')
+      ?.publicUrl || selectedMediaThumbnail;
 
   const isConfigured = studioStatus?.isConfigured ?? false;
 
@@ -443,6 +487,78 @@ export function AiVisualizerClient() {
                 </div>
               )}
 
+              {/* Mode Selector Tabs */}
+              {selectedProjectId && selectedMediaId && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
+                      Transformation Mode
+                    </label>
+                    <span className="text-[10px] text-charcoal-500">
+                      {editingMode === 'PRECISION_MASK' ? 'Targeted region edit' : 'Full room transformation'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
+                    <button
+                      type="button"
+                      onClick={() => setEditingMode('FULL_IMAGE')}
+                      disabled={submitting || !isConfigured}
+                      className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+                        editingMode === 'FULL_IMAGE'
+                          ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
+                          : 'text-charcoal-500 hover:text-charcoal-900'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-bronze-700" />
+                      <span>Full Concept</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingMode('PRECISION_MASK')}
+                      disabled={submitting || !isConfigured || studioStatus?.supportsMaskEditing === false}
+                      className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+                        editingMode === 'PRECISION_MASK'
+                          ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
+                          : 'text-charcoal-500 hover:text-charcoal-900 disabled:opacity-40 disabled:cursor-not-allowed'
+                      }`}
+                    >
+                      <Crosshair className="w-3.5 h-3.5 text-bronze-700" />
+                      <span>Precision Edit</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Precision Mask Region Editor */}
+              {selectedProjectId && selectedMediaId && editingMode === 'PRECISION_MASK' && selectedMediaFullUrl && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
+                      Target Region Selection
+                    </label>
+                    <span className="text-[10px] text-bronze-700 font-medium">
+                      Paint over only the area you want to change
+                    </span>
+                  </div>
+
+                  <PrecisionMaskEditor
+                    sourceImageUrl={selectedMediaFullUrl}
+                    sourceWidth={selectedMediaAsset?.width || 1024}
+                    sourceHeight={selectedMediaAsset?.height || 1024}
+                    onMaskChange={(has, ratio) => {
+                      setHasMask(has);
+                      setMaskCoverageRatio(ratio);
+                    }}
+                    onExportReady={(fn) => {
+                      exportMaskRef.current = fn;
+                    }}
+                    disabled={submitting || !isConfigured}
+                  />
+                </div>
+              )}
+
               {/* 3. Reference Images & Structure Preservation Controls */}
               {selectedProjectId && (
                 <ReferenceManager
@@ -460,7 +576,7 @@ export function AiVisualizerClient() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                    4. Desired Transformation
+                    {editingMode === 'PRECISION_MASK' ? '4. Target Edit Instruction' : '4. Desired Transformation'}
                   </label>
                   <span
                     className={`text-[11px] font-mono ${
@@ -475,27 +591,43 @@ export function AiVisualizerClient() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={submitting || !isConfigured}
-                  placeholder="e.g. Transform to warm minimalist aesthetic with herringbone oak floors, concealed indirect lighting, and linen upholstery..."
+                  placeholder={
+                    editingMode === 'PRECISION_MASK'
+                      ? "Describe changes to the selected area (e.g., 'Change only these wardrobe shutters to fluted oak with sleek black recessed handles; keep surrounding walls untouched')..."
+                      : "e.g. Transform to warm minimalist aesthetic with herringbone oak floors, concealed indirect lighting, and linen upholstery..."
+                  }
                   className="w-full rounded-xl border border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] p-3 leading-relaxed disabled:opacity-60"
                 />
 
                 {/* Prompt Presets */}
                 <div className="mt-2 space-y-1">
                   <span className="text-[10px] text-charcoal-400 uppercase tracking-wider block">
-                    Design Starters:
+                    {editingMode === 'PRECISION_MASK' ? 'Targeted Edit Starters:' : 'Design Starters:'}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {PROMPT_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setPrompt(preset)}
-                        disabled={submitting || !isConfigured}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
-                      >
-                        {preset.split(' with ')[0]}
-                      </button>
-                    ))}
+                    {editingMode === 'PRECISION_MASK'
+                      ? PRECISION_PRESETS.map((p, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setPrompt(p.prompt)}
+                            disabled={submitting || !isConfigured}
+                            className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
+                          >
+                            {p.label}
+                          </button>
+                        ))
+                      : PROMPT_PRESETS.map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setPrompt(preset)}
+                            disabled={submitting || !isConfigured}
+                            className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
+                          >
+                            {preset.split(' with ')[0]}
+                          </button>
+                        ))}
                   </div>
                 </div>
               </div>
@@ -532,7 +664,7 @@ export function AiVisualizerClient() {
                     className="w-full py-3 px-4 min-h-[44px] rounded-xl bg-bronze-700 hover:bg-bronze-800 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <Wand2 className="w-4 h-4" />
-                    <span>Generate AI Concept</span>
+                    <span>{editingMode === 'PRECISION_MASK' ? 'Generate Precision Edit' : 'Generate AI Concept'}</span>
                   </button>
                 )}
               </div>
@@ -570,21 +702,29 @@ export function AiVisualizerClient() {
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                            job.status === 'SUCCEEDED'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : job.status === 'FAILED'
-                              ? 'bg-red-50 text-red-800 border border-red-200'
-                              : job.status === 'CANCELLED'
-                              ? 'bg-sand-100 text-charcoal-600 border border-sand-300'
-                              : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}
-                        >
-                          {job.status === 'SUCCEEDED' && <CheckCircle2 className="w-2.5 h-2.5" />}
-                          {job.status === 'FAILED' && <XCircle className="w-2.5 h-2.5" />}
-                          {job.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                              job.status === 'SUCCEEDED'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : job.status === 'FAILED'
+                                ? 'bg-red-50 text-red-800 border border-red-200'
+                                : job.status === 'CANCELLED'
+                                ? 'bg-sand-100 text-charcoal-600 border border-sand-300'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            {job.status === 'SUCCEEDED' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                            {job.status === 'FAILED' && <XCircle className="w-2.5 h-2.5" />}
+                            {job.status}
+                          </span>
+                          {job.editingMode === 'PRECISION_MASK' && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-bronze-50 text-bronze-800 border border-bronze-200">
+                              <Crosshair className="w-2.5 h-2.5 text-bronze-700" />
+                              Precision Edit
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-charcoal-400">
                           {new Date(job.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
@@ -618,45 +758,68 @@ export function AiVisualizerClient() {
                 <span className="text-[10px] font-semibold text-bronze-700 uppercase tracking-wider block">
                   Comparison Workspace
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-serif text-lg text-charcoal-900 font-medium">
                     Concept vs. Site Reality
                   </h3>
                   <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-sand-100 text-charcoal-700 border border-sand-200">
                     <Shield className="w-2.5 h-2.5 text-bronze-700" /> Private Concept
                   </span>
+                  {selectedComparisonJob?.editingMode === 'PRECISION_MASK' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-bronze-50 text-bronze-800 border border-bronze-200">
+                      <Crosshair className="w-2.5 h-2.5 text-bronze-700" /> Precision Edit
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-sand-200 text-xs self-start">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('split')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                    viewMode === 'split' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
-                  }`}
-                >
-                  Side by Side
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('original')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                    viewMode === 'original' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
-                  }`}
-                >
-                  Original
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('concept')}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                    viewMode === 'concept' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
-                  }`}
-                >
-                  Concept
-                </button>
+              <div className="flex items-center gap-2 self-start flex-wrap">
+                {selectedComparisonJob?.maskPreviewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMaskOverlay(!showMaskOverlay)}
+                    className={`min-h-[36px] px-3 py-1 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors border ${
+                      showMaskOverlay
+                        ? 'bg-bronze-100 text-bronze-900 border-bronze-300 shadow-sm'
+                        : 'bg-[#FAF8F5] text-charcoal-600 border-sand-200 hover:bg-sand-100'
+                    }`}
+                    aria-label="Toggle precision mask region overlay"
+                  >
+                    <Crosshair className="w-3.5 h-3.5 text-bronze-700" />
+                    <span>{showMaskOverlay ? 'Hide Target Region' : 'Show Target Region'}</span>
+                  </button>
+                )}
+
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-sand-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('split')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                      viewMode === 'split' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
+                    }`}
+                  >
+                    Side by Side
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('original')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                      viewMode === 'original' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
+                    }`}
+                  >
+                    Original
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('concept')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                      viewMode === 'concept' ? 'bg-white text-charcoal-900 shadow-sm' : 'text-charcoal-500 hover:text-charcoal-900'
+                    }`}
+                  >
+                    Concept
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -683,6 +846,14 @@ export function AiVisualizerClient() {
                           <div className="w-full h-full flex items-center justify-center text-charcoal-400 text-xs">
                             Original Photo
                           </div>
+                        )}
+                        {showMaskOverlay && selectedComparisonJob.maskPreviewUrl && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={selectedComparisonJob.maskPreviewUrl}
+                            alt="Target precision edit region"
+                            className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-70"
+                          />
                         )}
                         <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded bg-charcoal-900/80 text-white backdrop-blur-sm">
                           Before

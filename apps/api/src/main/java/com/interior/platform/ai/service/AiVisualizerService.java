@@ -6,6 +6,7 @@ import com.interior.platform.ai.domain.AiJobReferenceRecord;
 import com.interior.platform.ai.domain.AiJobStatus;
 import com.interior.platform.ai.domain.AiReferenceMetadataRecord;
 import com.interior.platform.ai.domain.AiUsageEventRecord;
+import com.interior.platform.ai.domain.EditingMode;
 import com.interior.platform.ai.domain.ReferencePurpose;
 import com.interior.platform.ai.dto.*;
 import com.interior.platform.ai.provider.AiGenerationReference;
@@ -120,7 +121,8 @@ public class AiVisualizerService {
                 usedToday,
                 remaining,
                 aiImageProvider.supportsReferenceImages(),
-                aiImageProvider.getMaxReferenceImages()
+                aiImageProvider.getMaxReferenceImages(),
+                aiImageProvider.supportsMaskEditing()
         );
     }
 
@@ -207,7 +209,26 @@ public class AiVisualizerService {
             throw new BadRequestException("Prompt exceeds maximum allowed length of " + properties.getMaxPromptLength() + " characters.");
         }
 
-        // 9. Create durable Job record (UUIDv7)
+        // 9. Precision editing mode validation
+        EditingMode mode = request.editingMode() != null ? request.editingMode() : EditingMode.FULL_IMAGE;
+        String maskStorageKey = request.maskStorageKey() != null ? request.maskStorageKey().trim() : null;
+
+        if (mode == EditingMode.PRECISION_MASK) {
+            if (!aiImageProvider.supportsMaskEditing()) {
+                throw new BadRequestException("Configured AI provider does not support precision mask editing.");
+            }
+            if (maskStorageKey == null || maskStorageKey.isBlank()) {
+                throw new BadRequestException("maskStorageKey is required for precision mask editing mode.");
+            }
+            String expectedPrefix = "studio/" + studioId + "/masks/";
+            if (!maskStorageKey.startsWith(expectedPrefix)) {
+                throw new BadRequestException("Invalid maskStorageKey. Mask must belong to the current studio.");
+            }
+        } else {
+            maskStorageKey = null;
+        }
+
+        // 10. Create durable Job record (UUIDv7)
         UUID jobId = UuidV7.randomUuid();
         Instant now = Instant.now();
         String idempotencyKey = (request.idempotencyKey() != null && !request.idempotencyKey().isBlank())
@@ -237,7 +258,9 @@ public class AiVisualizerService {
                 null,
                 null,
                 0L,
-                preserveStructure
+                preserveStructure,
+                mode,
+                maskStorageKey
         );
 
         aiJobRepository.createJob(job);
@@ -635,13 +658,34 @@ public class AiVisualizerService {
             }
         }
 
+        // Load precision mask bytes if present
+        byte[] maskBytes = null;
+        String maskContentType = null;
+        if (job.editingMode() == EditingMode.PRECISION_MASK && job.maskStorageKey() != null) {
+            try {
+                maskBytes = storageService.load(job.maskStorageKey());
+                if (maskBytes == null || maskBytes.length == 0) {
+                    throw new IllegalStateException("Mask image content is empty");
+                }
+                maskContentType = "image/png";
+            } catch (Exception e) {
+                log.error("Failed to load mask content for AI job {}: {}", jobId, e.getMessage());
+                aiJobRepository.updateStatus(jobId, AiJobStatus.FAILED, null, null, Instant.now(), "MASK_LOAD_FAILED", "Failed to load mask image data.", null, null, currentVersion);
+                return;
+            }
+        }
+
         int maxAttempts = Math.max(1, properties.getMaxRetries() + 1);
         ProviderGenerationResponse providerResponse = null;
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             aiJobRepository.incrementAttemptCount(jobId);
             try {
-                providerResponse = aiImageProvider.submitGeneration(job, inputBytes, inputMedia.contentType(), generationRefs);
+                if (maskBytes != null) {
+                    providerResponse = aiImageProvider.submitGeneration(job, inputBytes, inputMedia.contentType(), maskBytes, maskContentType, generationRefs);
+                } else {
+                    providerResponse = aiImageProvider.submitGeneration(job, inputBytes, inputMedia.contentType(), generationRefs);
+                }
                 if (providerResponse.isSuccess() || !providerResponse.isRetryable()) {
                     break;
                 }
@@ -805,6 +849,10 @@ public class AiVisualizerService {
                 r.createdAt()
         )).toList();
 
+        String maskPreviewUrl = (job.editingMode() == EditingMode.PRECISION_MASK && job.maskStorageKey() != null)
+                ? "/api/ai/jobs/" + job.id() + "/mask"
+                : null;
+
         return new AiJobDetailResponse(
                 job.id(),
                 job.studioId(),
@@ -823,7 +871,9 @@ public class AiVisualizerService {
                 job.completedAt(),
                 job.failedAt(),
                 job.preserveStructure(),
-                refResponses
+                refResponses,
+                job.editingMode() != null ? job.editingMode() : EditingMode.FULL_IMAGE,
+                maskPreviewUrl
         );
     }
 
@@ -882,6 +932,125 @@ public class AiVisualizerService {
         return studioRepository.findStudioById(studioId)
                 .map(StudioDetailRecord::name)
                 .orElse("Interior Studio");
+    }
+
+    // ============================================================================
+    // PRECISION MASK EDITING OPERATIONS
+    // ============================================================================
+
+    public UploadMaskResponse uploadMask(ActorContext actor, UUID requestedStudioId, UUID inputMediaId, org.springframework.web.multipart.MultipartFile file) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        if (inputMediaId == null) {
+            throw new BadRequestException("inputMediaId is required");
+        }
+
+        MediaAssetRecord inputMedia = mediaRepository.findMediaAsset(inputMediaId, studioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Input media asset not found in studio"));
+
+        if (inputMedia.deletedAt() != null) {
+            throw new ResourceNotFoundException("Input media asset has been deleted");
+        }
+        if (inputMedia.processingStatus() != MediaProcessingStatus.READY) {
+            throw new BadRequestException("Input media asset is not ready for processing (status: " + inputMedia.processingStatus() + ")");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Mask file cannot be empty");
+        }
+
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new BadRequestException("Mask file exceeds maximum allowed size of 10MB");
+        }
+
+        byte[] maskBytes;
+        try {
+            maskBytes = file.getBytes();
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to read mask file bytes: " + e.getMessage());
+        }
+
+        java.awt.image.BufferedImage img;
+        try {
+            img = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(maskBytes));
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to parse mask image: " + e.getMessage());
+        }
+
+        if (img == null) {
+            throw new BadRequestException("Invalid mask image format. Must be a valid PNG image.");
+        }
+
+        // Dimension validation: if inputMedia has dimensions, check that mask dimensions match
+        if (inputMedia.width() > 0 && inputMedia.height() > 0) {
+            if (img.getWidth() != inputMedia.width() || img.getHeight() != inputMedia.height()) {
+                throw new BadRequestException(
+                        "Mask dimensions (" + img.getWidth() + "x" + img.getHeight() +
+                        ") must match input media dimensions (" + inputMedia.width() + "x" + inputMedia.height() + ")"
+                );
+            }
+        }
+
+        // Coverage and emptiness validation
+        int selectedPixels = 0;
+        int totalPixels = img.getWidth() * img.getHeight();
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                int argb = img.getRGB(x, y);
+                int a = (argb >> 24) & 0xff;
+                int r = (argb >> 16) & 0xff;
+                int g = (argb >> 8) & 0xff;
+                int b = argb & 0xff;
+                if (a > 20 && (r > 20 || g > 20 || b > 20)) {
+                    selectedPixels++;
+                }
+            }
+        }
+
+        if (selectedPixels == 0) {
+            throw new BadRequestException("The mask is empty. Please select an area to edit.");
+        }
+
+        double coverageRatio = (double) selectedPixels / totalPixels;
+        if (coverageRatio > 0.98) {
+            throw new BadRequestException("The selected area covers almost the entire image (>98%). Please use Full Concept mode instead.");
+        }
+
+        UUID maskId = UuidV7.randomUuid();
+        String maskStorageKey = "studio/" + studioId + "/masks/" + maskId + ".png";
+        storageService.store(maskStorageKey, maskBytes, "image/png");
+
+        return new UploadMaskResponse(maskId, maskStorageKey, img.getWidth(), img.getHeight(), coverageRatio);
+    }
+
+    public byte[] getJobMask(ActorContext actor, UUID requestedStudioId, UUID jobId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiJobRecord job = aiJobRepository.findById(context.studioId(), jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("AI Job not found"));
+
+        if (job.editingMode() != EditingMode.PRECISION_MASK || job.maskStorageKey() == null) {
+            throw new ResourceNotFoundException("No mask associated with this job");
+        }
+
+        String expectedPrefix = "studio/" + context.studioId() + "/masks/";
+        if (!job.maskStorageKey().startsWith(expectedPrefix)) {
+            throw new AccessDeniedException("Access to this mask is denied");
+        }
+
+        byte[] maskBytes = storageService.load(job.maskStorageKey());
+        if (maskBytes == null || maskBytes.length == 0) {
+            throw new ResourceNotFoundException("Mask file not found in storage");
+        }
+        return maskBytes;
     }
 
     private UserRecord validateActiveUser(UUID userId) {

@@ -3,6 +3,7 @@ package com.interior.platform.ai.repository;
 import com.interior.platform.ai.domain.AiJobRecord;
 import com.interior.platform.ai.domain.AiJobStatus;
 import com.interior.platform.ai.domain.AiUsageEventRecord;
+import com.interior.platform.ai.domain.EditingMode;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -48,7 +49,9 @@ public class JdbcAiJobRepository implements AiJobRepository {
             toInstant(rs.getTimestamp("failed_at")),
             rs.getString("usage_metadata"),
             rs.getLong("version"),
-            rs.getBoolean("preserve_structure")
+            rs.getBoolean("preserve_structure"),
+            rs.getString("editing_mode") != null ? EditingMode.valueOf(rs.getString("editing_mode")) : EditingMode.FULL_IMAGE,
+            rs.getString("mask_storage_key")
     );
 
     @Override
@@ -57,8 +60,9 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 "id, studio_id, project_id, input_media_id, output_media_id, " +
                 "provider_key, provider_job_id, prompt, system_prompt, status, " +
                 "error_code, error_message_safe, attempt_count, idempotency_key, " +
-                "created_by, created_at, started_at, completed_at, failed_at, usage_metadata, version, preserve_structure" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "created_by, created_at, started_at, completed_at, failed_at, usage_metadata, version, preserve_structure, " +
+                "editing_mode, mask_storage_key" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 job.id(),
@@ -82,7 +86,9 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 job.failedAt() != null ? Timestamp.from(job.failedAt()) : null,
                 job.usageMetadata(),
                 job.version(),
-                job.preserveStructure()
+                job.preserveStructure(),
+                (job.editingMode() != null ? job.editingMode() : EditingMode.FULL_IMAGE).name(),
+                job.maskStorageKey()
         );
     }
 

@@ -31,10 +31,17 @@ public interface AiImageProvider {
     }
 
     /**
+     * Whether this provider implementation supports precision mask inpainting.
+     */
+    default boolean supportsMaskEditing() {
+        return false;
+    }
+
+    /**
      * Submits a generation request with the private input image bytes and prompt (backwards compatibility).
      */
     default ProviderGenerationResponse submitGeneration(AiJobRecord job, byte[] inputImageBytes, String inputContentType) {
-        return submitGeneration(job, inputImageBytes, inputContentType, List.of());
+        return submitGeneration(job, inputImageBytes, inputContentType, null, null, List.of());
     }
 
     /**
@@ -46,6 +53,20 @@ public interface AiImageProvider {
             String inputContentType,
             List<AiGenerationReference> references
     );
+
+    /**
+     * Submits a generation request with input image bytes, prompt, optional mask bytes, and optional references.
+     */
+    default ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            byte[] maskBytes,
+            String maskContentType,
+            List<AiGenerationReference> references
+    ) {
+        return submitGeneration(job, inputImageBytes, inputContentType, references);
+    }
 
     /**
      * Checks async status of a previously submitted generation job.

@@ -1,6 +1,7 @@
 package com.interior.platform.ai.dto;
 
 import com.interior.platform.ai.domain.AiJobStatus;
+import com.interior.platform.ai.domain.EditingMode;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,8 +25,54 @@ public record AiJobDetailResponse(
         Instant completedAt,
         Instant failedAt,
         boolean preserveStructure,
-        List<AiJobReferenceResponse> references
+        List<AiJobReferenceResponse> references,
+        EditingMode editingMode,
+        String maskPreviewUrl
 ) {
+    public AiJobDetailResponse(
+            UUID id,
+            UUID studioId,
+            UUID projectId,
+            UUID inputMediaId,
+            String inputPreviewUrl,
+            UUID outputMediaId,
+            String outputPreviewUrl,
+            String providerKey,
+            String prompt,
+            AiJobStatus status,
+            String errorCode,
+            String errorMessageSafe,
+            Instant createdAt,
+            Instant startedAt,
+            Instant completedAt,
+            Instant failedAt,
+            boolean preserveStructure,
+            List<AiJobReferenceResponse> references
+    ) {
+        this(
+                id,
+                studioId,
+                projectId,
+                inputMediaId,
+                inputPreviewUrl,
+                outputMediaId,
+                outputPreviewUrl,
+                providerKey,
+                prompt,
+                status,
+                errorCode,
+                errorMessageSafe,
+                createdAt,
+                startedAt,
+                completedAt,
+                failedAt,
+                preserveStructure,
+                references,
+                EditingMode.FULL_IMAGE,
+                null
+        );
+    }
+
     public AiJobDetailResponse(
             UUID id,
             UUID studioId,
@@ -62,7 +109,9 @@ public record AiJobDetailResponse(
                 completedAt,
                 failedAt,
                 true,
-                List.of()
+                List.of(),
+                EditingMode.FULL_IMAGE,
+                null
         );
     }
 }
