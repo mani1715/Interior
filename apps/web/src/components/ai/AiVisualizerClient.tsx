@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Shield,
   Layers,
+  Palette,
+  Sliders,
 } from 'lucide-react';
 import {
   fetchAiStudioStatus,
@@ -25,12 +27,14 @@ import {
   fetchAiJobDetail,
   cancelAiJob,
   listAiJobs,
+  fetchReferences,
 } from '@/lib/ai/api';
-import { AiJobDetail, AiStudioStatus } from '@/lib/ai/types';
+import { AiJobDetail, AiStudioStatus, ReferenceDetail } from '@/lib/ai/types';
 import { fetchProjects } from '@/lib/projects/api';
 import { ProjectSummaryDto } from '@/lib/projects/types';
 import { fetchProjectMedia } from '@/lib/media/api';
 import { MediaDetailResponse } from '@/lib/media/types';
+import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
 
 const PROMPT_PRESETS = [
   'Modern Minimalist with warm oak flooring, flush baseboards, and indirect recessed ceiling cove lighting',
@@ -56,6 +60,11 @@ export function AiVisualizerClient() {
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string>(initialMediaId || '');
 
+  // References & Structure Preservation
+  const [preserveStructure, setPreserveStructure] = useState<boolean>(true);
+  const [selectedReferences, setSelectedReferences] = useState<SelectedReferenceItem[]>([]);
+  const [libraryReferences, setLibraryReferences] = useState<ReferenceDetail[]>([]);
+
   // Generation Form
   const [prompt, setPrompt] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -70,18 +79,20 @@ export function AiVisualizerClient() {
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Initial Load: Status, Projects, Recent Jobs
+  // 1. Initial Load: Status, Projects, Recent Jobs, References Library
   useEffect(() => {
     async function init() {
       try {
-        const [status, projList, jobsList] = await Promise.all([
+        const [status, projList, jobsList, refList] = await Promise.all([
           fetchAiStudioStatus().catch(() => null),
           fetchProjects().catch(() => []),
           listAiJobs({ limit: 10 }).catch(() => ({ items: [], total: 0, limit: 10, offset: 0 })),
+          (fetchReferences ? fetchReferences() : Promise.resolve([])).catch(() => []),
         ]);
         setStudioStatus(status);
         setProjects(projList);
         setRecentJobs(jobsList.items);
+        setLibraryReferences(refList);
 
         if (jobsList.items.length > 0) {
           const firstSuccess = jobsList.items.find((j) => j.status === 'SUCCEEDED');
@@ -178,7 +189,7 @@ export function AiVisualizerClient() {
       return;
     }
     if (!selectedMediaId) {
-      setFormError('Please select a source image to visualize');
+      setFormError('Please select a source room image to visualize');
       return;
     }
     if (!prompt.trim() || prompt.trim().length < 5) {
@@ -193,11 +204,21 @@ export function AiVisualizerClient() {
     setSubmitting(true);
     try {
       const idempotencyKey = `ai-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const formattedReferences = selectedReferences.map((r, idx) => ({
+        mediaId: r.mediaId,
+        purpose: r.purpose,
+        label: r.label,
+        instruction: r.instruction,
+        displayOrder: idx,
+      }));
+
       const job = await createAiJob({
         projectId: selectedProjectId,
         inputMediaId: selectedMediaId,
         prompt: prompt.trim(),
         idempotencyKey,
+        preserveStructure,
+        references: formattedReferences,
       });
 
       setActiveJob(job);
@@ -277,7 +298,7 @@ export function AiVisualizerClient() {
         </div>
       </div>
 
-      {/* Provider Unconfigured Banner (Truthful & Explicit) */}
+      {/* Provider Unconfigured Banner */}
       {!statusLoading && !isConfigured && (
         <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 space-y-2">
           <div className="flex items-center gap-2 font-semibold text-sm">
@@ -328,7 +349,7 @@ export function AiVisualizerClient() {
                     setSelectedMediaId('');
                   }}
                   disabled={submitting || !isConfigured}
-                  className="w-full rounded-xl border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] py-2 px-3 disabled:opacity-60"
+                  className="w-full rounded-xl border border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] py-2 px-3 disabled:opacity-60"
                 >
                   <option value="">-- Choose project --</option>
                   {projects.map((p) => (
@@ -339,12 +360,12 @@ export function AiVisualizerClient() {
                 </select>
               </div>
 
-              {/* 2. Source Image Selection */}
+              {/* 2. Source Image Selection (Authoritative Spatial Geometry) */}
               {selectedProjectId && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                      2. Source Room Photo
+                      2. Source Room Photo (Architectural Structure)
                     </label>
                     <span className="text-[11px] text-charcoal-500">
                       {projectMedia.length} photo{projectMedia.length === 1 ? '' : 's'} available
@@ -387,6 +408,7 @@ export function AiVisualizerClient() {
                             }`}
                           >
                             {thumb ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
                               <img src={thumb} alt={m.altText || 'Source'} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-sand-100 flex items-center justify-center">
@@ -406,13 +428,14 @@ export function AiVisualizerClient() {
 
                   {selectedMediaThumbnail && (
                     <div className="mt-2 flex items-center gap-2 p-2 rounded-lg bg-sand-50 border border-sand-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={selectedMediaThumbnail} alt="Selected" className="w-10 h-10 rounded object-cover" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[11px] font-medium text-charcoal-800 block truncate">
                           {selectedMediaAsset?.altText || 'Selected source photo'}
                         </span>
                         <span className="text-[10px] text-charcoal-400">
-                          {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px
+                          {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px (Structure anchor)
                         </span>
                       </div>
                     </div>
@@ -420,11 +443,24 @@ export function AiVisualizerClient() {
                 </div>
               )}
 
-              {/* 3. Prompt Input */}
+              {/* 3. Reference Images & Structure Preservation Controls */}
+              {selectedProjectId && (
+                <ReferenceManager
+                  selectedReferences={selectedReferences}
+                  onChangeReferences={setSelectedReferences}
+                  preserveStructure={preserveStructure}
+                  onTogglePreserveStructure={setPreserveStructure}
+                  availableMedia={projectMedia}
+                  libraryReferences={libraryReferences}
+                  disabled={submitting || !isConfigured}
+                />
+              )}
+
+              {/* 4. Prompt Input */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                    3. Desired Transformation
+                    4. Desired Transformation
                   </label>
                   <span
                     className={`text-[11px] font-mono ${
@@ -440,7 +476,7 @@ export function AiVisualizerClient() {
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={submitting || !isConfigured}
                   placeholder="e.g. Transform to warm minimalist aesthetic with herringbone oak floors, concealed indirect lighting, and linen upholstery..."
-                  className="w-full rounded-xl border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] p-3 leading-relaxed disabled:opacity-60"
+                  className="w-full rounded-xl border border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] p-3 leading-relaxed disabled:opacity-60"
                 />
 
                 {/* Prompt Presets */}
@@ -448,14 +484,14 @@ export function AiVisualizerClient() {
                   <span className="text-[10px] text-charcoal-400 uppercase tracking-wider block">
                     Design Starters:
                   </span>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {PROMPT_PRESETS.map((preset, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setPrompt(preset)}
                         disabled={submitting || !isConfigured}
-                        className="text-[10px] px-2 py-1 rounded-md bg-sand-100 hover:bg-sand-200 text-charcoal-700 transition-colors text-left"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
                       >
                         {preset.split(' with ')[0]}
                       </button>
@@ -464,39 +500,38 @@ export function AiVisualizerClient() {
                 </div>
               </div>
 
-              {/* Submit & Progress */}
+              {/* Submit & Cancel Actions */}
               <div className="pt-2">
-                {submitting || (activeJob && (activeJob.status === 'QUEUED' || activeJob.status === 'PROCESSING')) ? (
+                {submitting && activeJob ? (
                   <div className="space-y-3 p-4 rounded-xl bg-sand-50 border border-sand-200">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-charcoal-800">
                         <Loader2 className="w-4 h-4 animate-spin text-bronze-700" />
-                        <span className="text-xs font-medium text-charcoal-800">
-                          {activeJob?.status === 'QUEUED'
-                            ? 'Queued in generation pipeline...'
-                            : 'Synthesizing interior concept with provider...'}
-                        </span>
+                        <span>Queued in generation pipeline... ({activeJob.status})</span>
                       </div>
                       <button
                         type="button"
                         onClick={handleCancelJob}
                         disabled={cancelling}
-                        className="text-xs text-charcoal-500 hover:text-red-700 font-medium transition-colors"
+                        className="text-xs text-charcoal-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-white border border-transparent hover:border-sand-300 transition-colors"
                       >
-                        {cancelling ? 'Cancelling...' : 'Cancel'}
+                        {cancelling ? 'Cancelling...' : 'Cancel Job'}
                       </button>
                     </div>
-                    <p className="text-[11px] text-charcoal-500">
-                      Processing may take 10-30 seconds depending on provider GPU availability.
+                    <div className="w-full bg-sand-200 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-bronze-600 h-1.5 rounded-full animate-pulse w-2/3" />
+                    </div>
+                    <p className="text-[10px] text-charcoal-500 italic text-center">
+                      AI conditioning input image and visual references...
                     </p>
                   </div>
                 ) : (
                   <button
                     type="submit"
                     disabled={!isConfigured || !selectedProjectId || !selectedMediaId || prompt.trim().length < 5}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-charcoal-900 hover:bg-charcoal-800 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full py-3 px-4 min-h-[44px] rounded-xl bg-bronze-700 hover:bg-bronze-800 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    <Wand2 className="w-4 h-4 text-bronze-300" />
+                    <Wand2 className="w-4 h-4" />
                     <span>Generate AI Concept</span>
                   </button>
                 )}
@@ -557,6 +592,11 @@ export function AiVisualizerClient() {
                       <p className="text-[11px] text-charcoal-700 line-clamp-1 font-medium">
                         {job.prompt}
                       </p>
+                      {job.references && job.references.length > 0 && (
+                        <p className="text-[10px] text-bronze-700 mt-0.5">
+                          ✦ {job.references.length} visual reference{job.references.length === 1 ? '' : 's'} attached
+                        </p>
+                      )}
                       {job.errorMessageSafe && (
                         <p className="text-[10px] text-red-600 line-clamp-1 mt-0.5">
                           {job.errorMessageSafe}
@@ -633,6 +673,7 @@ export function AiVisualizerClient() {
                       </span>
                       <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-sand-200 bg-sand-100">
                         {selectedComparisonJob.inputPreviewUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img
                             src={selectedComparisonJob.inputPreviewUrl}
                             alt="Original site room"
@@ -656,6 +697,7 @@ export function AiVisualizerClient() {
                       </span>
                       <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-sand-200 bg-sand-100">
                         {selectedComparisonJob.outputPreviewUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img
                             src={selectedComparisonJob.outputPreviewUrl}
                             alt="AI Concept Visualization"
@@ -677,6 +719,7 @@ export function AiVisualizerClient() {
                 ) : viewMode === 'original' ? (
                   <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-sand-200 bg-sand-100">
                     {selectedComparisonJob.inputPreviewUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={selectedComparisonJob.inputPreviewUrl}
                         alt="Original site photo"
@@ -694,6 +737,7 @@ export function AiVisualizerClient() {
                 ) : (
                   <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-sand-200 bg-sand-100">
                     {selectedComparisonJob.outputPreviewUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={selectedComparisonJob.outputPreviewUrl}
                         alt="AI Concept Visualization"
@@ -711,22 +755,82 @@ export function AiVisualizerClient() {
                   </div>
                 )}
 
-                {/* Concept Prompt Summary */}
-                <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-sand-200 text-xs space-y-1">
-                  <span className="text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider block">
-                    Generation Prompt:
-                  </span>
+                {/* Concept Prompt & Structure Summary */}
+                <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-sand-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider block">
+                      Generation Prompt:
+                    </span>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-sand-200/60 text-charcoal-800">
+                      Structure: {selectedComparisonJob.preserveStructure !== false ? 'Preserved' : 'Flexible'}
+                    </span>
+                  </div>
                   <p className="text-charcoal-800 leading-relaxed font-medium">
                     &ldquo;{selectedComparisonJob.prompt}&rdquo;
                   </p>
                 </div>
 
-                {/* Permanent Legal/Truthful Disclaimer */}
-                <div className="p-3 rounded-xl bg-sand-50 border border-sand-200 flex items-start gap-2.5">
-                  <Shield className="w-4 h-4 text-bronze-700 flex-shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-charcoal-600 leading-relaxed">
-                    <strong className="text-charcoal-800">✦ AI Concept Visualization:</strong> AI Concept Visualization — final colors, materials, proportions, and execution may differ.
-                  </p>
+                {/* Visual References Snapshot Used in Job */}
+                {selectedComparisonJob.references && selectedComparisonJob.references.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-[#FAF8F5] border border-sand-200 text-xs space-y-2">
+                    <span className="text-[10px] font-semibold text-bronze-700 uppercase tracking-wider block">
+                      Visual References Used ({selectedComparisonJob.references.length}):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedComparisonJob.references.map((ref) => (
+                        <div
+                          key={ref.id}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-white border border-sand-200"
+                        >
+                          <div className="w-10 h-10 rounded bg-sand-100 overflow-hidden flex-shrink-0 border border-sand-200">
+                            {ref.previewUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={ref.previewUrl}
+                                alt={ref.label || ref.purposeDisplayName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-charcoal-400">
+                                {ref.purpose}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] font-bold text-bronze-700 uppercase tracking-wider block truncate">
+                              {ref.purposeDisplayName || ref.purpose}
+                            </span>
+                            <p className="text-xs font-medium text-charcoal-900 truncate">
+                              {ref.label || 'Reference Item'}
+                            </p>
+                            {ref.instruction && (
+                              <p className="text-[10px] text-charcoal-500 truncate">
+                                &ldquo;{ref.instruction}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Permanent Legal & Structure Disclaimers */}
+                <div className="p-3 rounded-xl bg-sand-50 border border-sand-200 space-y-1.5">
+                  <div className="flex items-start gap-2 text-[11px] text-charcoal-600 leading-relaxed">
+                    <Shield className="w-4 h-4 text-bronze-700 flex-shrink-0 mt-0.5" />
+                    <p>
+                      <strong className="text-charcoal-800">✦ AI Concept Visualization:</strong> AI will try to preserve the existing structure. Some geometry, colors, materials, and proportions may vary — final colors, materials, proportions, and execution may differ.
+                    </p>
+                  </div>
+                  {selectedComparisonJob.references && selectedComparisonJob.references.length > 0 && (
+                    <div className="flex items-start gap-2 text-[11px] text-amber-800/90 leading-relaxed pl-6">
+                      <Palette className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
+                      <p>
+                        Reference colors, grains, and finishes are AI approximations and may differ under different lighting and room dimensions.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

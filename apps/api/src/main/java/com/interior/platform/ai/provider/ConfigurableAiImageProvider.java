@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 
 @Component
 @Primary
@@ -48,12 +49,26 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
     }
 
     @Override
-    public ProviderGenerationResponse submitGeneration(AiJobRecord job, byte[] inputImageBytes, String inputContentType) {
+    public boolean supportsReferenceImages() {
+        return properties.isSupportsReferenceImages();
+    }
+
+    @Override
+    public int getMaxReferenceImages() {
+        return properties.getMaxReferenceImages();
+    }
+
+    @Override
+    public ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            List<AiGenerationReference> references
+    ) {
         if (!isConfigured()) {
             throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
         }
 
-        // Bounded, safe call to configured endpoint
         String endpoint = properties.getEndpoint();
         if (endpoint == null || endpoint.isBlank()) {
             throw new AiProviderNotConfiguredException("AI generation provider endpoint is missing or invalid.");
@@ -65,18 +80,16 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
                     .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
                     .header("Authorization", "Bearer " + properties.getApiKey())
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(buildRequestBody(job)))
+                    .POST(HttpRequest.BodyPublishers.ofString(buildRequestBody(job, references)))
                     .build();
 
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                // If endpoint returns binary image directly
                 String ct = response.headers().firstValue("Content-Type").orElse("image/jpeg");
                 if (ct.startsWith("image/")) {
                     return ProviderGenerationResponse.immediateSuccess(response.body(), ct, "{}");
                 }
-                // If async job ID JSON returned
                 return ProviderGenerationResponse.asyncStarted("job-" + job.id(), "{}");
             } else if (response.statusCode() == 429) {
                 return ProviderGenerationResponse.failure("PROVIDER_QUOTA_REACHED", "AI generation provider quota reached. Please try again later.");
@@ -110,16 +123,36 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
         return true;
     }
 
-    private String buildRequestBody(AiJobRecord job) {
-        // Safe JSON payload without prompt manipulation or script breakout
-        String escapedPrompt = job.prompt()
-                .replace("\\", "\\\\")
+    private String buildRequestBody(AiJobRecord job, List<AiGenerationReference> references) {
+        String escapedPrompt = escapeJson(job.prompt());
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("\"model\":\"").append(escapeJson(properties.getModel())).append("\",");
+        sb.append("\"prompt\":\"").append(escapedPrompt).append("\",");
+        sb.append("\"preserve_structure\":").append(job.preserveStructure()).append(",");
+        sb.append("\"num_outputs\":1,");
+        sb.append("\"references\":[");
+        if (references != null && !references.isEmpty()) {
+            for (int i = 0; i < references.size(); i++) {
+                if (i > 0) sb.append(",");
+                AiGenerationReference ref = references.get(i);
+                sb.append("{");
+                sb.append("\"purpose\":\"").append(ref.purpose() != null ? ref.purpose().name() : "GENERAL_STYLE").append("\",");
+                sb.append("\"label\":\"").append(ref.label() != null ? escapeJson(ref.label()) : "").append("\",");
+                sb.append("\"instruction\":\"").append(ref.instruction() != null ? escapeJson(ref.instruction()) : "").append("\"");
+                sb.append("}");
+            }
+        }
+        sb.append("]}");
+        return sb.toString();
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-                .replace("\n", " ");
-        return String.format(
-                "{\"model\":\"%s\",\"prompt\":\"%s\",\"num_outputs\":1}",
-                properties.getModel(),
-                escapedPrompt
-        );
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

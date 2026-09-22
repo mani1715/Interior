@@ -4,6 +4,8 @@ import com.interior.platform.ai.domain.AiJobRecord;
 import com.interior.platform.common.exception.AiProviderNotConfiguredException;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class DisabledAiImageProvider implements AiImageProvider {
 
@@ -18,7 +20,22 @@ public class DisabledAiImageProvider implements AiImageProvider {
     }
 
     @Override
-    public ProviderGenerationResponse submitGeneration(AiJobRecord job, byte[] inputImageBytes, String inputContentType) {
+    public boolean supportsReferenceImages() {
+        return false;
+    }
+
+    @Override
+    public int getMaxReferenceImages() {
+        return 0;
+    }
+
+    @Override
+    public ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            List<AiGenerationReference> references
+    ) {
         throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
     }
 

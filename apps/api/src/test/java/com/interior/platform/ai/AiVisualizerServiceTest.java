@@ -9,6 +9,7 @@ import com.interior.platform.ai.dto.CreateAiJobRequest;
 import com.interior.platform.ai.provider.AiImageProvider;
 import com.interior.platform.ai.provider.ProviderGenerationResponse;
 import com.interior.platform.ai.repository.AiJobRepository;
+import com.interior.platform.ai.repository.AiReferenceRepository;
 import com.interior.platform.ai.service.AiVisualizerService;
 import com.interior.platform.common.exception.AiProviderNotConfiguredException;
 import com.interior.platform.common.exception.BadRequestException;
@@ -61,6 +62,7 @@ import static org.mockito.Mockito.*;
 class AiVisualizerServiceTest {
 
     @Mock private AiJobRepository aiJobRepository;
+    @Mock private AiReferenceRepository aiReferenceRepository;
     @Mock private AiImageProvider aiImageProvider;
     @Mock private MediaRepository mediaRepository;
     @Mock private ProjectRepository projectRepository;
@@ -120,6 +122,7 @@ class AiVisualizerServiceTest {
 
         aiVisualizerService = new AiVisualizerService(
                 aiJobRepository,
+                aiReferenceRepository,
                 aiImageProvider,
                 properties,
                 mediaRepository,
@@ -333,7 +336,7 @@ class AiVisualizerServiceTest {
         when(studioRepository.findStudioById(studioId)).thenReturn(Optional.of(studioDetail));
 
         // Provider returns generated sample image
-        when(aiImageProvider.submitGeneration(eq(job), any(), eq("image/jpeg")))
+        when(aiImageProvider.submitGeneration(eq(job), any(), eq("image/jpeg"), any()))
                 .thenReturn(ProviderGenerationResponse.immediateSuccess(sampleImageBytes, "image/jpeg", "{\"model\":\"sdxl\"}"));
         when(aiImageProvider.getProviderKey()).thenReturn("stability");
 
@@ -374,7 +377,7 @@ class AiVisualizerServiceTest {
         );
         when(mediaRepository.findMediaAsset(inputMediaId, studioId)).thenReturn(Optional.of(inputAsset));
 
-        when(aiImageProvider.submitGeneration(eq(job), any(), eq("image/jpeg")))
+        when(aiImageProvider.submitGeneration(eq(job), any(), eq("image/jpeg"), any()))
                 .thenReturn(ProviderGenerationResponse.failure("PROVIDER_OVERLOADED", "Service temporarily overloaded"));
         when(aiImageProvider.getProviderKey()).thenReturn("stability");
 

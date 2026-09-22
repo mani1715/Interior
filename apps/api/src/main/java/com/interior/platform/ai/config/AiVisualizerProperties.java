@@ -47,6 +47,16 @@ public class AiVisualizerProperties {
      */
     private int dailyStudioLimit = 50;
 
+    /**
+     * Whether the active provider supports multi-modal reference image conditioning.
+     */
+    private boolean supportsReferenceImages = true;
+
+    /**
+     * Maximum number of reference images allowed per generation job.
+     */
+    private int maxReferenceImages = 4;
+
     public String getProvider() {
         return provider;
     }
@@ -109,5 +119,21 @@ public class AiVisualizerProperties {
 
     public void setDailyStudioLimit(int dailyStudioLimit) {
         this.dailyStudioLimit = dailyStudioLimit;
+    }
+
+    public boolean isSupportsReferenceImages() {
+        return supportsReferenceImages;
+    }
+
+    public void setSupportsReferenceImages(boolean supportsReferenceImages) {
+        this.supportsReferenceImages = supportsReferenceImages;
+    }
+
+    public int getMaxReferenceImages() {
+        return maxReferenceImages;
+    }
+
+    public void setMaxReferenceImages(int maxReferenceImages) {
+        this.maxReferenceImages = maxReferenceImages;
     }
 }

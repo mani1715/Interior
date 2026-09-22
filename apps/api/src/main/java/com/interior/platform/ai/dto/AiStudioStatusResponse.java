@@ -5,5 +5,17 @@ public record AiStudioStatusResponse(
         String providerKey,
         int dailyQuota,
         int usedToday,
-        int remainingToday
-) {}
+        int remainingToday,
+        boolean supportsReferenceImages,
+        int maxReferenceImages
+) {
+    public AiStudioStatusResponse(
+            boolean isConfigured,
+            String providerKey,
+            int dailyQuota,
+            int usedToday,
+            int remainingToday
+    ) {
+        this(isConfigured, providerKey, dailyQuota, usedToday, remainingToday, true, 4);
+    }
+}

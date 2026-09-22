@@ -47,7 +47,8 @@ public class JdbcAiJobRepository implements AiJobRepository {
             toInstant(rs.getTimestamp("completed_at")),
             toInstant(rs.getTimestamp("failed_at")),
             rs.getString("usage_metadata"),
-            rs.getLong("version")
+            rs.getLong("version"),
+            rs.getBoolean("preserve_structure")
     );
 
     @Override
@@ -56,8 +57,8 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 "id, studio_id, project_id, input_media_id, output_media_id, " +
                 "provider_key, provider_job_id, prompt, system_prompt, status, " +
                 "error_code, error_message_safe, attempt_count, idempotency_key, " +
-                "created_by, created_at, started_at, completed_at, failed_at, usage_metadata, version" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "created_by, created_at, started_at, completed_at, failed_at, usage_metadata, version, preserve_structure" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 job.id(),
@@ -80,7 +81,8 @@ public class JdbcAiJobRepository implements AiJobRepository {
                 job.completedAt() != null ? Timestamp.from(job.completedAt()) : null,
                 job.failedAt() != null ? Timestamp.from(job.failedAt()) : null,
                 job.usageMetadata(),
-                job.version()
+                job.version(),
+                job.preserveStructure()
         );
     }
 

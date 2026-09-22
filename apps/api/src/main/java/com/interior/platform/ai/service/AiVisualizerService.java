@@ -2,15 +2,17 @@ package com.interior.platform.ai.service;
 
 import com.interior.platform.ai.config.AiVisualizerProperties;
 import com.interior.platform.ai.domain.AiJobRecord;
+import com.interior.platform.ai.domain.AiJobReferenceRecord;
 import com.interior.platform.ai.domain.AiJobStatus;
+import com.interior.platform.ai.domain.AiReferenceMetadataRecord;
 import com.interior.platform.ai.domain.AiUsageEventRecord;
-import com.interior.platform.ai.dto.AiJobDetailResponse;
-import com.interior.platform.ai.dto.AiJobListResponse;
-import com.interior.platform.ai.dto.AiStudioStatusResponse;
-import com.interior.platform.ai.dto.CreateAiJobRequest;
+import com.interior.platform.ai.domain.ReferencePurpose;
+import com.interior.platform.ai.dto.*;
+import com.interior.platform.ai.provider.AiGenerationReference;
 import com.interior.platform.ai.provider.AiImageProvider;
 import com.interior.platform.ai.provider.ProviderGenerationResponse;
 import com.interior.platform.ai.repository.AiJobRepository;
+import com.interior.platform.ai.repository.AiReferenceRepository;
 import com.interior.platform.common.exception.AccessDeniedException;
 import com.interior.platform.common.exception.AiProviderNotConfiguredException;
 import com.interior.platform.common.exception.BadRequestException;
@@ -50,6 +52,7 @@ public class AiVisualizerService {
     private static final Logger log = LoggerFactory.getLogger(AiVisualizerService.class);
 
     private final AiJobRepository aiJobRepository;
+    private final AiReferenceRepository aiReferenceRepository;
     private final AiImageProvider aiImageProvider;
     private final AiVisualizerProperties properties;
     private final MediaRepository mediaRepository;
@@ -66,6 +69,7 @@ public class AiVisualizerService {
 
     public AiVisualizerService(
             AiJobRepository aiJobRepository,
+            AiReferenceRepository aiReferenceRepository,
             AiImageProvider aiImageProvider,
             AiVisualizerProperties properties,
             MediaRepository mediaRepository,
@@ -79,6 +83,7 @@ public class AiVisualizerService {
             ImageProcessingService imageProcessingService
     ) {
         this.aiJobRepository = aiJobRepository;
+        this.aiReferenceRepository = aiReferenceRepository;
         this.aiImageProvider = aiImageProvider;
         this.properties = properties;
         this.mediaRepository = mediaRepository;
@@ -113,7 +118,9 @@ public class AiVisualizerService {
                 aiImageProvider.getProviderKey(),
                 dailyQuota,
                 usedToday,
-                remaining
+                remaining,
+                aiImageProvider.supportsReferenceImages(),
+                aiImageProvider.getMaxReferenceImages()
         );
     }
 
@@ -170,18 +177,43 @@ public class AiVisualizerService {
             throw new BadRequestException("Input media does not belong to the specified project.");
         }
 
-        // 7. Sanitize and validate prompt
+        // 7. Reference images validation
+        List<AiJobReferenceInput> refInputs = request.references() != null ? request.references() : List.of();
+        if (!refInputs.isEmpty()) {
+            if (!aiImageProvider.supportsReferenceImages()) {
+                throw new BadRequestException("Configured AI provider does not support reference images");
+            }
+            if (refInputs.size() > properties.getMaxReferenceImages()) {
+                throw new BadRequestException("Maximum of " + properties.getMaxReferenceImages() + " reference images allowed.");
+            }
+            for (AiJobReferenceInput ref : refInputs) {
+                MediaAssetRecord refMedia = mediaRepository.findMediaAsset(ref.mediaId(), studioId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Reference media asset not found in studio: " + ref.mediaId()));
+                if (refMedia.deletedAt() != null) {
+                    throw new BadRequestException("Reference media asset has been deleted: " + ref.mediaId());
+                }
+                if (refMedia.processingStatus() != MediaProcessingStatus.READY) {
+                    throw new BadRequestException("Reference media asset is not ready for processing (status: " + refMedia.processingStatus() + ")");
+                }
+                if (refMedia.mediaType() != MediaType.REFERENCE) {
+                    throw new BadRequestException("Attached media must have media type REFERENCE: " + ref.mediaId());
+                }
+            }
+        }
+
+        // 8. Sanitize and validate prompt
         String prompt = request.prompt().trim();
         if (prompt.length() > properties.getMaxPromptLength()) {
             throw new BadRequestException("Prompt exceeds maximum allowed length of " + properties.getMaxPromptLength() + " characters.");
         }
 
-        // 8. Create durable Job record (UUIDv7)
+        // 9. Create durable Job record (UUIDv7)
         UUID jobId = UuidV7.randomUuid();
         Instant now = Instant.now();
         String idempotencyKey = (request.idempotencyKey() != null && !request.idempotencyKey().isBlank())
                 ? request.idempotencyKey().trim()
                 : null;
+        boolean preserveStructure = request.preserveStructure() != null ? request.preserveStructure() : true;
 
         AiJobRecord job = new AiJobRecord(
                 jobId,
@@ -204,10 +236,31 @@ public class AiVisualizerService {
                 null,
                 null,
                 null,
-                0L
+                0L,
+                preserveStructure
         );
 
         aiJobRepository.createJob(job);
+
+        // 10. Persist immutable reference snapshots
+        if (!refInputs.isEmpty()) {
+            List<AiJobReferenceRecord> snapshotList = new ArrayList<>();
+            int order = 0;
+            for (AiJobReferenceInput r : refInputs) {
+                snapshotList.add(new AiJobReferenceRecord(
+                        UuidV7.randomUuid(),
+                        jobId,
+                        studioId,
+                        r.mediaId(),
+                        r.purpose(),
+                        r.label() != null ? r.label().trim() : null,
+                        r.instruction() != null ? r.instruction().trim() : null,
+                        r.displayOrder() > 0 ? r.displayOrder() : order++,
+                        now
+                ));
+            }
+            aiReferenceRepository.createJobReferences(snapshotList);
+        }
 
         auditService.record(
                 actor.userId(),
@@ -215,12 +268,17 @@ public class AiVisualizerService {
                 "AI_GENERATION_SUBMITTED",
                 "AI_JOB",
                 jobId.toString(),
-                Map.of("projectId", project.id(), "inputMediaId", inputMedia.id()),
+                Map.of(
+                        "projectId", project.id(),
+                        "inputMediaId", inputMedia.id(),
+                        "preserveStructure", preserveStructure,
+                        "referenceCount", refInputs.size()
+                ),
                 null,
                 null
         );
 
-        // 9. Dispatch async job execution
+        // 11. Dispatch async job execution
         executor.submit(() -> executeJobInternal(jobId));
 
         return toJobDetail(job, studioId);
@@ -314,11 +372,208 @@ public class AiVisualizerService {
         return new AiJobListResponse(items, total, clampedLimit, clampedOffset);
     }
 
-    /**
-     * Core execution pipeline: retrieves QUEUED job, invokes provider with retries,
-     * ingests resulting concept into Media Engine with automatic watermarking & AI badge,
-     * updates job status and records usage/audit events.
-     */
+    // ============================================================================
+    // REFERENCE LIBRARY METHODS
+    // ============================================================================
+
+    @Transactional
+    public ReferenceDetailResponse createReference(ActorContext actor, UUID requestedStudioId, CreateReferenceRequest request) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        MediaAssetRecord mediaAsset = mediaRepository.findMediaAsset(request.mediaId(), studioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found in studio: " + request.mediaId()));
+
+        if (mediaAsset.deletedAt() != null) {
+            throw new BadRequestException("Media asset has been deleted: " + request.mediaId());
+        }
+        if (mediaAsset.processingStatus() != MediaProcessingStatus.READY) {
+            throw new BadRequestException("Media asset is not ready for use as reference (status: " + mediaAsset.processingStatus() + ")");
+        }
+        if (mediaAsset.mediaType() != MediaType.REFERENCE) {
+            throw new BadRequestException("Media asset must have media type REFERENCE: " + request.mediaId());
+        }
+
+        if (request.projectId() != null) {
+            projectRepository.findProjectById(studioId, request.projectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found in studio: " + request.projectId()));
+        }
+
+        Optional<AiReferenceMetadataRecord> existing = aiReferenceRepository.findByMediaId(studioId, request.mediaId());
+        if (existing.isPresent()) {
+            AiReferenceMetadataRecord ex = existing.get();
+            if (ex.archivedAt() == null) {
+                throw new BadRequestException("Reference metadata already exists for this media asset.");
+            }
+            // Reactivate/update previously archived reference
+            AiReferenceMetadataRecord reactivated = new AiReferenceMetadataRecord(
+                    ex.id(),
+                    ex.mediaId(),
+                    studioId,
+                    request.projectId(),
+                    request.purpose(),
+                    request.label() != null ? request.label().trim() : null,
+                    request.defaultInstruction() != null ? request.defaultInstruction().trim() : null,
+                    ex.createdAt(),
+                    Instant.now(),
+                    null
+            );
+            aiReferenceRepository.updateReference(reactivated);
+            return toReferenceDetail(reactivated, studioId);
+        }
+
+        Instant now = Instant.now();
+        AiReferenceMetadataRecord record = new AiReferenceMetadataRecord(
+                UuidV7.randomUuid(),
+                request.mediaId(),
+                studioId,
+                request.projectId(),
+                request.purpose(),
+                request.label() != null ? request.label().trim() : null,
+                request.defaultInstruction() != null ? request.defaultInstruction().trim() : null,
+                now,
+                now,
+                null
+        );
+
+        aiReferenceRepository.createReference(record);
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "AI_REFERENCE_CREATED",
+                "AI_REFERENCE",
+                record.id().toString(),
+                Map.of("mediaId", record.mediaId(), "purpose", record.purpose().name()),
+                null,
+                null
+        );
+
+        return toReferenceDetail(record, studioId);
+    }
+
+    public List<ReferenceDetailResponse> listReferences(
+            ActorContext actor,
+            UUID requestedStudioId,
+            UUID projectId,
+            ReferencePurpose purpose,
+            boolean includeArchived
+    ) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        List<AiReferenceMetadataRecord> list = aiReferenceRepository.findByStudio(studioId, projectId, purpose, includeArchived);
+        return list.stream().map(r -> toReferenceDetail(r, studioId)).toList();
+    }
+
+    public ReferenceDetailResponse getReference(ActorContext actor, UUID requestedStudioId, UUID referenceId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        AiReferenceMetadataRecord record = aiReferenceRepository.findById(studioId, referenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reference not found in studio"));
+
+        return toReferenceDetail(record, studioId);
+    }
+
+    @Transactional
+    public ReferenceDetailResponse updateReference(
+            ActorContext actor,
+            UUID requestedStudioId,
+            UUID referenceId,
+            UpdateReferenceRequest request
+    ) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        AiReferenceMetadataRecord existing = aiReferenceRepository.findById(studioId, referenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reference not found in studio"));
+
+        if (request.projectId() != null) {
+            projectRepository.findProjectById(studioId, request.projectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found in studio: " + request.projectId()));
+        }
+
+        ReferencePurpose newPurpose = request.purpose() != null ? request.purpose() : existing.purpose();
+        String newLabel = request.label() != null ? request.label().trim() : existing.label();
+        String newInstruction = request.defaultInstruction() != null ? request.defaultInstruction().trim() : existing.defaultInstruction();
+        UUID newProjectId = request.projectId() != null ? request.projectId() : existing.projectId();
+
+        AiReferenceMetadataRecord updated = new AiReferenceMetadataRecord(
+                existing.id(),
+                existing.mediaId(),
+                existing.studioId(),
+                newProjectId,
+                newPurpose,
+                newLabel,
+                newInstruction,
+                existing.createdAt(),
+                Instant.now(),
+                existing.archivedAt()
+        );
+
+        aiReferenceRepository.updateReference(updated);
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "AI_REFERENCE_UPDATED",
+                "AI_REFERENCE",
+                referenceId.toString(),
+                Map.of("purpose", updated.purpose().name()),
+                null,
+                null
+        );
+
+        return toReferenceDetail(updated, studioId);
+    }
+
+    @Transactional
+    public void archiveReference(ActorContext actor, UUID requestedStudioId, UUID referenceId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UUID studioId = context.studioId();
+
+        aiReferenceRepository.findById(studioId, referenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reference not found in studio"));
+
+        aiReferenceRepository.archiveReference(studioId, referenceId, Instant.now());
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "AI_REFERENCE_ARCHIVED",
+                "AI_REFERENCE",
+                referenceId.toString(),
+                Map.of("archived", true),
+                null,
+                null
+        );
+    }
+
+    // ============================================================================
+    // EXECUTION PIPELINE
+    // ============================================================================
+
     public void executeJobInternal(UUID jobId) {
         Optional<AiJobRecord> jobOpt = aiJobRepository.findByIdGlobal(jobId);
         if (jobOpt.isEmpty()) {
@@ -355,13 +610,38 @@ public class AiVisualizerService {
             return;
         }
 
+        // Load snapshot references for this job
+        List<AiJobReferenceRecord> jobRefs = aiReferenceRepository.findReferencesByJobId(jobId);
+        List<AiGenerationReference> generationRefs = new ArrayList<>();
+        for (AiJobReferenceRecord ref : jobRefs) {
+            try {
+                Optional<MediaAssetRecord> refAssetOpt = mediaRepository.findMediaAsset(ref.mediaId(), job.studioId());
+                if (refAssetOpt.isPresent()) {
+                    MediaAssetRecord refAsset = refAssetOpt.get();
+                    byte[] refBytes = storageService.load(refAsset.originalStorageKey());
+                    if (refBytes != null && refBytes.length > 0) {
+                        generationRefs.add(new AiGenerationReference(
+                                ref.mediaId(),
+                                ref.purposeSnapshot(),
+                                ref.labelSnapshot(),
+                                ref.instructionSnapshot(),
+                                refBytes,
+                                refAsset.contentType()
+                        ));
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to load reference image {} for job {}: {}", ref.mediaId(), jobId, e.getMessage());
+            }
+        }
+
         int maxAttempts = Math.max(1, properties.getMaxRetries() + 1);
         ProviderGenerationResponse providerResponse = null;
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             aiJobRepository.incrementAttemptCount(jobId);
             try {
-                providerResponse = aiImageProvider.submitGeneration(job, inputBytes, inputMedia.contentType());
+                providerResponse = aiImageProvider.submitGeneration(job, inputBytes, inputMedia.contentType(), generationRefs);
                 if (providerResponse.isSuccess() || !providerResponse.isRetryable()) {
                     break;
                 }
@@ -512,6 +792,19 @@ public class AiVisualizerService {
         String inputPreviewUrl = resolvePreviewUrl(job.inputMediaId(), studioId);
         String outputPreviewUrl = job.outputMediaId() != null ? resolvePreviewUrl(job.outputMediaId(), studioId) : null;
 
+        List<AiJobReferenceRecord> jobRefs = aiReferenceRepository.findReferencesByJobIdAndStudio(studioId, job.id());
+        List<AiJobReferenceResponse> refResponses = jobRefs.stream().map(r -> new AiJobReferenceResponse(
+                r.id(),
+                r.mediaId(),
+                resolvePreviewUrl(r.mediaId(), studioId),
+                r.purposeSnapshot(),
+                r.purposeSnapshot().getDisplayName(),
+                r.labelSnapshot(),
+                r.instructionSnapshot(),
+                r.displayOrder(),
+                r.createdAt()
+        )).toList();
+
         return new AiJobDetailResponse(
                 job.id(),
                 job.studioId(),
@@ -528,7 +821,27 @@ public class AiVisualizerService {
                 job.createdAt(),
                 job.startedAt(),
                 job.completedAt(),
-                job.failedAt()
+                job.failedAt(),
+                job.preserveStructure(),
+                refResponses
+        );
+    }
+
+    private ReferenceDetailResponse toReferenceDetail(AiReferenceMetadataRecord record, UUID studioId) {
+        String previewUrl = resolvePreviewUrl(record.mediaId(), studioId);
+        return new ReferenceDetailResponse(
+                record.id(),
+                record.mediaId(),
+                record.studioId(),
+                record.projectId(),
+                record.purpose(),
+                record.purpose().getDisplayName(),
+                record.label(),
+                record.defaultInstruction(),
+                previewUrl,
+                record.createdAt(),
+                record.updatedAt(),
+                record.archivedAt()
         );
     }
 
@@ -540,7 +853,7 @@ public class AiVisualizerService {
         }
         MediaAssetRecord asset = assetOpt.get();
 
-        // Safe private preview for all PRIVATE assets (including AI concepts)
+        // Safe private preview for all PRIVATE assets (including AI concepts and references)
         if (asset.visibility() == MediaVisibility.PRIVATE) {
             return "/api/v1/media/" + mediaId + "/preview";
         }

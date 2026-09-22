@@ -4,6 +4,10 @@ import {
   AiJobListResponse,
   AiStudioStatus,
   CreateAiJobPayload,
+  CreateReferencePayload,
+  ReferenceDetail,
+  ReferencePurpose,
+  UpdateReferencePayload,
 } from './types';
 
 export async function fetchAiStudioStatus(studioId?: string): Promise<AiStudioStatus> {
@@ -55,4 +59,58 @@ export async function listAiJobs(
   if (filters?.offset !== undefined) params.append('offset', filters.offset.toString());
   const qs = params.toString() ? `?${params.toString()}` : '';
   return apiFetch<AiJobListResponse>(`/ai/jobs${qs}`);
+}
+
+// ============================================================================
+// Reference Library API Functions
+// ============================================================================
+
+export async function fetchReferences(
+  filters?: {
+    projectId?: string;
+    purpose?: ReferencePurpose;
+    includeArchived?: boolean;
+  },
+  studioId?: string
+): Promise<ReferenceDetail[]> {
+  const params = new URLSearchParams();
+  if (studioId) params.append('studioId', studioId);
+  if (filters?.projectId) params.append('projectId', filters.projectId);
+  if (filters?.purpose) params.append('purpose', filters.purpose);
+  if (filters?.includeArchived) params.append('includeArchived', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return apiFetch<ReferenceDetail[]>(`/ai/references${qs}`);
+}
+
+export async function createReference(
+  data: CreateReferencePayload,
+  studioId?: string
+): Promise<ReferenceDetail> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<ReferenceDetail>(`/ai/references${qs}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateReference(
+  referenceId: string,
+  data: UpdateReferencePayload,
+  studioId?: string
+): Promise<ReferenceDetail> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<ReferenceDetail>(`/ai/references/${referenceId}${qs}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function archiveReference(
+  referenceId: string,
+  studioId?: string
+): Promise<void> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  await apiFetch<void>(`/ai/references/${referenceId}${qs}`, {
+    method: 'DELETE',
+  });
 }

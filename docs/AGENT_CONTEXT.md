@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-21, Phase 21 — AI Visualizer Foundation COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 22 (Reference Image System) pending instruction.
+Last updated: 2026-09-22, Phase 22 — AI Reference Image System COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 23 pending instruction.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -369,25 +369,54 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
   - Lint: **PASS** (`eslint .` clean).
   - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).
 
-## PHASE 21.1 — AI CONCEPT PRIVACY & PUBLICATION HARDENING (2026-09-21)
+## PHASE 22 — AI REFERENCE IMAGE SYSTEM (2026-09-22)
 
-- Canonical Rule Enforced: "AI CONCEPTS MUST NOT BECOME PUBLIC AUTOMATICALLY". Generation success means the concept exists in the workspace; it does NOT mean it is approved for public portfolio/SEO publication.
-- Separation of 3 Distinct Lifecycle Stages:
-  - Generation Complete: newly generated AI concepts strictly default to `MediaVisibility.PRIVATE`.
-  - Portfolio Eligible: professional deliberately promotes/assigns to portfolio via `PATCH /media/{mediaId}` with `visibility = PORTFOLIO`.
-  - Publicly Exposed: public delivery occurs only when studio is `PUBLISHED`, project is `PORTFOLIO`/`PUBLIC`, and media is `PORTFOLIO`/`PUBLIC`.
-- Privacy Hardening & Delivery Gating Architecture:
-  - Master Clean Original: stored permanently under private key (`studio/{studioId}/projects/{projectId}/original/...`); never exposed over public CDN or API.
-  - Authenticated Private Workspace Preview (`GET /api/v1/media/{mediaId}/preview`): workspace members view preview bytes with `✦ AI Concept Visualization` badge burned in. Clean original master is never exposed. Cross-tenant calls return 403 Forbidden; unauthenticated calls return 401 Unauthorized.
-  - Public Derivative CDN Delivery Gate (`GET /media/public/**`): inspects storage key; enforces that studio must be `PUBLISHED`, project must not be `PRIVATE`, and media must not be `PRIVATE`. Returns HTTP 404 if any check fails.
-  - Invalidation: Updating media visibility from `PORTFOLIO`/`PUBLIC` to `PRIVATE` or deleting media immediately purges all public derivatives from storage and the `media_derivatives` table.
-  - SEO Isolation: Sitemap generation and public SEO project pages strictly exclude private AI concepts.
-- Frontend Alignment (`apps/web`):
-  - `AiVisualizerClient.tsx`: Visualizer workspace indicates "Private Concept" status badge; preview URLs route through authenticated preview endpoint.
-  - `ProjectMediaManager.tsx`: Private media assets render authenticated preview thumbnails; designers can deliberately promote AI concepts to `PORTFOLIO` or `PUBLIC` via the edit modal.
+- Architectural Invariant Enforced: Source room image remains the authoritative geometric and spatial truth (walls, openings, perspective, layout). Attached reference images condition materials, finishes, wood grain, hardware, stone, tiles, fabrics, or aesthetic styling.
+- Structure Preservation Mode:
+  - Default: `preserveStructure = true`.
+  - Truthful Disclaimer: *"AI will try to preserve the existing structure. Some geometry, colors, materials, and proportions may vary."* No exact-match claims.
+  - Flexible Mode: Discloses that geometry and room proportions may vary.
+- Reference Purpose Taxonomy (13 Canonical Purposes):
+  - `COLOR`: Color Palette (wall/accent colors, palettes, and tone)
+  - `MATERIAL`: Material (general material guidance)
+  - `WOOD`: Wood & Laminate (veneer, timber species, grain, or laminate finish)
+  - `STONE`: Stone, Granite & Marble (marble, granite, quartz, natural stone)
+  - `TILE`: Tile & Backsplash (floor/wall tiles and backsplash patterns)
+  - `FABRIC`: Fabric & Upholstery (fabric texture, weave, curtains, upholstery)
+  - `HARDWARE`: Hardware & Fixtures (handles, knobs, faucets, metal hardware)
+  - `FURNITURE_STYLE`: Furniture Style (seating, tables, freestanding furniture)
+  - `CABINET_STYLE`: Cabinetry & Wardrobes (shutters, wardrobe doors, groove detailing)
+  - `ROOM_STYLE`: Room Style (spatial ambiance and design theme)
+  - `WALL_FINISH`: Wall Finish (wallpaper, texture paint, fluted panels)
+  - `CEILING_STYLE`: Ceiling & Lighting (false ceiling design, coves, lighting fixtures)
+  - `GENERAL_STYLE`: General Inspiration (broad design inspiration or aesthetic mood)
+- Database Schema (`V011__ai_reference_images.sql`):
+  - `ai_visualization_jobs`: Added `preserve_structure boolean NOT NULL DEFAULT true`.
+  - `ai_reference_metadata`: Studio reference library table linking `media_assets` with purpose, label, instructions, and project association. RLS enabled and forced.
+  - `ai_job_references`: Immutable job reference snapshot table storing `purpose_snapshot`, `label_snapshot`, `instruction_snapshot`, and `display_order` per generation job. RLS enabled and forced.
+- Snapshot Immutability Invariant:
+  - Jobs snapshot attached references into `ai_job_references` at generation submission time.
+  - Subsequent reference library metadata edits or archival never mutate historical job snapshots.
+  - Retries and history views strictly read from immutable snapshots.
+- Media & Privacy Invariants:
+  - Attached media assets must have canonical `MediaType.REFERENCE` and `MediaVisibility.PRIVATE`.
+  - Rejects `CLIENT_PRIVATE` confidential media.
+  - Reference assets and thumbnails are strictly private; never exposed to public CDN, portfolio routes, SEO pages, or sitemaps.
+- Provider Abstraction & Capability Detection:
+  - Extended `AiImageProvider` with `supportsReferenceImages()` and `getMaxReferenceImages()`.
+  - Multi-modal `submitGeneration` contract passing private source image bytes and `List<AiGenerationReference>`.
+  - If a job provides references to an unsupported provider, the service fails fast with `BadRequestException`.
+  - Configurable Replicate/Stability payload serialization handles reference metadata and `preserve_structure` safely without script injection or shell escaping risks.
+- Reference Library Management:
+  - REST endpoints: `POST /ai/references`, `GET /ai/references`, `GET /ai/references/{referenceId}`, `PATCH /ai/references/{referenceId}`, `DELETE /ai/references/{referenceId}` (soft archival).
+- Frontend UI (`apps/web`):
+  - `ReferenceManager.tsx`: Interactive selector supporting up to 4 references, purpose taxonomy dropdown, custom instructions, labels, accessible reordering (Move Up / Down), and removal.
+  - Structure Preservation toggle switch with real-time truthful disclaimer updates.
+  - Reference color disclaimer: *"Reference colors and materials may vary due to lighting, finish, and AI interpretation."*
+  - Comparison Viewer: Renders visual references used in the concept with purpose badges and thumbnails.
 - Verification Baseline:
-  - Backend: **180 / 180 PASS** (9 comprehensive integration scenarios in `AiPrivacyHardeningTest` + updated `MediaIntegrationTest` and `AiVisualizerServiceTest`).
-  - Frontend: **189 / 189 PASS** (All Vitest unit tests clean).
+  - Backend: **193 / 193 PASS** (13 comprehensive tests in `AiReferenceSystemTest`, 0 failures, 0 errors).
+  - Frontend: **191 / 191 PASS** (7 AI Visualizer tests, 0 failures, 0 errors).
   - Typecheck: **PASS** (`tsc --noEmit` clean).
   - Lint: **PASS** (`eslint .` clean).
   - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean).

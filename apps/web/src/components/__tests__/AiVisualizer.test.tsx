@@ -22,6 +22,8 @@ describe('AI Visualizer Component', () => {
     dailyQuota: 50,
     usedToday: 2,
     remainingToday: 48,
+    supportsReferenceImages: true,
+    maxReferenceImages: 4,
   };
 
   const mockProjects = [
@@ -90,6 +92,20 @@ describe('AI Visualizer Component', () => {
         status: 'SUCCEEDED' as const,
         createdAt: '2024-01-01T12:00:00Z',
         completedAt: '2024-01-01T12:00:20Z',
+        preserveStructure: true,
+        references: [
+          {
+            id: 'ref-snap-1',
+            mediaId: 'ref-media-1',
+            previewUrl: 'https://cdn.example.com/walnut.jpg',
+            purpose: 'WOOD' as const,
+            purposeDisplayName: 'Wood & Laminate',
+            label: 'Dark Walnut',
+            instruction: 'Apply to wardrobe shutters',
+            displayOrder: 0,
+            createdAt: '2024-01-01T12:00:00Z',
+          },
+        ],
       },
     ],
     total: 1,
@@ -103,6 +119,7 @@ describe('AI Visualizer Component', () => {
     vi.mocked(projectsApi.fetchProjects).mockResolvedValue(mockProjects as unknown as any);
     vi.mocked(mediaApi.fetchProjectMedia).mockResolvedValue(mockMedia as unknown as any);
     vi.mocked(aiApi.listAiJobs).mockResolvedValue(mockJobs);
+    vi.mocked(aiApi.fetchReferences).mockResolvedValue([]);
   });
 
   it('renders the AI Concept Visualizer header and quota', async () => {
@@ -153,7 +170,37 @@ describe('AI Visualizer Component', () => {
     expect(textarea.value).toContain('Modern Minimalist');
   });
 
-  it('submits generation job and triggers polling state', async () => {
+  it('renders reference manager with structure preservation toggle and truthful disclaimer', async () => {
+    render(<AiVisualizerClient />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Structure Preservation')).toBeDefined();
+      expect(screen.getByText(/AI will try to preserve the existing structure/i)).toBeDefined();
+      expect(screen.getByText(/Visual References \(Materials & Finishes\)/i)).toBeDefined();
+      expect(screen.getByText(/0\/4/)).toBeDefined();
+    });
+
+    // Toggle structure preservation
+    const toggle = screen.getByLabelText('Toggle structure preservation');
+    expect(toggle).toBeDefined();
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Flexible mode gives the AI freedom to alter geometry and walls/i)).toBeDefined();
+    });
+  });
+
+  it('displays attached visual references in concept viewer when job includes references', async () => {
+    render(<AiVisualizerClient />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Visual References Used \(1\)/i)).toBeDefined();
+      expect(screen.getByText('Wood & Laminate')).toBeDefined();
+      expect(screen.getByText('Dark Walnut')).toBeDefined();
+    });
+  });
+
+  it('submits generation job with preserveStructure and references payload', async () => {
     vi.mocked(aiApi.createAiJob).mockResolvedValue({
       id: 'job-new',
       studioId: 'studio-1',
@@ -163,6 +210,8 @@ describe('AI Visualizer Component', () => {
       prompt: 'Contemporary warm aesthetic',
       status: 'QUEUED',
       createdAt: '2024-01-01T12:05:00Z',
+      preserveStructure: true,
+      references: [],
     });
 
     render(<AiVisualizerClient />);
@@ -183,6 +232,8 @@ describe('AI Visualizer Component', () => {
           projectId: 'proj-1',
           inputMediaId: 'media-1',
           prompt: 'Contemporary warm aesthetic with bespoke cabinetry',
+          preserveStructure: true,
+          references: [],
         })
       );
       expect(screen.getByText(/Queued in generation pipeline/i)).toBeDefined();

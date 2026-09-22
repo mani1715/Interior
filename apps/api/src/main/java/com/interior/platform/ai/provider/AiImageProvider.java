@@ -2,6 +2,8 @@ package com.interior.platform.ai.provider;
 
 import com.interior.platform.ai.domain.AiJobRecord;
 
+import java.util.List;
+
 public interface AiImageProvider {
 
     /**
@@ -15,9 +17,35 @@ public interface AiImageProvider {
     boolean isConfigured();
 
     /**
-     * Submits a generation request with the private input image bytes and prompt.
+     * Whether this provider implementation supports multi-modal reference image conditioning.
      */
-    ProviderGenerationResponse submitGeneration(AiJobRecord job, byte[] inputImageBytes, String inputContentType);
+    default boolean supportsReferenceImages() {
+        return false;
+    }
+
+    /**
+     * Maximum reference images supported by this provider (typically 1 to 4).
+     */
+    default int getMaxReferenceImages() {
+        return 0;
+    }
+
+    /**
+     * Submits a generation request with the private input image bytes and prompt (backwards compatibility).
+     */
+    default ProviderGenerationResponse submitGeneration(AiJobRecord job, byte[] inputImageBytes, String inputContentType) {
+        return submitGeneration(job, inputImageBytes, inputContentType, List.of());
+    }
+
+    /**
+     * Submits a generation request with the private input image bytes, prompt, and optional reference images.
+     */
+    ProviderGenerationResponse submitGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            List<AiGenerationReference> references
+    );
 
     /**
      * Checks async status of a previously submitted generation job.
