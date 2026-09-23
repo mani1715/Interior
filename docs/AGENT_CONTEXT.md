@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-22, Phase 24 — AI Variations + History + Client Approval COMPLETE & PASS. Verified, tested, and production-ready. Next: Phase 25 pending instruction.
+Last updated: 2026-09-23, MASTER PRODUCTION AUDIT (Phase 00 → Phase 24) COMPLETE & PASS. Full regression, bug fixing, security hardening, and integration verification completed. Strict Boundary: DO NOT START PHASE 25.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -493,9 +493,21 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Typecheck: **PASS** (`npm run typecheck` clean).
     - Lint: **PASS** (`npm run lint` clean).
     - Production build: **PASS** (Next.js 16 Turbopack optimized production build clean across all 33 routes).
-    - Working tree: clean. local HEAD == origin/main.
-- **NEXT ACTION:** STOP AFTER PHASE 24. Phase 25 is the next milestone. Do not implement without explicit authorization.
-
-
-
-
+- **MASTER PRODUCTION AUDIT (PHASE 00 → PHASE 24) — PASS:**
+  - Complete regression, security review, UI/UX audit, database review, and bug remediation across all 25 implementation phases (Phases 00–24).
+  - Remediated 6 defects:
+    1. `V014__professional_type_expansion.sql` aligning DB check constraints and `ProfessionalType` enum with canonical product spec (`CUSTOM_FURNITURE`, `WOODWORK_CABINETRY`).
+    2. Flipped all 6 portfolio templates (`BASIC`, `MODERN`, `LUXURY`, `WARM_NATURAL`, `ARCHITECTURAL`, `DARK_CINEMATIC`) to `AVAILABLE` in `PortfolioTemplateKey.java`.
+    3. Closed private media leak in `AiVisualizerService.getReviewMediaPreview`: if pre-rendered derivative is missing, dynamically generates watermarked derivative with studio attribution and permanent AI Concept disclosure; original clean media is NEVER served.
+    4. Enforced canonical `UuidV7.randomUuid()` across `SeoService`, `OidcService`, and `DevAuthService`.
+    5. Hardened Homepage JSON-LD against script-injection XSS via `serializeJsonLd()`.
+    6. Hardened AI Precision mask storage keys against directory traversal (`..`) with strict regex validation.
+  - Final Verification Baseline:
+    - Backend Tests: **225 / 225 PASS** (0 failures, 0 errors, 0 skipped).
+    - Frontend Tests: **216 / 216 PASS** (27 test files, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+    - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean).
+    - Flyway Migrations: 15 migrations (`V000` through `V014`) clean, idempotent, and passing on PostgreSQL 18 and H2 test mode.
+    - Working tree: clean.
+- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 25.** Await explicit user instruction before any Phase 25 work.

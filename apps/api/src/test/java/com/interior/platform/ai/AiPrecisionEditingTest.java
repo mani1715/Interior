@@ -444,4 +444,35 @@ class AiPrecisionEditingTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("No mask associated with this job");
     }
+
+    @Test
+    @DisplayName("Regression: Reject maskStorageKey with path traversal or invalid format")
+    void testRejectMaskStorageKeyTraversalAndInvalidFormat() {
+        mockAuth();
+        when(aiImageProvider.isConfigured()).thenReturn(true);
+        when(aiJobRepository.countTodayUsage(studioId)).thenReturn(0);
+        when(projectRepository.findProjectById(studioId, projectId)).thenReturn(Optional.of(sampleProject));
+        when(mediaRepository.findMediaAsset(inputMediaId, studioId)).thenReturn(Optional.of(inputAsset));
+        when(aiImageProvider.supportsMaskEditing()).thenReturn(true);
+
+        // Path traversal attempt
+        CreateAiJobRequest traversalReq = new CreateAiJobRequest(
+                inputMediaId, projectId, "Paint wardrobe dark wood", null, true, List.of(),
+                EditingMode.PRECISION_MASK, "studio/" + studioId + "/masks/../../etc/passwd.png"
+        );
+
+        assertThatThrownBy(() -> aiVisualizerService.createGenerationJob(actor, studioId, traversalReq))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Invalid maskStorageKey");
+
+        // Invalid extension
+        CreateAiJobRequest invalidExtReq = new CreateAiJobRequest(
+                inputMediaId, projectId, "Paint wardrobe dark wood", null, true, List.of(),
+                EditingMode.PRECISION_MASK, "studio/" + studioId + "/masks/mask-123.jpg"
+        );
+
+        assertThatThrownBy(() -> aiVisualizerService.createGenerationJob(actor, studioId, invalidExtReq))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Invalid maskStorageKey");
+    }
 }

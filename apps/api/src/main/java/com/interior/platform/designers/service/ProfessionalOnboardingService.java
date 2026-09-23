@@ -205,6 +205,8 @@ public class ProfessionalOnboardingService {
         String cleanState = sanitizeText(request.state());
         String cleanPostal = sanitizeText(request.postalCode());
 
+        ProfessionalType profType = ProfessionalType.fromCode(request.professionalType());
+
         // 1. Create Studio Entity (Operational: ACTIVE, Publication: UNPUBLISHED)
         StudioDetailRecord studio = new StudioDetailRecord(
                 studioId,
@@ -212,7 +214,7 @@ public class ProfessionalOnboardingService {
                 normalizedSlug,
                 actor.userId(),
                 "ACTIVE",
-                request.professionalType(),
+                profType.name(),
                 professionalTitle,
                 tagline,
                 request.experienceSinceYear(),

@@ -64,23 +64,23 @@ public class DevAuthService {
             return existing.get();
         }
 
-        UUID userId = UUID.randomUUID();
+        UUID userId = com.interior.platform.common.util.UuidV7.randomUuid();
         Instant now = Instant.now();
         UserRecord user = new UserRecord(userId, persona.displayName(), persona.email(), null, "ACTIVE", now, now, 0L);
         securityRepository.createUser(user);
 
         // Assign platform role
-        securityRepository.assignUserRole(UUID.randomUUID(), userId, persona.role(), now);
+        securityRepository.assignUserRole(com.interior.platform.common.util.UuidV7.randomUuid(), userId, persona.role(), now);
 
         // If designer or designer_team, ensure test studio exists
         if ("DESIGNER".equals(persona.role()) || "DESIGNER_TEAM".equals(persona.role())) {
             UUID studioId = securityRepository.findStudioIdBySlug("dev-studio-atelier");
             if (studioId == null) {
-                studioId = UUID.randomUUID();
+                studioId = com.interior.platform.common.util.UuidV7.randomUuid();
                 securityRepository.createStudio(studioId, "Studio Atelier", "dev-studio-atelier", userId, "ACTIVE");
             }
             String studioRole = "DESIGNER".equals(persona.role()) ? "OWNER" : "MEMBER";
-            securityRepository.addStudioMember(UUID.randomUUID(), studioId, userId, studioRole);
+            securityRepository.addStudioMember(com.interior.platform.common.util.UuidV7.randomUuid(), studioId, userId, studioRole);
         }
 
         return user;

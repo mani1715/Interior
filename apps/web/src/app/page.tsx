@@ -15,6 +15,7 @@ import { LeadJourney } from '@/components/home/LeadJourney';
 import { MobileWorkflow } from '@/components/home/MobileWorkflow';
 import { FinalCta } from '@/components/home/FinalCta';
 import { Footer } from '@/components/home/Footer';
+import { serializeJsonLd } from '@/lib/seo/structured-data';
 
 export const metadata: Metadata = {
   title: 'Elégance — Interior Designer Portfolio, Discovery & AI Visualizer',
@@ -66,7 +67,7 @@ export default function HomePage() {
       {/* Truthful Homepage Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">

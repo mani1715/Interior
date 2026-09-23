@@ -465,4 +465,49 @@ class AiClientReviewTest {
         verify(aiClientReviewRepository).revokeAllSessionsForReview(reviewRecord.id());
         verify(auditService).record(eq(userId), eq(studioId), eq("CLIENT_REVIEW_REVOKED"), eq("CLIENT_REVIEW"), eq(reviewRecord.id().toString()), isNull(), isNull(), isNull());
     }
+
+    @Test
+    @DisplayName("Regression: Client media preview dynamically watermarks and never serves raw clean original when derivatives are absent")
+    void mediaDeliveryNeverServesRawOriginalWhenDerivativesAbsent() {
+        String sessionToken = "session-raw-token";
+        byte[] sessionHash = aiVisualizerService.hashSha256(sessionToken);
+
+        AiClientReviewSessionRecord session = new AiClientReviewSessionRecord(
+                UuidV7.randomUuid(), reviewRecord.id(), sessionHash, new byte[]{4, 5, 6},
+                Instant.now().plus(2, ChronoUnit.HOURS), null, Instant.now()
+        );
+
+        when(aiClientReviewRepository.findReviewSessionByTokenHash(sessionHash)).thenReturn(Optional.of(session));
+        when(aiClientReviewRepository.findReviewByIdGlobal(reviewRecord.id())).thenReturn(Optional.of(reviewRecord));
+        when(aiClientReviewRepository.isMediaInReview(reviewRecord.id(), outputMediaId)).thenReturn(true);
+
+        MediaAssetRecord outputAsset = new MediaAssetRecord(
+                outputMediaId, studioId, projectId, MediaType.AI_CONCEPT, MediaVisibility.PRIVATE,
+                MediaProcessingStatus.READY, "master-clean-original-key", "image/jpeg", 1024, 800, 600,
+                0, false, null, null, false, userId, Instant.now(), Instant.now(), null
+        );
+        when(mediaRepository.findMediaAsset(outputMediaId, studioId)).thenReturn(Optional.of(outputAsset));
+        // Simulate NO pre-generated derivatives
+        when(mediaRepository.findDerivativesByMediaId(outputMediaId, studioId)).thenReturn(List.of());
+
+        byte[] cleanRawMasterBytes = new byte[]{99, 98, 97};
+        when(storageService.load("master-clean-original-key")).thenReturn(cleanRawMasterBytes);
+
+        byte[] watermarkedBytes = new byte[]{55, 66, 77};
+        ImageProcessingService.ProcessedDerivative mockPd = mock(ImageProcessingService.ProcessedDerivative.class);
+        when(mockPd.content()).thenReturn(watermarkedBytes);
+        when(imageProcessingService.createDerivative(
+                eq(cleanRawMasterBytes),
+                eq(DerivativeVariant.MEDIUM),
+                any(),
+                eq(true),
+                eq(MediaType.AI_CONCEPT)
+        )).thenReturn(mockPd);
+
+        byte[] preview = aiVisualizerService.getReviewMediaPreview(sessionToken, outputMediaId);
+
+        // Crucial verification: clean original was NOT returned, watermarked derivative was generated and served
+        assertThat(preview).isEqualTo(watermarkedBytes);
+        assertThat(preview).isNotEqualTo(cleanRawMasterBytes);
+    }
 }

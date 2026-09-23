@@ -264,7 +264,7 @@ public class SeoService {
         boolean indexingEnabled = request.indexingEnabled() == null || request.indexingEnabled();
 
         SeoSettingsRecord settings = new SeoSettingsRecord(
-                UUID.randomUUID(),
+                com.interior.platform.common.util.UuidV7.randomUuid(),
                 context.studioId(),
                 titleOverride,
                 descOverride,

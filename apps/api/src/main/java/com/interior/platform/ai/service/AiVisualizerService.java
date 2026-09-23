@@ -266,7 +266,7 @@ public class AiVisualizerService {
                 throw new BadRequestException("maskStorageKey is required for precision mask editing mode.");
             }
             String expectedPrefix = "studio/" + studioId + "/masks/";
-            if (!maskStorageKey.startsWith(expectedPrefix)) {
+            if (!maskStorageKey.startsWith(expectedPrefix) || maskStorageKey.contains("..") || !maskStorageKey.matches("^studio/[a-f0-9\\-]+/masks/[a-f0-9\\-]+\\.png$")) {
                 throw new BadRequestException("Invalid maskStorageKey. Mask must belong to the current studio.");
             }
         } else {
@@ -1806,15 +1806,31 @@ public class AiVisualizerService {
         if (storageKey == null && !derivatives.isEmpty()) {
             storageKey = derivatives.get(0).storageKey();
         }
-        if (storageKey == null) {
-            storageKey = asset.originalStorageKey();
+        if (storageKey != null) {
+            byte[] bytes = storageService.load(storageKey);
+            if (bytes != null && bytes.length > 0) {
+                return bytes;
+            }
         }
 
-        byte[] bytes = storageService.load(storageKey);
-        if (bytes == null || bytes.length == 0) {
+        // Invariant: Clean original is NEVER served directly to client review.
+        // If pre-generated derivative is absent, dynamically create a watermarked derivative with mandatory AI disclosure.
+        byte[] originalBytes = storageService.load(asset.originalStorageKey());
+        if (originalBytes == null || originalBytes.length == 0) {
             throw new ResourceNotFoundException("Media content unavailable");
         }
-        return bytes;
+        StudioWatermarkSettingsRecord wmSettings = mediaRepository.findWatermarkSettings(review.studioId())
+                .orElse(new StudioWatermarkSettingsRecord(
+                        review.studioId(), true, WatermarkPosition.BOTTOM_RIGHT, new java.math.BigDecimal("0.60"), 15, false, null, Instant.now(), Instant.now()
+                ));
+        ImageProcessingService.ProcessedDerivative pd = imageProcessingService.createDerivative(
+                originalBytes,
+                DerivativeVariant.MEDIUM,
+                wmSettings,
+                true,
+                asset.mediaType()
+        );
+        return pd.content();
     }
 
     @Transactional

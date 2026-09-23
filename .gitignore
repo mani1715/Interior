@@ -39,3 +39,9 @@ logs/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Next.js auto-generated agent files
+AGENTS.md
+CLAUDE.md
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

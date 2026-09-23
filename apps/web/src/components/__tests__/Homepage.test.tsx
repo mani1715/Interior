@@ -67,8 +67,9 @@ describe('Homepage Production Implementation', () => {
 
     // Check JSON-LD structured data script
     const script = container.querySelector('script[type="application/ld+json"]');
-    expect(script).toBeDefined();
     expect(script?.innerHTML).toContain('https://schema.org');
     expect(script?.innerHTML).toContain('Elégance Interior Platform');
+    expect(script?.innerHTML).not.toContain('<script');
+    expect(script?.innerHTML).not.toContain('</script');
   });
 });

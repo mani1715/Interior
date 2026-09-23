@@ -354,4 +354,30 @@ class ProfessionalOnboardingServiceTest {
         assertEquals(3, status.currentStep());
         assertEquals("{\"step\":3,\"city\":\"Guntur\"}", status.draftPayload());
     }
+
+    @Test
+    @DisplayName("Regression: Onboarding with canonical product spec types CUSTOM_FURNITURE and WOODWORK_CABINETRY succeeds")
+    void testOnboardingCustomFurnitureAndWoodworkCabinetry() {
+        when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
+        when(studioRepository.isSlugClaimed("bespoke-woodcraft")).thenReturn(false);
+        when(securityRepository.getUserRoles(userId)).thenReturn(Set.of("CUSTOMER"));
+
+        OnboardingCompletionRequest req = new OnboardingCompletionRequest(
+                "CUSTOM_FURNITURE", "Bespoke Woodcraft", "bespoke-woodcraft", null, null, null, null, null,
+                null, "Bengaluru", null, "Karnataka", null, "IN", false, false, null,
+                List.of("Bespoke Furniture"), List.of(), List.of(), "+919876543210", null, "craft@test.com",
+                null, null, true, true
+        );
+
+        HttpServletRequest httpReq = mock(HttpServletRequest.class);
+        HttpServletResponse httpRes = mock(HttpServletResponse.class);
+
+        var result = onboardingService.completeOnboarding(customerActor, req, httpReq, httpRes);
+        assertNotNull(result);
+        assertEquals("CUSTOM_FURNITURE", result.studio().professionalType());
+
+        ArgumentCaptor<StudioDetailRecord> studioCaptor = ArgumentCaptor.forClass(StudioDetailRecord.class);
+        verify(studioRepository).createStudio(studioCaptor.capture());
+        assertEquals("CUSTOM_FURNITURE", studioCaptor.getValue().professionalType());
+    }
 }

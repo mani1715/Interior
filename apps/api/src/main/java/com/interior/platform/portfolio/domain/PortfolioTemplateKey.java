@@ -1,12 +1,12 @@
 package com.interior.platform.portfolio.domain;
 
 public enum PortfolioTemplateKey {
-    BASIC("Basic Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD),
-    MODERN("Modern Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD),
-    LUXURY("Luxury Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD),
-    ARCHITECTURAL("Architectural Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD),
-    WARM_NATURAL("Warm / Natural Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD),
-    DARK_CINEMATIC("Dark Cinematic Portfolio", "1.0.0", TemplateImplementationStatus.SCAFFOLD);
+    BASIC("Basic Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE),
+    MODERN("Modern Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE),
+    LUXURY("Luxury Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE),
+    ARCHITECTURAL("Architectural Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE),
+    WARM_NATURAL("Warm / Natural Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE),
+    DARK_CINEMATIC("Dark Cinematic Portfolio", "1.0.0", TemplateImplementationStatus.AVAILABLE);
 
     private final String displayName;
     private final String version;

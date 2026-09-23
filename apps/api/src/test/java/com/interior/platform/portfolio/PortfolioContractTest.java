@@ -46,7 +46,7 @@ class PortfolioContractTest {
     void templateRegistryVersionsAndStatusAreExact() {
         for (PortfolioTemplateKey key : PortfolioTemplateKey.values()) {
             assertEquals("1.0.0", key.getVersion(), "Template " + key + " version must be 1.0.0");
-            assertEquals(TemplateImplementationStatus.SCAFFOLD, key.getStatus(), "Template " + key + " must initially be SCAFFOLD");
+            assertEquals(TemplateImplementationStatus.AVAILABLE, key.getStatus(), "Template " + key + " must be AVAILABLE");
         }
     }
 

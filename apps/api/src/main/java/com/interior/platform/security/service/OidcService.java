@@ -240,7 +240,7 @@ public class OidcService {
         }
 
         // 3. Register new user with baseline role CUSTOMER (least privilege)
-        UUID userId = UUID.randomUUID();
+        UUID userId = com.interior.platform.common.util.UuidV7.randomUuid();
         Instant now = clock.instant();
         UserRecord newUser = new UserRecord(
                 userId,
@@ -255,10 +255,10 @@ public class OidcService {
         securityRepository.createUser(newUser);
 
         // Bind external identity
-        securityRepository.linkExternalIdentity(UUID.randomUUID(), userId, issuer, subject, now);
+        securityRepository.linkExternalIdentity(com.interior.platform.common.util.UuidV7.randomUuid(), userId, issuer, subject, now);
 
         // Always assign baseline CUSTOMER role (least privilege)
-        securityRepository.assignUserRole(UUID.randomUUID(), userId, "CUSTOMER", now);
+        securityRepository.assignUserRole(com.interior.platform.common.util.UuidV7.randomUuid(), userId, "CUSTOMER", now);
 
         auditService.record(
                 userId,
