@@ -240,8 +240,8 @@ class DiscoveryIntegrationTest {
     }
 
     @Test
-    @DisplayName("SEO indexing preference: indexing_enabled = false excludes studio from discovery")
-    void testIndexingDisabled_Excluded() {
+    @DisplayName("SEO indexing preference: indexing_enabled = false does not gate internal human discovery (bot-only consent)")
+    void testIndexingDisabled_DoesNotBlockPlatformDiscovery() {
         jdbcTemplate.update("INSERT INTO studio_seo_settings (id, studio_id, indexing_enabled) VALUES (?, ?, false)",
                 UuidV7.randomUuid(), studioAId);
 
@@ -249,7 +249,8 @@ class DiscoveryIntegrationTest {
                 null, null, null, null, null, null, null, null, null, 20, 0, null
         );
 
-        assertEquals(0, response.getBody().totalProjects());
+        // Published & active studio remains visible to humans on platform discovery
+        assertEquals(2, response.getBody().totalProjects());
     }
 
     @Test
@@ -456,5 +457,69 @@ class DiscoveryIntegrationTest {
                 long101, null, null, null, null, null, null, null, null, 20, 0, null
         );
         assertNotNull(longRes.getBody());
+    }
+
+    @Test
+    @DisplayName("Studio operational status: SUSPENDED studio is hidden even if publication_status is PUBLISHED")
+    void testSuspendedStudioHiddenFromDiscovery() {
+        // Suspend Studio A
+        jdbcTemplate.update("UPDATE designer_studios SET status = 'SUSPENDED' WHERE id = ?", studioAId);
+
+        ResponseEntity<DiscoverySearchResponse> projRes = discoveryController.searchProjects(
+                null, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(0, projRes.getBody().totalProjects(), "Suspended studio projects must not appear in search");
+
+        ResponseEntity<DiscoverySearchResponse> profRes = discoveryController.searchProfessionals(
+                "Mehta", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(0, profRes.getBody().totalProfessionals(), "Suspended studio must not appear in professional search");
+    }
+
+    @Test
+    @DisplayName("Media privacy: Private or reference media is never exposed in discovery cover")
+    void testMediaPrivacyGating_ReferenceAndPrivateMediaExcluded() {
+        // Create Project 6 with a REFERENCE media asset
+        UUID userAId = jdbcTemplate.queryForObject("SELECT owner_id FROM designer_studios WHERE id = ?", UUID.class, studioAId);
+        UUID proj6Id = UuidV7.randomUuid();
+        insertProject(proj6Id, studioAId, "confidential-moodboard-proj", "Confidential Moodboard Proj",
+                "Project with only reference media", ProjectCategory.LIVING_ROOM.name(),
+                ProjectStatus.READY.name(), VisibilityStatus.PORTFOLIO.name(), "Bengaluru", "Karnataka", false, userAId);
+
+        // Insert REFERENCE media asset (must have visibility PRIVATE per chk_media_privacy)
+        UUID refMediaId = UuidV7.randomUuid();
+        jdbcTemplate.update("INSERT INTO media_assets (" +
+                "id, studio_id, project_id, original_storage_key, content_type, file_size, width, height, media_type, visibility, " +
+                "processing_status, is_cover, sort_order, watermark_enabled, created_by, created_at, updated_at" +
+                ") VALUES (?, ?, ?, 'storage/private/ref.jpg', 'image/jpeg', 1024, 800, 600, 'REFERENCE', 'PRIVATE', 'READY', true, 0, false, null, now(), now())",
+                refMediaId, studioAId, proj6Id);
+
+        jdbcTemplate.update("INSERT INTO media_derivatives (" +
+                "id, media_id, studio_id, variant_name, width, height, format, file_size, storage_key, public_url, is_watermarked, created_at" +
+                ") VALUES (?, ?, ?, 'MEDIUM', 800, 600, 'WEBP', 512, 'storage/public/ref_thumb.webp', 'https://cdn.platform.local/ref.webp', false, now())",
+                UuidV7.randomUuid(), refMediaId, studioAId);
+
+        ResponseEntity<DiscoverySearchResponse> response = discoveryController.searchProjects(
+                "Confidential", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+
+        assertEquals(1, response.getBody().totalProjects());
+        var proj = response.getBody().projects().get(0);
+        // Cover image URL must be null because REFERENCE/PRIVATE media is excluded from public cover resolution
+        assertNull(proj.coverImageUrl(), "Reference or private media must never be exposed as discovery cover");
+    }
+
+    @Test
+    @DisplayName("Deterministic ranking tie-breaking: identical scores order by featured DESC, created_at DESC, id DESC")
+    void testDeterministicTieBreaking() {
+        ResponseEntity<DiscoverySearchResponse> response = discoveryController.searchProjects(
+                null, null, null, null, null, null, null, null, "featured", 20, 0, null
+        );
+
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().totalProjects());
+        // Project 1 is featured = true, Project 2 is featured = false
+        assertEquals(project1Id, response.getBody().projects().get(0).id());
+        assertEquals(project2Id, response.getBody().projects().get(1).id());
     }
 }

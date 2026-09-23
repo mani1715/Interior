@@ -34,8 +34,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
 
     private static final String BASE_PUBLIC_STUDIO_GATE =
             "s.publication_status = 'PUBLISHED' " +
-            "AND s.status = 'ACTIVE' " +
-            "AND (seo.indexing_enabled IS NULL OR seo.indexing_enabled = true) ";
+            "AND s.status = 'ACTIVE' ";
 
     private static final String BASE_PUBLIC_PROJECT_GATE =
             BASE_PUBLIC_STUDIO_GATE +
@@ -62,7 +61,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                 sql.append(", (CASE ")
                    .append("    WHEN LOWER(p.title) = ? THEN 100.0 ")
                    .append("    WHEN LOWER(p.title) LIKE ? THEN 80.0 ")
-                   .append("    ELSE (ts_rank(to_tsvector('english', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')), plainto_tsquery('english', ?)) * 40.0 + similarity(p.title, ?) * 40.0) ")
+                   .append("    ELSE (ts_rank(to_tsvector('simple', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')), plainto_tsquery('simple', ?)) * 40.0 + similarity(p.title, ?) * 40.0) ")
                    .append("END) as search_score ");
                 args.add(queryExact);
                 args.add(queryExact + "%");
@@ -88,7 +87,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
 
         sql.append("FROM studio_projects p ")
            .append("JOIN designer_studios s ON s.id = p.studio_id ")
-           .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_PROJECT_GATE);
 
         applyProjectFilters(sql, args, params, rawQuery, queryPattern);
@@ -196,7 +194,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         sql.append("SELECT COUNT(*) ")
            .append("FROM studio_projects p ")
            .append("JOIN designer_studios s ON s.id = p.studio_id ")
-           .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_PROJECT_GATE);
 
         applyProjectFilters(sql, args, params, rawQuery, queryPattern);
@@ -209,8 +206,9 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         if (queryPattern != null) {
             if (isPostgreSQL()) {
                 sql.append("AND (")
-                   .append("to_tsvector('english', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')) @@ plainto_tsquery('english', ?) ")
+                   .append("to_tsvector('simple', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')) @@ plainto_tsquery('simple', ?) ")
                    .append("OR LOWER(p.title) LIKE ? ")
+                   .append("OR p.title % ? ")
                    .append("OR similarity(p.title, ?) > 0.25 ")
                    .append("OR similarity(s.name, ?) > 0.25 ")
                    .append("OR LOWER(s.name) LIKE ? ")
@@ -219,6 +217,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                    .append(") ");
                 args.add(rawQuery);
                 args.add(queryPattern);
+                args.add(rawQuery);
                 args.add(rawQuery);
                 args.add(rawQuery);
                 args.add(queryPattern);
@@ -294,7 +293,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                 sql.append(", (CASE ")
                    .append("    WHEN LOWER(s.name) = ? THEN 100.0 ")
                    .append("    WHEN LOWER(s.name) LIKE ? THEN 80.0 ")
-                   .append("    ELSE (ts_rank(to_tsvector('english', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')), plainto_tsquery('english', ?)) * 40.0 + similarity(s.name, ?) * 40.0) ")
+                   .append("    ELSE (ts_rank(to_tsvector('simple', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')), plainto_tsquery('simple', ?)) * 40.0 + similarity(s.name, ?) * 40.0) ")
                    .append("END) as search_score ");
                 args.add(queryExact);
                 args.add(queryExact + "%");
@@ -317,7 +316,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         }
 
         sql.append("FROM designer_studios s ")
-           .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_STUDIO_GATE);
 
         applyProfessionalFilters(sql, args, params, rawQuery, queryPattern);
@@ -332,9 +330,11 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
             sql.append("ORDER BY s.created_at DESC, s.id DESC ");
         }
 
-        sql.append("LIMIT ? OFFSET ?");
-        args.add(params.getSafeLimit());
-        args.add(params.getSafeOffset());
+        sql.append("LIMIT ? OFFSET ? ");
+        int limit = params.limit() != null ? Math.max(1, Math.min(params.limit(), 50)) : 20;
+        int offset = params.offset() != null ? Math.max(0, Math.min(params.offset(), 1000)) : 0;
+        args.add(limit);
+        args.add(offset);
 
         List<StudioRow> rows = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new StudioRow(
                 getUuid(rs, "id"),
@@ -399,7 +399,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
 
         sql.append("SELECT COUNT(*) ")
            .append("FROM designer_studios s ")
-           .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_STUDIO_GATE);
 
         applyProfessionalFilters(sql, args, params, rawQuery, queryPattern);
@@ -412,8 +411,9 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         if (queryPattern != null) {
             if (isPostgreSQL()) {
                 sql.append("AND (")
-                   .append("to_tsvector('english', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')) @@ plainto_tsquery('english', ?) ")
+                   .append("to_tsvector('simple', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')) @@ plainto_tsquery('simple', ?) ")
                    .append("OR LOWER(s.name) LIKE ? ")
+                   .append("OR s.name % ? ")
                    .append("OR similarity(s.name, ?) > 0.25 ")
                    .append("OR LOWER(s.tagline) LIKE ? ")
                    .append("OR LOWER(s.city) LIKE ? ")
@@ -421,6 +421,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                    .append(") ");
                 args.add(rawQuery);
                 args.add(queryPattern);
+                args.add(rawQuery);
                 args.add(rawQuery);
                 args.add(queryPattern);
                 args.add(queryPattern);
@@ -549,7 +550,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         String projectSql = "SELECT p.title, p.slug, s.slug as studio_slug, p.city " +
                             "FROM studio_projects p " +
                             "JOIN designer_studios s ON s.id = p.studio_id " +
-                            "LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id " +
                             "WHERE " + BASE_PUBLIC_PROJECT_GATE +
                             "AND LOWER(p.title) LIKE ? " +
                             "LIMIT ?";
@@ -574,7 +574,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         String catSql = "SELECT p.category_code, COUNT(*) as cnt " +
                         "FROM studio_projects p " +
                         "JOIN designer_studios s ON s.id = p.studio_id " +
-                        "LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id " +
                         "WHERE " + BASE_PUBLIC_PROJECT_GATE +
                         "GROUP BY p.category_code " +
                         "ORDER BY cnt DESC";
@@ -591,7 +590,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         String citySql = "SELECT p.city, COUNT(*) as cnt " +
                          "FROM studio_projects p " +
                          "JOIN designer_studios s ON s.id = p.studio_id " +
-                         "LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id " +
                          "WHERE " + BASE_PUBLIC_PROJECT_GATE +
                          "AND p.city IS NOT NULL AND TRIM(p.city) != '' " +
                          "GROUP BY p.city " +
@@ -606,7 +604,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                           "FROM project_styles ps " +
                           "JOIN studio_projects p ON p.id = ps.project_id " +
                           "JOIN designer_studios s ON s.id = p.studio_id " +
-                          "LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id " +
                           "WHERE " + BASE_PUBLIC_PROJECT_GATE +
                           "GROUP BY ps.style_code " +
                           "ORDER BY cnt DESC";
@@ -622,7 +619,6 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         // 4. Professional Types facet
         String profSql = "SELECT s.professional_type, COUNT(*) as cnt " +
                          "FROM designer_studios s " +
-                         "LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id " +
                          "WHERE " + BASE_PUBLIC_STUDIO_GATE +
                          "GROUP BY s.professional_type " +
                          "ORDER BY cnt DESC";

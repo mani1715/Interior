@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-23, MASTER PRODUCTION AUDIT (Phase 00 → Phase 24) COMPLETE & PASS. Full regression, bug fixing, security hardening, and integration verification completed. Strict Boundary: DO NOT START PHASE 25.
+Last updated: 2026-09-23, PHASE 25.2 (Public Discovery RLS & Database Privacy Closure) COMPLETE & PASS. Full regression, scale benchmarking, database RLS hardening, and privacy gating verified. Strict Boundary: DO NOT START PHASE 26.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -520,5 +520,20 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
     - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean).
     - Flyway Migrations: 15 migrations (`V000` through `V014`) clean, idempotent, and passing on PostgreSQL 18 and H2 test mode.
+- **PHASE 25 — PASS:** Search & Discovery Engine Architecture & Initial Implementation.
+- **PHASE 25.1 — PASS:** Discovery Truthfulness, API Canonicalization, and Search Verification. Removed demo/offline fallback from production frontend discovery, unified `/api/v1/discovery` namespace, added structured error states and accessible combobox keyboard navigation.
+- **PHASE 25.2 — PASS:** Public Discovery RLS & Database Privacy Hardening.
+  - Resolved P1 database privacy vulnerability: replaced permissive V015 RLS policies with correlated public-read policies (`V016__discovery_public_read_hardening.sql`) enforcing that `designer_studios` must be `PUBLISHED + ACTIVE` before any child entity (`studio_projects`, `project_styles`, `media_assets`, `media_derivatives`, `studio_services`, `studio_specialties`, `studio_service_areas`, `studio_contacts`, `studio_seo_settings`) can be read by public/anonymous queries.
+  - Explicitly decoupled `indexing_enabled` from internal platform human discovery; clarified bot-only (`robots`/sitemap) consent semantics.
+  - Replaced aggressive English stemming with `'simple'` dictionary in GIN full-text search indexes (`idx_studio_projects_fts`, `idx_designer_studios_fts`) to preserve exact Indian names, regional cities, and interior terminology.
+  - Leveraged trigram `%` operator alongside `similarity(...) > 0.25` for index pushdown.
+  - Verified performance scaling on PostgreSQL 18 with 2,000 studios and 10,000 projects: all 7 query scenarios completed with sub-second execution times (0.6ms – 218ms).
+  - Final Verification Baseline:
+    - Backend Tests: **246 / 246 PASS** (17 tests in `DiscoveryIntegrationTest`, 0 failures, 0 errors).
+    - Frontend Tests: **228 / 228 PASS** (28 test files, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+    - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all 33 routes).
+    - Flyway Migrations: 17 migrations (`V000` through `V016`) applied, validated, idempotent, and passing on PostgreSQL 18 and H2 test mode.
     - Working tree: clean.
-- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 25.** Await explicit user instruction before any Phase 25 work.
+- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 26.** Await explicit user instruction before any Phase 26 work.
