@@ -3,14 +3,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, ArrowRight, Briefcase } from 'lucide-react';
 import { Professional } from '@/lib/discovery/types';
-import { getProjectsByProfessional } from '@/lib/discovery/queries';
 
 export interface ProfessionalCardProps {
   professional: Professional;
 }
 
 export function ProfessionalCard({ professional }: ProfessionalCardProps) {
-  const projects = getProjectsByProfessional(professional.slug).slice(0, 3);
+  const sampleCovers = professional.sampleProjectCoverUrls || [];
+  const publishedCount = professional.projectCount ?? sampleCovers.length;
 
   return (
     <article className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 shadow-sm hover:border-[var(--brand)] hover:shadow-md transition-all duration-300">
@@ -69,24 +69,22 @@ export function ProfessionalCard({ professional }: ProfessionalCardProps) {
         ))}
       </div>
 
-      {/* Project Thumbnails Preview */}
-      {projects.length > 0 && (
+      {/* Project Thumbnails Preview (real cover assets only) */}
+      {sampleCovers.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-5">
-          {projects.map((proj) => (
-            <Link
-              key={proj.id}
-              href={`/projects/${proj.slug}`}
+          {sampleCovers.map((coverUrl, idx) => (
+            <div
+              key={idx}
               className="relative aspect-[4/3] rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface-alt)] group/thumb"
-              title={proj.title}
             >
               <Image
-                src={proj.coverImage}
-                alt={proj.title}
+                src={coverUrl}
+                alt={`${professional.name} sample work ${idx + 1}`}
                 fill
                 sizes="(max-width: 640px) 30vw, 15vw"
                 className="object-cover group-hover/thumb:scale-105 transition-transform duration-300"
               />
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -95,12 +93,12 @@ export function ProfessionalCard({ professional }: ProfessionalCardProps) {
       <div className="pt-3 border-t border-[var(--border)] mt-auto flex items-center justify-between">
         <span className="text-xs text-[var(--muted)] flex items-center gap-1">
           <Briefcase className="w-3.5 h-3.5 text-[var(--brand)]" />
-          <span>{projects.length} Published Projects</span>
+          <span>{publishedCount} Published Projects</span>
         </span>
 
         <Link
           href={`/professionals/${professional.slug}`}
-          className="text-xs font-semibold text-[var(--brand)] flex items-center gap-1 group-hover:translate-x-1 transition-transform"
+          className="text-xs font-semibold text-[var(--brand)] flex items-center gap-1 group-hover:translate-x-1 transition-transform min-h-[44px] inline-flex items-center"
         >
           <span>View Studio Profile</span>
           <ArrowRight className="w-3.5 h-3.5" />

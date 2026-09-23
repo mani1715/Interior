@@ -96,6 +96,8 @@ export interface Professional {
   featured?: boolean;
   avatarChar: string;
   avatarColor: string; // CSS or token color
+  projectCount?: number;
+  sampleProjectCoverUrls?: string[];
 }
 
 export interface CategoryInfo {

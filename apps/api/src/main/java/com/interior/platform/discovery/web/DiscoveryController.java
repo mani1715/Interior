@@ -9,7 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Discovery Engine", description = "Public endpoints for search, filtering, autocomplete suggestions, and discovery facets")
+@RequestMapping("/public/discovery")
+@Tag(name = "Discovery Engine", description = "Canonical public endpoints for search, filtering, autocomplete suggestions, and discovery facets")
 public class DiscoveryController {
 
     private final DiscoveryService discoveryService;
@@ -18,7 +19,7 @@ public class DiscoveryController {
         this.discoveryService = discoveryService;
     }
 
-    @GetMapping({"/public/discovery/search", "/discovery/search"})
+    @GetMapping("/search")
     @Operation(summary = "Unified search", description = "Unified search across published projects and professionals")
     public ResponseEntity<DiscoverySearchResponse> searchAll(
             @RequestParam(value = "q", required = false) String q,
@@ -40,7 +41,7 @@ public class DiscoveryController {
         return ResponseEntity.ok(discoveryService.searchAll(params));
     }
 
-    @GetMapping({"/public/discovery/projects", "/discovery/projects"})
+    @GetMapping("/projects")
     @Operation(summary = "Search projects", description = "Search and filter published portfolio projects")
     public ResponseEntity<DiscoverySearchResponse> searchProjects(
             @RequestParam(value = "q", required = false) String q,
@@ -62,7 +63,7 @@ public class DiscoveryController {
         return ResponseEntity.ok(discoveryService.searchProjects(params));
     }
 
-    @GetMapping({"/public/discovery/professionals", "/discovery/professionals"})
+    @GetMapping("/professionals")
     @Operation(summary = "Search professionals", description = "Search and filter published professionals and studios")
     public ResponseEntity<DiscoverySearchResponse> searchProfessionals(
             @RequestParam(value = "q", required = false) String q,
@@ -84,7 +85,7 @@ public class DiscoveryController {
         return ResponseEntity.ok(discoveryService.searchProfessionals(params));
     }
 
-    @GetMapping({"/public/discovery/suggestions", "/discovery/suggestions"})
+    @GetMapping("/suggestions")
     @Operation(summary = "Get autocomplete suggestions", description = "Provides rate-limited typeahead suggestions for search queries")
     public ResponseEntity<DiscoverySuggestionsResponse> getSuggestions(
             @RequestParam("q") String query,
@@ -94,7 +95,7 @@ public class DiscoveryController {
         return ResponseEntity.ok(discoveryService.getSuggestions(query, clientIp));
     }
 
-    @GetMapping({"/public/discovery/facets", "/discovery/facets"})
+    @GetMapping("/facets")
     @Operation(summary = "Get discovery facets", description = "Retrieve aggregated count facets for categories, cities, styles, and professional types")
     public ResponseEntity<DiscoveryFacetsDto> getFacets(
             @RequestParam(value = "category", required = false) String category,

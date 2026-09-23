@@ -56,6 +56,93 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+beforeEach(() => {
+  mockSearchParams = new URLSearchParams();
+  vi.clearAllMocks();
+  global.fetch = vi.fn().mockImplementation((url: string) => {
+    const urlStr = String(url);
+    if (urlStr.includes('/public/discovery/professionals')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          projects: [],
+          professionals: professionals.map((p) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.studioName,
+            professionalType: p.professionalType.toUpperCase().replace(/-/g, '_'),
+            professionalTypeLabel: p.professionalTypeLabel,
+            professionalTitle: p.bio,
+            tagline: p.bio,
+            city: p.locationName.split(',')[0],
+            state: p.locationName.split(',')[1]?.trim() || '',
+            services: p.services,
+            specialties: p.specialties,
+            projectCount: p.projectCount || 2,
+            sampleProjectCoverUrls: p.sampleProjectCoverUrls || [],
+          })),
+          totalProjects: 0,
+          totalProfessionals: professionals.length,
+          facets: { categories: [], cities: [], styles: [], professionalTypes: [] },
+          hasMore: false,
+        }),
+      } as Response);
+    }
+    if (urlStr.includes('/public/discovery/projects')) {
+      if (urlStr.includes('non-existent-search-phrase-12345')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            projects: [],
+            professionals: [],
+            totalProjects: 0,
+            totalProfessionals: 0,
+            facets: { categories: [], cities: [], styles: [], professionalTypes: [] },
+            hasMore: false,
+          }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          projects: projects.map((pr) => ({
+            id: pr.id,
+            slug: pr.slug,
+            title: pr.title,
+            shortDescription: pr.description,
+            categoryCode: pr.category.toUpperCase().replace(/-/g, '_'),
+            categoryName: pr.categoryName,
+            styleCodes: [pr.style.toUpperCase().replace(/-/g, '_')],
+            styleNames: [pr.styleName],
+            city: pr.locationName,
+            state: 'Andhra Pradesh',
+            propertyType: pr.propertyType.toUpperCase().replace(/-/g, '_'),
+            projectScope: pr.scope,
+            coverImageUrl: pr.coverImage,
+            isAiConceptCover: pr.isAiConceptCover,
+            studioId: 'studio-1',
+            studioSlug: pr.professionalSlug,
+            studioName: pr.studioName,
+            professionalType: pr.professionalType.toUpperCase().replace(/-/g, '_'),
+            professionalTypeLabel: pr.professionalTypeName,
+            completionYear: pr.completionYear,
+          })),
+          professionals: [],
+          totalProjects: projects.length,
+          totalProfessionals: 0,
+          facets: { categories: [], cities: [], styles: [], professionalTypes: [] },
+          hasMore: false,
+        }),
+      } as Response);
+    }
+    return Promise.resolve({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Not found' }),
+    } as Response);
+  });
+});
+
 describe('Phase 06 — Public Discovery Query Layer', () => {
   it('returns full project list with default parameters', () => {
     const res = getProjects();
@@ -280,11 +367,16 @@ describe('Phase 06 — EnquirySheet ("I Want Something Similar")', () => {
 describe('Phase 06 — ProjectsDiscoveryClient Island', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
-    vi.clearAllMocks();
   });
 
   it('renders project grid and filter controls with initial projects', () => {
-    render(<ProjectsDiscoveryClient initialFilters={{}} />);
+    render(
+      <ProjectsDiscoveryClient
+        initialFilters={{}}
+        initialProjects={projects}
+        initialTotal={projects.length}
+      />
+    );
 
     expect(screen.getByText(`${projects.length}`)).toBeDefined();
     expect(screen.getByText(projects[0].title)).toBeDefined();
@@ -292,7 +384,7 @@ describe('Phase 06 — ProjectsDiscoveryClient Island', () => {
 
   it('renders empty state when filter matches zero items with clear action', () => {
     render(
-      <ProjectsDiscoveryClient initialFilters={{ q: 'non-existent-search-phrase-12345' }} />
+      <ProjectsDiscoveryClient initialFilters={{ q: 'non-existent-search-phrase-12345' }} initialProjects={[]} initialTotal={0} />
     );
 
     expect(screen.getByText('No projects match these filters')).toBeDefined();
@@ -302,7 +394,12 @@ describe('Phase 06 — ProjectsDiscoveryClient Island', () => {
 
 describe('Phase 06 — ProfessionalsDiscoveryClient Island', () => {
   it('renders trade filter tabs and professional cards', () => {
-    render(<ProfessionalsDiscoveryClient />);
+    render(
+      <ProfessionalsDiscoveryClient
+        initialProfessionals={professionals}
+        initialTotal={professionals.length}
+      />
+    );
 
     expect(screen.getByText('All Professionals')).toBeDefined();
     expect(screen.getAllByText('Architecture Studio').length).toBeGreaterThan(0);
@@ -353,14 +450,14 @@ describe('Phase 06 — Route Integration & Truthfulness', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('/professionals route renders directory heading and professional list', () => {
-    const page = ProfessionalsPage();
+  it('/professionals route renders directory heading and professional list', async () => {
+    const page = await ProfessionalsPage();
     render(page);
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(
       'Interior Designers, Studios & Architects Across India'
     );
-    expect(screen.getByText(professionals[0].studioName)).toBeDefined();
+    expect(screen.getAllByText(professionals[0].studioName).length).toBeGreaterThan(0);
   });
 
   it('/professionals/[professionalSlug] renders studio profile and projects', async () => {

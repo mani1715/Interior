@@ -15,9 +15,21 @@ import java.util.*;
 public class JdbcDiscoveryRepository implements DiscoveryRepository {
 
     private final JdbcTemplate jdbcTemplate;
+    private Boolean isPostgresCache = null;
 
     public JdbcDiscoveryRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    private boolean isPostgreSQL() {
+        if (isPostgresCache != null) return isPostgresCache;
+        try {
+            String dbProduct = jdbcTemplate.execute((java.sql.Connection conn) -> conn.getMetaData().getDatabaseProductName());
+            isPostgresCache = dbProduct != null && dbProduct.toLowerCase().contains("postgres");
+        } catch (Exception e) {
+            isPostgresCache = false;
+        }
+        return isPostgresCache;
     }
 
     private static final String BASE_PUBLIC_STUDIO_GATE =
@@ -37,28 +49,41 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         List<Object> args = new ArrayList<>();
 
         boolean hasQuery = params.q() != null && !params.q().trim().isEmpty();
-        String queryPattern = hasQuery ? "%" + params.q().trim().toLowerCase() + "%" : null;
-        String queryExact = hasQuery ? params.q().trim().toLowerCase() : null;
+        String rawQuery = hasQuery ? params.q().trim() : null;
+        String queryPattern = hasQuery ? "%" + rawQuery.toLowerCase() + "%" : null;
+        String queryExact = hasQuery ? rawQuery.toLowerCase() : null;
 
         sql.append("SELECT p.id, p.slug, p.title, p.short_description, p.category_code, ")
            .append("p.city, p.state, p.property_type, p.project_scope, p.completion_year, p.featured, p.created_at, ")
            .append("s.id as studio_id, s.slug as studio_slug, s.name as studio_name, s.professional_type ");
 
         if (hasQuery) {
-            sql.append(", (CASE ")
-               .append("    WHEN LOWER(p.title) = ? THEN 100 ")
-               .append("    WHEN LOWER(p.title) LIKE ? THEN 75 ")
-               .append("    WHEN LOWER(p.title) LIKE ? THEN 50 ")
-               .append("    WHEN LOWER(s.name) LIKE ? THEN 30 ")
-               .append("    WHEN LOWER(p.city) LIKE ? THEN 20 ")
-               .append("    ELSE 10 ")
-               .append("END) as search_score ");
+            if (isPostgreSQL()) {
+                sql.append(", (CASE ")
+                   .append("    WHEN LOWER(p.title) = ? THEN 100.0 ")
+                   .append("    WHEN LOWER(p.title) LIKE ? THEN 80.0 ")
+                   .append("    ELSE (ts_rank(to_tsvector('english', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')), plainto_tsquery('english', ?)) * 40.0 + similarity(p.title, ?) * 40.0) ")
+                   .append("END) as search_score ");
+                args.add(queryExact);
+                args.add(queryExact + "%");
+                args.add(rawQuery);
+                args.add(rawQuery);
+            } else {
+                sql.append(", (CASE ")
+                   .append("    WHEN LOWER(p.title) = ? THEN 100 ")
+                   .append("    WHEN LOWER(p.title) LIKE ? THEN 75 ")
+                   .append("    WHEN LOWER(p.title) LIKE ? THEN 50 ")
+                   .append("    WHEN LOWER(s.name) LIKE ? THEN 30 ")
+                   .append("    WHEN LOWER(p.city) LIKE ? THEN 20 ")
+                   .append("    ELSE 10 ")
+                   .append("END) as search_score ");
 
-            args.add(queryExact);
-            args.add(queryExact + "%");
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
+                args.add(queryExact);
+                args.add(queryExact + "%");
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+            }
         }
 
         sql.append("FROM studio_projects p ")
@@ -66,7 +91,7 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
            .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_PROJECT_GATE);
 
-        applyProjectFilters(sql, args, params, queryPattern);
+        applyProjectFilters(sql, args, params, rawQuery, queryPattern);
 
         // Sorting
         String sort = params.sort() != null ? params.sort().trim().toLowerCase() : (hasQuery ? "relevance" : "recent");
@@ -165,7 +190,8 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         List<Object> args = new ArrayList<>();
 
         boolean hasQuery = params.q() != null && !params.q().trim().isEmpty();
-        String queryPattern = hasQuery ? "%" + params.q().trim().toLowerCase() + "%" : null;
+        String rawQuery = hasQuery ? params.q().trim() : null;
+        String queryPattern = hasQuery ? "%" + rawQuery.toLowerCase() + "%" : null;
 
         sql.append("SELECT COUNT(*) ")
            .append("FROM studio_projects p ")
@@ -173,26 +199,45 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
            .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_PROJECT_GATE);
 
-        applyProjectFilters(sql, args, params, queryPattern);
+        applyProjectFilters(sql, args, params, rawQuery, queryPattern);
 
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
         return count != null ? count : 0L;
     }
 
-    private void applyProjectFilters(StringBuilder sql, List<Object> args, DiscoverySearchParams params, String queryPattern) {
+    private void applyProjectFilters(StringBuilder sql, List<Object> args, DiscoverySearchParams params, String rawQuery, String queryPattern) {
         if (queryPattern != null) {
-            sql.append("AND (")
-               .append("LOWER(p.title) LIKE ? ")
-               .append("OR LOWER(p.short_description) LIKE ? ")
-               .append("OR LOWER(s.name) LIKE ? ")
-               .append("OR LOWER(p.city) LIKE ? ")
-               .append("OR LOWER(p.category_code) LIKE ? ")
-               .append(") ");
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
+            if (isPostgreSQL()) {
+                sql.append("AND (")
+                   .append("to_tsvector('english', p.title || ' ' || coalesce(p.short_description, '') || ' ' || coalesce(p.city, '')) @@ plainto_tsquery('english', ?) ")
+                   .append("OR LOWER(p.title) LIKE ? ")
+                   .append("OR similarity(p.title, ?) > 0.25 ")
+                   .append("OR similarity(s.name, ?) > 0.25 ")
+                   .append("OR LOWER(s.name) LIKE ? ")
+                   .append("OR LOWER(p.city) LIKE ? ")
+                   .append("OR LOWER(p.category_code) LIKE ? ")
+                   .append(") ");
+                args.add(rawQuery);
+                args.add(queryPattern);
+                args.add(rawQuery);
+                args.add(rawQuery);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+            } else {
+                sql.append("AND (")
+                   .append("LOWER(p.title) LIKE ? ")
+                   .append("OR LOWER(p.short_description) LIKE ? ")
+                   .append("OR LOWER(s.name) LIKE ? ")
+                   .append("OR LOWER(p.city) LIKE ? ")
+                   .append("OR LOWER(p.category_code) LIKE ? ")
+                   .append(") ");
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+            }
         }
 
         if (params.category() != null && !params.category().isBlank()) {
@@ -237,32 +282,45 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         List<Object> args = new ArrayList<>();
 
         boolean hasQuery = params.q() != null && !params.q().trim().isEmpty();
-        String queryPattern = hasQuery ? "%" + params.q().trim().toLowerCase() + "%" : null;
-        String queryExact = hasQuery ? params.q().trim().toLowerCase() : null;
+        String rawQuery = hasQuery ? params.q().trim() : null;
+        String queryPattern = hasQuery ? "%" + rawQuery.toLowerCase() + "%" : null;
+        String queryExact = hasQuery ? rawQuery.toLowerCase() : null;
 
         sql.append("SELECT s.id, s.slug, s.name, s.professional_type, s.professional_title, s.tagline, ")
            .append("s.city, s.state, s.experience_since_year, s.created_at ");
 
         if (hasQuery) {
-            sql.append(", (CASE ")
-               .append("    WHEN LOWER(s.name) = ? THEN 100 ")
-               .append("    WHEN LOWER(s.name) LIKE ? THEN 75 ")
-               .append("    WHEN LOWER(s.name) LIKE ? THEN 50 ")
-               .append("    WHEN LOWER(s.city) LIKE ? THEN 30 ")
-               .append("    ELSE 10 ")
-               .append("END) as search_score ");
+            if (isPostgreSQL()) {
+                sql.append(", (CASE ")
+                   .append("    WHEN LOWER(s.name) = ? THEN 100.0 ")
+                   .append("    WHEN LOWER(s.name) LIKE ? THEN 80.0 ")
+                   .append("    ELSE (ts_rank(to_tsvector('english', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')), plainto_tsquery('english', ?)) * 40.0 + similarity(s.name, ?) * 40.0) ")
+                   .append("END) as search_score ");
+                args.add(queryExact);
+                args.add(queryExact + "%");
+                args.add(rawQuery);
+                args.add(rawQuery);
+            } else {
+                sql.append(", (CASE ")
+                   .append("    WHEN LOWER(s.name) = ? THEN 100 ")
+                   .append("    WHEN LOWER(s.name) LIKE ? THEN 75 ")
+                   .append("    WHEN LOWER(s.name) LIKE ? THEN 50 ")
+                   .append("    WHEN LOWER(s.city) LIKE ? THEN 30 ")
+                   .append("    ELSE 10 ")
+                   .append("END) as search_score ");
 
-            args.add(queryExact);
-            args.add(queryExact + "%");
-            args.add(queryPattern);
-            args.add(queryPattern);
+                args.add(queryExact);
+                args.add(queryExact + "%");
+                args.add(queryPattern);
+                args.add(queryPattern);
+            }
         }
 
         sql.append("FROM designer_studios s ")
            .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_STUDIO_GATE);
 
-        applyProfessionalFilters(sql, args, params, queryPattern);
+        applyProfessionalFilters(sql, args, params, rawQuery, queryPattern);
 
         // Sorting
         String sort = params.sort() != null ? params.sort().trim().toLowerCase() : (hasQuery ? "relevance" : "recent");
@@ -336,33 +394,51 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         List<Object> args = new ArrayList<>();
 
         boolean hasQuery = params.q() != null && !params.q().trim().isEmpty();
-        String queryPattern = hasQuery ? "%" + params.q().trim().toLowerCase() + "%" : null;
+        String rawQuery = hasQuery ? params.q().trim() : null;
+        String queryPattern = hasQuery ? "%" + rawQuery.toLowerCase() + "%" : null;
 
         sql.append("SELECT COUNT(*) ")
            .append("FROM designer_studios s ")
            .append("LEFT JOIN studio_seo_settings seo ON seo.studio_id = s.id ")
            .append("WHERE ").append(BASE_PUBLIC_STUDIO_GATE);
 
-        applyProfessionalFilters(sql, args, params, queryPattern);
+        applyProfessionalFilters(sql, args, params, rawQuery, queryPattern);
 
         Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
         return count != null ? count : 0L;
     }
 
-    private void applyProfessionalFilters(StringBuilder sql, List<Object> args, DiscoverySearchParams params, String queryPattern) {
+    private void applyProfessionalFilters(StringBuilder sql, List<Object> args, DiscoverySearchParams params, String rawQuery, String queryPattern) {
         if (queryPattern != null) {
-            sql.append("AND (")
-               .append("LOWER(s.name) LIKE ? ")
-               .append("OR LOWER(s.professional_title) LIKE ? ")
-               .append("OR LOWER(s.tagline) LIKE ? ")
-               .append("OR LOWER(s.city) LIKE ? ")
-               .append("OR LOWER(s.state) LIKE ? ")
-               .append(") ");
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
-            args.add(queryPattern);
+            if (isPostgreSQL()) {
+                sql.append("AND (")
+                   .append("to_tsvector('english', s.name || ' ' || coalesce(s.tagline, '') || ' ' || coalesce(s.city, '')) @@ plainto_tsquery('english', ?) ")
+                   .append("OR LOWER(s.name) LIKE ? ")
+                   .append("OR similarity(s.name, ?) > 0.25 ")
+                   .append("OR LOWER(s.tagline) LIKE ? ")
+                   .append("OR LOWER(s.city) LIKE ? ")
+                   .append("OR LOWER(s.professional_title) LIKE ? ")
+                   .append(") ");
+                args.add(rawQuery);
+                args.add(queryPattern);
+                args.add(rawQuery);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+            } else {
+                sql.append("AND (")
+                   .append("LOWER(s.name) LIKE ? ")
+                   .append("OR LOWER(s.professional_title) LIKE ? ")
+                   .append("OR LOWER(s.tagline) LIKE ? ")
+                   .append("OR LOWER(s.city) LIKE ? ")
+                   .append("OR LOWER(s.state) LIKE ? ")
+                   .append(") ");
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+                args.add(queryPattern);
+            }
         }
 
         if (params.city() != null && !params.city().isBlank()) {

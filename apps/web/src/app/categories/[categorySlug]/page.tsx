@@ -6,8 +6,9 @@ import { PublicHeader } from '@/components/navigation/PublicHeader';
 import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectCard } from '@/components/discovery/ProjectCard';
-import { getCategoryBySlug, getProjects } from '@/lib/discovery/queries';
+import { getCategoryBySlug } from '@/lib/discovery/queries';
 import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
+import type { Project } from '@/lib/discovery/types';
 import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
@@ -51,21 +52,20 @@ export default async function CategoryLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const fallback = getProjects({ category: category.slug });
-  let projects = fallback.projects;
-  let total = fallback.total;
+  let projects: Project[] = [];
+  let total = 0;
 
   try {
     const res = await fetchDiscoveryProjects({
       category: category.slug.toUpperCase().replace(/-/g, '_'),
       limit: 24,
     });
-    if (res?.projects && res.projects.length > 0) {
+    if (res?.projects) {
       projects = res.projects.map(mapDiscoveryCardToProject);
       total = res.totalProjects;
     }
   } catch {
-    // Graceful fallback to static demo
+    // Discovery backend temporarily unavailable - render truthful empty state
   }
 
   // Structured Data (BreadcrumbList)

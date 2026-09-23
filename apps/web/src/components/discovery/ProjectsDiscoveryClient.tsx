@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import { FilterParams } from '@/lib/discovery/types';
+import { SlidersHorizontal, ArrowUpDown, AlertCircle } from 'lucide-react';
+import { FilterParams, Project } from '@/lib/discovery/types';
 import { CATEGORIES, SORT_OPTIONS } from '@/lib/discovery/demo-data';
-import { getProjects } from '@/lib/discovery/queries';
 import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
 import { ProjectCard } from './ProjectCard';
 import { DiscoverySearchBar } from './DiscoverySearchBar';
@@ -16,7 +15,7 @@ import { Button } from '@/components/ui/Button';
 
 export interface ProjectsDiscoveryClientProps {
   initialFilters: FilterParams;
-  initialProjects?: import('@/lib/discovery/types').Project[];
+  initialProjects?: Project[];
   initialTotal?: number;
 }
 
@@ -33,14 +32,22 @@ export function ProjectsDiscoveryClient({
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [liveProjects, setLiveProjects] = useState<import('@/lib/discovery/types').Project[] | null>(
-    initialProjects || null
-  );
-  const [liveTotal, setLiveTotal] = useState<number | null>(initialTotal ?? null);
-  const [usingLive, setUsingLive] = useState<boolean>(Boolean(initialProjects));
+  const [projects, setProjects] = useState<Project[]>(initialProjects || []);
+  const [total, setTotal] = useState<number>(initialTotal ?? (initialProjects ? initialProjects.length : 0));
+  const [isLoading, setIsLoading] = useState<boolean>(!initialProjects);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
+    // If on initial mount and initialProjects is already provided and filters match initialFilters, avoid redundant refetch
+    if (reloadTrigger === 0 && initialProjects && page === 1 && JSON.stringify(filters) === JSON.stringify(initialFilters)) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
     async function loadData() {
       try {
         const res = await fetchDiscoveryProjects({
@@ -52,23 +59,27 @@ export function ProjectsDiscoveryClient({
           limit: 12,
           offset: (page - 1) * 12,
         });
-        if (!isCancelled && res?.projects) {
-          const mapped = res.projects.map(mapDiscoveryCardToProject);
-          setLiveProjects(mapped);
-          setLiveTotal(res.totalProjects);
-          setUsingLive(true);
+        if (!isCancelled) {
+          const mapped = (res?.projects || []).map(mapDiscoveryCardToProject);
+          setProjects(mapped);
+          setTotal(res?.totalProjects ?? mapped.length);
+          setIsLoading(false);
         }
       } catch {
         if (!isCancelled) {
-          setUsingLive(false);
+          setError('Discovery is temporarily unavailable. Please try again.');
+          setProjects([]);
+          setTotal(0);
+          setIsLoading(false);
         }
       }
     }
+
     loadData();
     return () => {
       isCancelled = true;
     };
-  }, [filters, page]);
+  }, [filters, page, reloadTrigger]);
 
   // Sync state if URL searchParams change
   useEffect(() => {
@@ -131,15 +142,7 @@ export function ProjectsDiscoveryClient({
     handleFilterChange('sort', sortVal);
   };
 
-  // Compute filtered projects using the centralized query layer as fallback
-  const fallbackData = useMemo(() => {
-    return getProjects({ ...filters, page });
-  }, [filters, page]);
-
-  const projects = usingLive && liveProjects ? liveProjects : fallbackData.projects;
-  const total = usingLive && liveTotal !== null ? liveTotal : fallbackData.total;
-  const hasMore =
-    usingLive && liveTotal !== null ? page * 12 < liveTotal : fallbackData.hasMore;
+  const hasMore = page * 12 < total;
 
   const activeFilterCount = [
     filters.category,
@@ -261,7 +264,32 @@ export function ProjectsDiscoveryClient({
 
         {/* Project Results Area */}
         <div className="lg:col-span-9">
-          {projects.length > 0 ? (
+          {error ? (
+            /* Truthful Error State */
+            <div className="py-16 text-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-serif text-lg font-semibold text-[var(--foreground)]">
+                  Discovery is temporarily unavailable
+                </h4>
+                <p className="text-xs sm:text-sm text-[var(--muted)] max-w-md mx-auto leading-relaxed">
+                  We are unable to load projects at this moment. Please check your connection and try again.
+                </p>
+              </div>
+              <div className="pt-2 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setReloadTrigger((prev) => prev + 1)}
+                  className="min-h-[44px]"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : projects.length > 0 ? (
             <div className="space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {projects.map((project, idx) => (
@@ -273,7 +301,7 @@ export function ProjectsDiscoveryClient({
                 ))}
               </div>
 
-              {/* Load More Pagination Foundation */}
+              {/* Load More Pagination */}
               {hasMore && (
                 <div className="pt-6 text-center">
                   <Button
@@ -288,7 +316,7 @@ export function ProjectsDiscoveryClient({
               )}
             </div>
           ) : (
-            /* Empty State */
+            /* Truthful Empty State */
             <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] space-y-4">
               <div className="w-12 h-12 rounded-full bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--brand)] flex items-center justify-center mx-auto shadow-sm">
                 <SlidersHorizontal className="w-6 h-6" />
@@ -302,7 +330,7 @@ export function ProjectsDiscoveryClient({
                 </p>
               </div>
               <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-                <Button variant="primary" size="md" onClick={handleClearAll}>
+                <Button variant="primary" size="md" onClick={handleClearAll} className="min-h-[44px]">
                   Clear All Filters
                 </Button>
               </div>

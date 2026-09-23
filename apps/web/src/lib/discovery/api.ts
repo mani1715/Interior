@@ -267,6 +267,8 @@ export function mapDiscoveryCardToProfessional(c: DiscoveryProfessionalCard): Pr
     featured: false,
     avatarChar: c.name.charAt(0).toUpperCase(),
     avatarColor: 'var(--brand)',
+    projectCount: c.projectCount,
+    sampleProjectCoverUrls: c.sampleProjectCoverUrls || [],
   };
 }
 

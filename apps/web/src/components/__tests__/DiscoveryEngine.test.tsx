@@ -182,4 +182,105 @@ describe('Phase 25 — Search & Discovery Engine Frontend', () => {
       expect(handleSearch).toHaveBeenCalledWith('');
     });
   });
+
+  describe('Truthful Failure & Empty State Gating (No Demo Fallback)', () => {
+    it('Backend 500: renders truthful error state and never renders demo projects', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({ error: 'Internal Server Error' }),
+        } as any)
+      );
+
+      const { ProjectsDiscoveryClient } = await import('@/components/discovery/ProjectsDiscoveryClient');
+      render(<ProjectsDiscoveryClient initialFilters={{}} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Discovery is temporarily unavailable')).toBeDefined();
+        expect(screen.getByText(/We are unable to load projects at this moment/i)).toBeDefined();
+        expect(screen.getByRole('button', { name: /try again/i })).toBeDefined();
+      });
+
+      // Assert ZERO fake / demo projects are rendered
+      expect(screen.queryByText(/Contemporary Teak Living Room/i)).toBeNull();
+      expect(screen.queryByText(/Scandinavian Dining Space/i)).toBeNull();
+      fetchSpy.mockRestore();
+    });
+
+    it('Network failure: renders truthful unavailable state and never renders fake professionals', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockImplementationOnce(() =>
+        Promise.reject(new Error('Failed to fetch: Network unreachable'))
+      );
+
+      const { ProfessionalsDiscoveryClient } = await import('@/components/discovery/ProfessionalsDiscoveryClient');
+      render(<ProfessionalsDiscoveryClient />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Discovery is temporarily unavailable')).toBeDefined();
+        expect(screen.getByText(/We are unable to load professionals at this moment/i)).toBeDefined();
+        expect(screen.getByRole('button', { name: /try again/i })).toBeDefined();
+      });
+
+      // Assert ZERO fake / demo professionals are rendered
+      expect(screen.queryByText(/Studio Atelier Minimal/i)).toBeNull();
+      expect(screen.queryByText(/Deccan Craft Guild/i)).toBeNull();
+      fetchSpy.mockRestore();
+    });
+
+    it('Timeout / Retry state: clicking Try Again initiates a retry request', async () => {
+      let callCount = 0;
+      const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() => {
+        callCount++;
+        return Promise.reject(new Error('ETIMEDOUT: Connection timed out'));
+      });
+
+      const { ProjectsDiscoveryClient } = await import('@/components/discovery/ProjectsDiscoveryClient');
+      render(<ProjectsDiscoveryClient initialFilters={{}} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Discovery is temporarily unavailable')).toBeDefined();
+      });
+
+      const initialCalls = callCount;
+      const retryBtn = screen.getByRole('button', { name: /try again/i });
+      fireEvent.click(retryBtn);
+
+      await waitFor(() => {
+        expect(callCount).toBeGreaterThan(initialCalls);
+      });
+
+      fetchSpy.mockRestore();
+    });
+
+    it('Empty legitimate response: renders truthful empty state without demo fallback', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              projects: [],
+              totalProjects: 0,
+              totalProfessionals: 0,
+              facets: { categories: [], cities: [], styles: [], professionalTypes: [] },
+              hasMore: false,
+            }),
+        } as any)
+      );
+
+      const { ProjectsDiscoveryClient } = await import('@/components/discovery/ProjectsDiscoveryClient');
+      render(<ProjectsDiscoveryClient initialFilters={{}} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No projects match these filters')).toBeDefined();
+        expect(screen.getByText(/Try broadening your location/i)).toBeDefined();
+        expect(screen.getByRole('button', { name: /clear all filters/i })).toBeDefined();
+      });
+
+      // Assert no fallback demo cards
+      expect(screen.queryByText(/Contemporary Teak Living Room/i)).toBeNull();
+      fetchSpy.mockRestore();
+    });
+  });
 });

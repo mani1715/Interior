@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, MapPin, AlertCircle } from 'lucide-react';
 import { ProfessionalCard } from './ProfessionalCard';
-import { getProfessionals } from '@/lib/discovery/queries';
 import { PROFESSIONAL_TYPES, LOCATIONS } from '@/lib/discovery/demo-data';
 import { fetchDiscoveryProfessionals, mapDiscoveryCardToProfessional } from '@/lib/discovery/api';
 import { Professional } from '@/lib/discovery/types';
+import { Button } from '@/components/ui/Button';
 
 export interface ProfessionalsDiscoveryClientProps {
   initialProfessionals?: Professional[];
@@ -21,14 +21,22 @@ export function ProfessionalsDiscoveryClient({
   const [selectedType, setSelectedType] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
 
-  const [liveProfessionals, setLiveProfessionals] = useState<Professional[] | null>(
-    initialProfessionals || null
-  );
-  const [liveTotal, setLiveTotal] = useState<number | null>(initialTotal ?? null);
-  const [usingLive, setUsingLive] = useState<boolean>(Boolean(initialProfessionals));
+  const [professionals, setProfessionals] = useState<Professional[]>(initialProfessionals || []);
+  const [total, setTotal] = useState<number>(initialTotal ?? (initialProfessionals ? initialProfessionals.length : 0));
+  const [isLoading, setIsLoading] = useState<boolean>(!initialProfessionals);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
+    // On initial mount if initialProfessionals is provided and no filters set, don't refetch
+    if (reloadTrigger === 0 && initialProfessionals && !q.trim() && selectedType === 'all' && selectedLocation === 'all') {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
     async function loadData() {
       try {
         const res = await fetchDiscoveryProfessionals({
@@ -38,33 +46,27 @@ export function ProfessionalsDiscoveryClient({
           limit: 18,
           offset: 0,
         });
-        if (!isCancelled && res?.professionals) {
-          const mapped = res.professionals.map(mapDiscoveryCardToProfessional);
-          setLiveProfessionals(mapped);
-          setLiveTotal(res.totalProfessionals);
-          setUsingLive(true);
+        if (!isCancelled) {
+          const mapped = (res?.professionals || []).map(mapDiscoveryCardToProfessional);
+          setProfessionals(mapped);
+          setTotal(res?.totalProfessionals ?? mapped.length);
+          setIsLoading(false);
         }
       } catch {
         if (!isCancelled) {
-          setUsingLive(false);
+          setError('Discovery is temporarily unavailable. Please try again.');
+          setProfessionals([]);
+          setTotal(0);
+          setIsLoading(false);
         }
       }
     }
+
     loadData();
     return () => {
       isCancelled = true;
     };
-  }, [q, selectedType, selectedLocation]);
-
-  const fallbackProfessionals = useMemo(() => {
-    return getProfessionals({
-      q: q.trim() || undefined,
-      professionalType: selectedType !== 'all' ? (selectedType as any) : undefined,
-      location: selectedLocation !== 'all' ? selectedLocation : undefined,
-    });
-  }, [q, selectedType, selectedLocation]);
-
-  const professionals = usingLive && liveProfessionals ? liveProfessionals : fallbackProfessionals;
+  }, [q, selectedType, selectedLocation, reloadTrigger]);
 
   return (
     <div className="w-full space-y-6 sm:space-y-8">
@@ -132,12 +134,38 @@ export function ProfessionalsDiscoveryClient({
       {/* Results Header */}
       <div className="flex items-center justify-between text-xs text-[var(--muted)] border-b border-[var(--border)] pb-3">
         <span>
-          Showing <strong className="text-[var(--foreground)] font-semibold">{professionals.length}</strong> verified practitioners
+          Showing <strong className="text-[var(--foreground)] font-semibold">{total}</strong> verified practitioners
         </span>
       </div>
 
-      {/* Professionals Grid */}
-      {professionals.length === 0 ? (
+      {/* Professionals Content */}
+      {error ? (
+        /* Truthful Error State */
+        <div className="py-16 text-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 space-y-4">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-serif text-lg font-semibold text-[var(--foreground)]">
+              Discovery is temporarily unavailable
+            </h4>
+            <p className="text-xs sm:text-sm text-[var(--muted)] max-w-md mx-auto leading-relaxed">
+              We are unable to load professionals at this moment. Please check your connection and try again.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setReloadTrigger((prev) => prev + 1)}
+              className="min-h-[44px]"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      ) : professionals.length === 0 ? (
+        /* Truthful Empty State */
         <div className="py-16 text-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8">
           <p className="font-serif text-lg font-semibold text-[var(--foreground)] mb-1">
             No matching professionals found

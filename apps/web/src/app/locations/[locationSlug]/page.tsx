@@ -7,13 +7,14 @@ import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectCard } from '@/components/discovery/ProjectCard';
 import { ProfessionalCard } from '@/components/discovery/ProfessionalCard';
-import { getLocationBySlug, getProjects, getProfessionals } from '@/lib/discovery/queries';
+import { getLocationBySlug } from '@/lib/discovery/queries';
 import {
   fetchDiscoveryProjects,
   fetchDiscoveryProfessionals,
   mapDiscoveryCardToProject,
   mapDiscoveryCardToProfessional,
 } from '@/lib/discovery/api';
+import { Project, Professional } from '@/lib/discovery/types';
 import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
@@ -33,14 +34,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `Interior Design & Architecture in ${location.name} | Elégance`,
-    description: `Discover interior designers, architecture studios, and completed turnkey projects in ${location.name}, ${location.state}.`,
+    title: `Interior Designers & Projects in ${location.name}, ${location.state} | Elégance`,
+    description: location.description,
     alternates: {
       canonical: `/locations/${location.slug}`,
     },
     openGraph: {
-      title: `Interior Design & Architecture in ${location.name} | Elégance`,
-      description: `Discover interior designers, architecture studios, and completed turnkey projects in ${location.name}, ${location.state}.`,
+      title: `Interior Designers & Projects in ${location.name}, ${location.state} | Elégance`,
+      description: location.description,
       url: `/locations/${location.slug}`,
       siteName: 'Elégance Interior Platform',
       locale: 'en_IN',
@@ -57,25 +58,24 @@ export default async function LocationLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const fallbackProj = getProjects({ location: location.slug });
-  let projects = fallbackProj.projects;
-  let total = fallbackProj.total;
-  let professionals = getProfessionals({ location: location.slug });
+  let projects: Project[] = [];
+  let total = 0;
+  let professionals: Professional[] = [];
 
   try {
     const [projRes, profRes] = await Promise.all([
       fetchDiscoveryProjects({ city: location.name, limit: 12 }),
       fetchDiscoveryProfessionals({ city: location.name, limit: 12 }),
     ]);
-    if (projRes?.projects && projRes.projects.length > 0) {
+    if (projRes?.projects) {
       projects = projRes.projects.map(mapDiscoveryCardToProject);
       total = projRes.totalProjects;
     }
-    if (profRes?.professionals && profRes.professionals.length > 0) {
+    if (profRes?.professionals) {
       professionals = profRes.professionals.map(mapDiscoveryCardToProfessional);
     }
   } catch {
-    // Graceful fallback to static demo data
+    // Discovery backend temporarily unavailable - render truthful empty states
   }
 
   // Structured Data (BreadcrumbList)

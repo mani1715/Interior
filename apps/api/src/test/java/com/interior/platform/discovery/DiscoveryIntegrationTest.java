@@ -339,4 +339,122 @@ class DiscoveryIntegrationTest {
         var bedroomFacet = res.getBody().categories().stream().filter(c -> "BEDROOM".equals(c.code())).findFirst();
         assertTrue(bedroomFacet.isEmpty(), "Private project category must not be in facets");
     }
+
+    @Test
+    @DisplayName("Immediate unpublish: unpublishing studio immediately removes all projects and studio from search")
+    void testImmediateUnpublishStudioRemovesFromSearchImmediately() {
+        // Confirm initially discoverable
+        ResponseEntity<DiscoverySearchResponse> initProjects = discoveryController.searchProjects(
+                null, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(2, initProjects.getBody().totalProjects());
+
+        ResponseEntity<DiscoverySearchResponse> initPros = discoveryController.searchProfessionals(
+                "Mehta", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(1, initPros.getBody().totalProfessionals());
+
+        // Immediately unpublish studio A
+        jdbcTemplate.update("UPDATE designer_studios SET publication_status = 'UNPUBLISHED' WHERE id = ?", studioAId);
+
+        // Immediately search again — without restart, cache flush, or delay
+        ResponseEntity<DiscoverySearchResponse> afterProjects = discoveryController.searchProjects(
+                null, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(0, afterProjects.getBody().totalProjects());
+
+        ResponseEntity<DiscoverySearchResponse> afterPros = discoveryController.searchProfessionals(
+                "Mehta", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(0, afterPros.getBody().totalProfessionals());
+    }
+
+    @Test
+    @DisplayName("Project privacy: changing project visibility to PRIVATE immediately removes it from search")
+    void testProjectPrivacyChangeRemovesImmediately() {
+        // Project 1 is initially discoverable
+        ResponseEntity<DiscoverySearchResponse> search1 = discoveryController.searchProjects(
+                "Penthouse", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(1, search1.getBody().totalProjects());
+
+        // Update project 1 visibility to PRIVATE
+        jdbcTemplate.update("UPDATE studio_projects SET visibility_status = 'PRIVATE' WHERE id = ?", project1Id);
+
+        // Search immediately again
+        ResponseEntity<DiscoverySearchResponse> search2 = discoveryController.searchProjects(
+                "Penthouse", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(0, search2.getBody().totalProjects());
+    }
+
+    @Test
+    @DisplayName("Cross-studio public search: returns public data from both Studio A and Studio B, excluding Studio C")
+    void testCrossStudioPublicSearch() {
+        // Publish Studio B
+        jdbcTemplate.update("UPDATE designer_studios SET publication_status = 'PUBLISHED' WHERE id = ?", studioBId);
+
+        // Create Studio C (Unpublished)
+        UUID userCId = UuidV7.randomUuid();
+        jdbcTemplate.update("INSERT INTO users (id, display_name, email, status, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', now(), now())",
+                userCId, "Kabir Das", "kabir@das.com");
+        UUID studioCId = UuidV7.randomUuid();
+        jdbcTemplate.update("INSERT INTO designer_studios (" +
+                "id, name, slug, owner_id, status, publication_status, professional_type, professional_title, tagline, city, state, country, created_at, updated_at" +
+                ") VALUES (?, ?, ?, ?, 'ACTIVE', 'UNPUBLISHED', 'INTERIOR_STUDIO', 'Interior Stylist', 'Bespoke spaces', 'Delhi', 'Delhi', 'IN', now(), now())",
+                studioCId, "Das Interiors", "das-interiors", userCId);
+
+        UUID projectCId = UuidV7.randomUuid();
+        insertProject(projectCId, studioCId, "delhi-kothi", "Delhi Kothi", "Bespoke kothi", ProjectCategory.LIVING_ROOM.name(),
+                ProjectStatus.READY.name(), VisibilityStatus.PORTFOLIO.name(), "Delhi", "Delhi", false, userCId);
+
+        // Search projects: should return 3 projects (2 from Studio A, 1 from Studio B), 0 from Studio C
+        ResponseEntity<DiscoverySearchResponse> projRes = discoveryController.searchProjects(
+                null, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(3, projRes.getBody().totalProjects());
+        assertTrue(projRes.getBody().projects().stream().anyMatch(p -> p.id().equals(project1Id)));
+        assertTrue(projRes.getBody().projects().stream().anyMatch(p -> p.id().equals(project5StudioBId)));
+        assertFalse(projRes.getBody().projects().stream().anyMatch(p -> p.id().equals(projectCId)));
+
+        // Search professionals: returns Studio A & B, excludes C
+        ResponseEntity<DiscoverySearchResponse> profRes = discoveryController.searchProfessionals(
+                null, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertEquals(2, profRes.getBody().totalProfessionals());
+        assertTrue(profRes.getBody().professionals().stream().anyMatch(p -> p.id().equals(studioAId)));
+        assertTrue(profRes.getBody().professionals().stream().anyMatch(p -> p.id().equals(studioBId)));
+        assertFalse(profRes.getBody().professionals().stream().anyMatch(p -> p.id().equals(studioCId)));
+    }
+
+    @Test
+    @DisplayName("Input security and sanitization: handles SQL injection, special characters, and Unicode Telugu/Tamil")
+    void testInputSecuritySanitization() {
+        // SQL injection probe
+        ResponseEntity<DiscoverySearchResponse> sqlInj = discoveryController.searchProjects(
+                "' OR 1=1 --", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertNotNull(sqlInj.getBody());
+        assertEquals(0, sqlInj.getBody().totalProjects());
+
+        // Tsquery special syntax
+        ResponseEntity<DiscoverySearchResponse> tsChars = discoveryController.searchProjects(
+                "title & ! | ( ) : * ' \"", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertNotNull(tsChars.getBody());
+
+        // Unicode Indian languages (Telugu & Tamil)
+        ResponseEntity<DiscoverySearchResponse> unicodeRes = discoveryController.searchProjects(
+                "గృహం வடிவமைப்பு", null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertNotNull(unicodeRes.getBody());
+        assertEquals(0, unicodeRes.getBody().totalProjects());
+
+        // 101-character boundary string
+        String long101 = "a".repeat(101);
+        ResponseEntity<DiscoverySearchResponse> longRes = discoveryController.searchProjects(
+                long101, null, null, null, null, null, null, null, null, 20, 0, null
+        );
+        assertNotNull(longRes.getBody());
+    }
 }

@@ -3,6 +3,8 @@ import { PublicHeader } from '@/components/navigation/PublicHeader';
 import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProfessionalsDiscoveryClient } from '@/components/discovery/ProfessionalsDiscoveryClient';
+import { fetchDiscoveryProfessionals, mapDiscoveryCardToProfessional } from '@/lib/discovery/api';
+import { Professional } from '@/lib/discovery/types';
 
 export const metadata: Metadata = {
   title: 'Interior Designers, Studios & Architects | Elégance',
@@ -22,7 +24,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ProfessionalsPage() {
+export default async function ProfessionalsPage() {
+  let initialProfessionals: Professional[] = [];
+  let initialTotal = 0;
+
+  try {
+    const res = await fetchDiscoveryProfessionals({ limit: 20 });
+    initialProfessionals = (res.professionals || []).map(mapDiscoveryCardToProfessional);
+    initialTotal = res.totalProfessionals || 0;
+  } catch {
+    // Graceful error handling: empty list on connection issue
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
       <PublicHeader currentPath="/professionals" />
@@ -52,7 +65,10 @@ export default function ProfessionalsPage() {
             </p>
           </div>
 
-          <ProfessionalsDiscoveryClient />
+          <ProfessionalsDiscoveryClient
+            initialProfessionals={initialProfessionals}
+            initialTotal={initialTotal}
+          />
         </div>
       </main>
 
