@@ -4,8 +4,9 @@ import { PublicHeader } from '@/components/navigation/PublicHeader';
 import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectsDiscoveryClient } from '@/components/discovery/ProjectsDiscoveryClient';
-import { FilterParams } from '@/lib/discovery/types';
+import { FilterParams, Project } from '@/lib/discovery/types';
 import { CATEGORIES, LOCATIONS } from '@/lib/discovery/demo-data';
+import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
 
 interface PageProps {
   searchParams: Promise<{
@@ -40,9 +41,14 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     description = `Discover verified interior and architecture projects completed across ${location.name}, ${location.state}.`;
   }
 
+  const isSearchQuery = Boolean(
+    params.q || params.sort || params.propertyType || params.budget || params.style
+  );
+
   return {
     title,
     description,
+    robots: isSearchQuery ? { index: false, follow: true } : { index: true, follow: true },
     alternates: {
       canonical: '/projects',
     },
@@ -70,6 +76,27 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
     professionalType: resolvedParams.professionalType,
     sort: resolvedParams.sort || 'recommended',
   };
+
+  let initialProjects: Project[] | undefined;
+  let initialTotal: number | undefined;
+
+  try {
+    const res = await fetchDiscoveryProjects({
+      q: resolvedParams.q,
+      category: resolvedParams.category,
+      city: resolvedParams.location,
+      style: resolvedParams.style,
+      sort: resolvedParams.sort,
+      limit: 12,
+      offset: 0,
+    });
+    if (res?.projects) {
+      initialProjects = res.projects.map(mapDiscoveryCardToProject);
+      initialTotal = res.totalProjects;
+    }
+  } catch {
+    // Fallback gracefully if backend is offline during static build/test
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
@@ -102,7 +129,11 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
 
           {/* Interactive Client Discovery Island with URL State */}
           <Suspense fallback={<div className="py-12 text-center text-xs text-[var(--muted)]">Loading projects...</div>}>
-            <ProjectsDiscoveryClient initialFilters={initialFilters} />
+            <ProjectsDiscoveryClient
+              initialFilters={initialFilters}
+              initialProjects={initialProjects}
+              initialTotal={initialTotal}
+            />
           </Suspense>
         </div>
       </main>

@@ -6,6 +6,7 @@ import { SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { FilterParams } from '@/lib/discovery/types';
 import { CATEGORIES, SORT_OPTIONS } from '@/lib/discovery/demo-data';
 import { getProjects } from '@/lib/discovery/queries';
+import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
 import { ProjectCard } from './ProjectCard';
 import { DiscoverySearchBar } from './DiscoverySearchBar';
 import { ProjectFilterSheet } from './ProjectFilterSheet';
@@ -15,9 +16,15 @@ import { Button } from '@/components/ui/Button';
 
 export interface ProjectsDiscoveryClientProps {
   initialFilters: FilterParams;
+  initialProjects?: import('@/lib/discovery/types').Project[];
+  initialTotal?: number;
 }
 
-export function ProjectsDiscoveryClient({ initialFilters }: ProjectsDiscoveryClientProps) {
+export function ProjectsDiscoveryClient({
+  initialFilters,
+  initialProjects,
+  initialTotal,
+}: ProjectsDiscoveryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -25,6 +32,43 @@ export function ProjectsDiscoveryClient({ initialFilters }: ProjectsDiscoveryCli
   const [filters, setFilters] = useState<FilterParams>(initialFilters);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+
+  const [liveProjects, setLiveProjects] = useState<import('@/lib/discovery/types').Project[] | null>(
+    initialProjects || null
+  );
+  const [liveTotal, setLiveTotal] = useState<number | null>(initialTotal ?? null);
+  const [usingLive, setUsingLive] = useState<boolean>(Boolean(initialProjects));
+
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadData() {
+      try {
+        const res = await fetchDiscoveryProjects({
+          q: filters.q,
+          category: filters.category,
+          city: filters.location,
+          style: filters.style,
+          sort: filters.sort,
+          limit: 12,
+          offset: (page - 1) * 12,
+        });
+        if (!isCancelled && res?.projects) {
+          const mapped = res.projects.map(mapDiscoveryCardToProject);
+          setLiveProjects(mapped);
+          setLiveTotal(res.totalProjects);
+          setUsingLive(true);
+        }
+      } catch {
+        if (!isCancelled) {
+          setUsingLive(false);
+        }
+      }
+    }
+    loadData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [filters, page]);
 
   // Sync state if URL searchParams change
   useEffect(() => {
@@ -87,10 +131,15 @@ export function ProjectsDiscoveryClient({ initialFilters }: ProjectsDiscoveryCli
     handleFilterChange('sort', sortVal);
   };
 
-  // Compute filtered projects using the centralized query layer
-  const { projects, total, hasMore } = useMemo(() => {
+  // Compute filtered projects using the centralized query layer as fallback
+  const fallbackData = useMemo(() => {
     return getProjects({ ...filters, page });
   }, [filters, page]);
+
+  const projects = usingLive && liveProjects ? liveProjects : fallbackData.projects;
+  const total = usingLive && liveTotal !== null ? liveTotal : fallbackData.total;
+  const hasMore =
+    usingLive && liveTotal !== null ? page * 12 < liveTotal : fallbackData.hasMore;
 
   const activeFilterCount = [
     filters.category,

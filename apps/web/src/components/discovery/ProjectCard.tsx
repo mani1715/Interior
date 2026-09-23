@@ -40,11 +40,14 @@ export function ProjectCard({ project, priority = false }: ProjectCardProps) {
           {project.categoryName}
         </div>
 
-        {/* AI Concept Marker if project has AI transformation study */}
-        {project.aiImage && (
-          <div className="absolute top-3 left-24 px-2 py-0.5 rounded bg-[var(--brand)]/90 backdrop-blur-sm text-[var(--charcoal)] text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            <span>AI Study</span>
+        {/* AI Concept Marker if project uses AI concept visualization */}
+        {(project.isAiConceptCover || project.aiImage) && (
+          <div
+            className="absolute top-3 left-24 px-2.5 py-1 rounded bg-[var(--brand)] text-[var(--charcoal)] text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm"
+            aria-label="AI Concept Visualization"
+          >
+            <Sparkles className="w-3 h-3" aria-hidden="true" />
+            <span>✦ AI Concept Visualization</span>
           </div>
         )}
 
@@ -54,7 +57,7 @@ export function ProjectCard({ project, priority = false }: ProjectCardProps) {
           onClick={toggleSave}
           aria-label={isSaved ? 'Remove from saved inspiration' : 'Save to inspiration (Demo)'}
           title={isSaved ? 'Saved (Demo)' : 'Save to inspiration (Demo)'}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all min-h-[36px] min-w-[36px] flex items-center justify-center ${
+          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all min-h-[44px] min-w-[44px] flex items-center justify-center ${
             isSaved
               ? 'bg-[var(--brand)] text-[var(--charcoal)]'
               : 'bg-black/50 text-white/90 hover:bg-black/70'

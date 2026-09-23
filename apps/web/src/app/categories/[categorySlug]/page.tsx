@@ -7,6 +7,7 @@ import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectCard } from '@/components/discovery/ProjectCard';
 import { getCategoryBySlug, getProjects } from '@/lib/discovery/queries';
+import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
 import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
@@ -50,7 +51,22 @@ export default async function CategoryLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { projects, total } = getProjects({ category: category.slug });
+  const fallback = getProjects({ category: category.slug });
+  let projects = fallback.projects;
+  let total = fallback.total;
+
+  try {
+    const res = await fetchDiscoveryProjects({
+      category: category.slug.toUpperCase().replace(/-/g, '_'),
+      limit: 24,
+    });
+    if (res?.projects && res.projects.length > 0) {
+      projects = res.projects.map(mapDiscoveryCardToProject);
+      total = res.totalProjects;
+    }
+  } catch {
+    // Graceful fallback to static demo
+  }
 
   // Structured Data (BreadcrumbList)
   const breadcrumbJsonLd = {

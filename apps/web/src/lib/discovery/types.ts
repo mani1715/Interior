@@ -76,6 +76,7 @@ export interface Project {
   beforeImage?: string;
   aiImage?: string;
   realityImage?: string;
+  isAiConceptCover?: boolean;
 }
 
 export interface Professional {

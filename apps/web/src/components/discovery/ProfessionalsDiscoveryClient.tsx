@@ -1,23 +1,70 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import { ProfessionalCard } from './ProfessionalCard';
 import { getProfessionals } from '@/lib/discovery/queries';
 import { PROFESSIONAL_TYPES, LOCATIONS } from '@/lib/discovery/demo-data';
+import { fetchDiscoveryProfessionals, mapDiscoveryCardToProfessional } from '@/lib/discovery/api';
+import { Professional } from '@/lib/discovery/types';
 
-export function ProfessionalsDiscoveryClient() {
+export interface ProfessionalsDiscoveryClientProps {
+  initialProfessionals?: Professional[];
+  initialTotal?: number;
+}
+
+export function ProfessionalsDiscoveryClient({
+  initialProfessionals,
+  initialTotal,
+}: ProfessionalsDiscoveryClientProps = {}) {
   const [q, setQ] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
 
-  const professionals = useMemo(() => {
+  const [liveProfessionals, setLiveProfessionals] = useState<Professional[] | null>(
+    initialProfessionals || null
+  );
+  const [liveTotal, setLiveTotal] = useState<number | null>(initialTotal ?? null);
+  const [usingLive, setUsingLive] = useState<boolean>(Boolean(initialProfessionals));
+
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadData() {
+      try {
+        const res = await fetchDiscoveryProfessionals({
+          q: q.trim() || undefined,
+          professionalType: selectedType !== 'all' ? selectedType : undefined,
+          city: selectedLocation !== 'all' ? selectedLocation : undefined,
+          limit: 18,
+          offset: 0,
+        });
+        if (!isCancelled && res?.professionals) {
+          const mapped = res.professionals.map(mapDiscoveryCardToProfessional);
+          setLiveProfessionals(mapped);
+          setLiveTotal(res.totalProfessionals);
+          setUsingLive(true);
+        }
+      } catch {
+        if (!isCancelled) {
+          setUsingLive(false);
+        }
+      }
+    }
+    loadData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [q, selectedType, selectedLocation]);
+
+  const fallbackProfessionals = useMemo(() => {
     return getProfessionals({
       q: q.trim() || undefined,
-      professionalType: selectedType !== 'all' ? selectedType : undefined,
+      professionalType: selectedType !== 'all' ? (selectedType as any) : undefined,
       location: selectedLocation !== 'all' ? selectedLocation : undefined,
     });
   }, [q, selectedType, selectedLocation]);
+
+  const professionals = usingLive && liveProfessionals ? liveProfessionals : fallbackProfessionals;
 
   return (
     <div className="w-full space-y-6 sm:space-y-8">
@@ -58,7 +105,7 @@ export function ProfessionalsDiscoveryClient() {
         <button
           type="button"
           onClick={() => setSelectedType('all')}
-          className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[38px] border ${
+          className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[44px] border ${
             selectedType === 'all'
               ? 'bg-[var(--brand)] text-[var(--charcoal)] border-[var(--brand)] font-semibold shadow-sm'
               : 'bg-[var(--surface)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--border-strong)]'
@@ -71,7 +118,7 @@ export function ProfessionalsDiscoveryClient() {
             key={pt.slug}
             type="button"
             onClick={() => setSelectedType(pt.slug)}
-            className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[38px] border ${
+            className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[44px] border ${
               selectedType === pt.slug
                 ? 'bg-[var(--brand)] text-[var(--charcoal)] border-[var(--brand)] font-semibold shadow-sm'
                 : 'bg-[var(--surface)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--border-strong)]'
@@ -83,25 +130,38 @@ export function ProfessionalsDiscoveryClient() {
       </div>
 
       {/* Results Header */}
-      <div className="text-xs sm:text-sm text-[var(--muted)] font-medium">
-        Showing <span className="font-semibold text-[var(--foreground)]">{professionals.length}</span> {professionals.length === 1 ? 'studio' : 'studios'}
+      <div className="flex items-center justify-between text-xs text-[var(--muted)] border-b border-[var(--border)] pb-3">
+        <span>
+          Showing <strong className="text-[var(--foreground)] font-semibold">{professionals.length}</strong> verified practitioners
+        </span>
       </div>
 
-      {/* Professional Cards Grid */}
-      {professionals.length > 0 ? (
+      {/* Professionals Grid */}
+      {professionals.length === 0 ? (
+        <div className="py-16 text-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8">
+          <p className="font-serif text-lg font-semibold text-[var(--foreground)] mb-1">
+            No matching professionals found
+          </p>
+          <p className="text-xs text-[var(--muted)] max-w-sm mx-auto mb-4">
+            Try adjusting your search query, location filter, or trade specialty.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setQ('');
+              setSelectedType('all');
+              setSelectedLocation('all');
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--surface-alt)] text-[var(--foreground)] border border-[var(--border)] hover:border-[var(--brand)] transition-colors min-h-[44px]"
+          >
+            Clear Filters
+          </button>
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {professionals.map((prof) => (
             <ProfessionalCard key={prof.id} professional={prof} />
           ))}
-        </div>
-      ) : (
-        <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] space-y-3">
-          <p className="font-serif text-base font-semibold text-[var(--foreground)]">
-            No professionals found matching your search
-          </p>
-          <p className="text-xs text-[var(--muted)]">
-            Try resetting your search query or selecting a different trade or city.
-          </p>
         </div>
       )}
     </div>

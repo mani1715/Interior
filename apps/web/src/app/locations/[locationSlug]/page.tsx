@@ -8,6 +8,12 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { ProjectCard } from '@/components/discovery/ProjectCard';
 import { ProfessionalCard } from '@/components/discovery/ProfessionalCard';
 import { getLocationBySlug, getProjects, getProfessionals } from '@/lib/discovery/queries';
+import {
+  fetchDiscoveryProjects,
+  fetchDiscoveryProfessionals,
+  mapDiscoveryCardToProject,
+  mapDiscoveryCardToProfessional,
+} from '@/lib/discovery/api';
 import { SafeJsonLd } from '@/lib/seo/structured-data';
 
 interface PageProps {
@@ -51,8 +57,26 @@ export default async function LocationLandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { projects, total } = getProjects({ location: location.slug });
-  const professionals = getProfessionals({ location: location.slug });
+  const fallbackProj = getProjects({ location: location.slug });
+  let projects = fallbackProj.projects;
+  let total = fallbackProj.total;
+  let professionals = getProfessionals({ location: location.slug });
+
+  try {
+    const [projRes, profRes] = await Promise.all([
+      fetchDiscoveryProjects({ city: location.name, limit: 12 }),
+      fetchDiscoveryProfessionals({ city: location.name, limit: 12 }),
+    ]);
+    if (projRes?.projects && projRes.projects.length > 0) {
+      projects = projRes.projects.map(mapDiscoveryCardToProject);
+      total = projRes.totalProjects;
+    }
+    if (profRes?.professionals && profRes.professionals.length > 0) {
+      professionals = profRes.professionals.map(mapDiscoveryCardToProfessional);
+    }
+  } catch {
+    // Graceful fallback to static demo data
+  }
 
   // Structured Data (BreadcrumbList)
   const breadcrumbJsonLd = {
