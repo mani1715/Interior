@@ -1,0 +1,41 @@
+package com.interior.platform.leads.dto;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record LeadDetailDto(
+    UUID id,
+    UUID studioId,
+    UUID projectId,
+    String projectTitle,
+    String projectSlug,
+    String source,
+    String sourceDisplayName,
+    String status,
+    String statusDisplayName,
+    String name,
+    String phoneMasked,
+    String phoneNormalized,
+    String emailNormalized,
+    String city,
+    String projectCategory,
+    String budgetRange,
+    String message,
+    String preferredContactChannel,
+    Instant contactConsentAt,
+    Instant whatsappConsentAt,
+    boolean hasWhatsappConsent,
+    UUID assignedUserId,
+    String assignedUserName,
+    Instant nextFollowUpAt,
+    String lostReason,
+    boolean possibleDuplicate,
+    Instant createdAt,
+    Instant updatedAt,
+    long version,
+    Instant archivedAt,
+    List<LeadNoteDto> notes,
+    List<LeadActivityDto> activities,
+    List<WhatsAppMessageDto> whatsappMessages
+) {}

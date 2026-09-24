@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-23, PHASE 25.2 (Public Discovery RLS & Database Privacy Closure) COMPLETE & PASS. Full regression, scale benchmarking, database RLS hardening, and privacy gating verified. Strict Boundary: DO NOT START PHASE 26.
+Last updated: 2026-09-24, PHASE 26 (Leads + CRM + WhatsApp) COMPLETE & PASS. Full regression, backend test suite, frontend vitest, typecheck, lint, and production build verified. Strict Boundary: DO NOT START PHASE 27.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -532,8 +532,24 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Backend Tests: **246 / 246 PASS** (17 tests in `DiscoveryIntegrationTest`, 0 failures, 0 errors).
     - Frontend Tests: **228 / 228 PASS** (28 test files, 0 failures, 0 errors).
     - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+- **PHASE 26 — PASS:** Leads + CRM + WhatsApp Implementation.
+  - Implemented end-to-end business inquiry pipeline converting public discovery and portfolio visits into real, private, studio-owned leads.
+  - Database schema (`V017__leads_crm_whatsapp.sql`):
+    - Created `studio_leads`, `lead_activities`, `lead_notes`, and `lead_whatsapp_messages` with composite tenant keys (`fk_studio_leads_project FOREIGN KEY (project_id, studio_id) REFERENCES studio_projects(id, studio_id)`), index pushdown on status/assigned user/follow-up date, and forced RLS tenant isolation policies.
+  - Backend Domain & API (`com.interior.platform.leads`):
+    - `PublicLeadController`: `POST /api/v1/public/leads` with honeypot abuse protection (`website_hp`), IP rate limiting, server-derived source attribution, and E.164 phone normalization (+91 India-first); `POST /api/v1/public/contact/whatsapp-handoff` for visitor-initiated chat generation.
+    - `LeadController`: Authenticated studio CRM endpoints (`GET /api/v1/leads`, `GET /api/v1/leads/counts`, `GET /api/v1/leads/{id}`, `PATCH /api/v1/leads/{id}` with optimistic locking, `POST /api/v1/leads/{id}/assign`, `POST /api/v1/leads/{id}/notes`, `POST /api/v1/leads/{id}/archive`, `GET /api/v1/leads/{id}/whatsapp/status`, `POST /api/v1/leads/{id}/whatsapp/messages`).
+    - `WhatsAppWebhookController`: `POST /api/v1/public/webhooks/whatsapp` with signature verification and monotonic status progression (`QUEUED -> SUBMITTED -> SENT -> DELIVERED -> READ`).
+    - Strict WhatsApp Truthfulness: Mode A (User-Initiated) logs `WHATSAPP_HANDOFF_OPENED` and never falsifies sent/delivered state; Mode B (Managed) uses `DisabledWhatsAppProvider` returning truthful `NOT_CONFIGURED` unless real provider is activated.
+  - Frontend Workspace CRM & Discovery Integration:
+    - Built comprehensive CRM in `/workspace/leads` with real pipeline status metrics, search/filter/sort, mobile-first lead cards, and detail modal with status progression, follow-up scheduler, internal team notes, and immutable audit timeline.
+    - Upgraded `EnquirySheet.tsx` with real lead submission, client consent verification, tenant privacy disclosures, and direct WhatsApp handoff.
+  - Final Verification Baseline:
+    - Backend Tests: **253 / 253 PASS** (7 tests in `LeadIntegrationTest`, 0 failures, 0 errors).
+    - Frontend Tests: **231 / 231 PASS** (29 test files, 3 tests in `LeadsCrm.test.tsx`, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
-    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all 33 routes).
-    - Flyway Migrations: 17 migrations (`V000` through `V016`) applied, validated, idempotent, and passing on PostgreSQL 18 and H2 test mode.
-    - Working tree: clean.
-- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 26.** Await explicit user instruction before any Phase 26 work.
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes).
+    - Flyway Migrations: 18 migrations (`V000` through `V017`) applied, validated, and passing on PostgreSQL 18 and H2 test mode.
+- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 27.** Await explicit user instruction before any Phase 27 work.
+

@@ -342,25 +342,25 @@ describe('Phase 06 — Discovery Filter Bar & Active Filter Bar', () => {
   });
 });
 
-describe('Phase 06 — EnquirySheet ("I Want Something Similar")', () => {
+describe('Phase 26 — EnquirySheet & Lead Capture ("I Want Something Similar")', () => {
   const sampleProject = projects[0];
 
-  it('renders honest development preview notice and project prefilled context', () => {
+  it('renders real inquiry form, prefilled project context, and WhatsApp handoff tab', () => {
     render(<EnquirySheet project={sampleProject} isOpen={true} onClose={vi.fn()} />);
 
     // Prefilled context
     expect(screen.getByText(sampleProject.title)).toBeDefined();
     expect(screen.getAllByText(new RegExp(sampleProject.studioName, 'i')).length).toBeGreaterThan(0);
 
-    // Honest preview notice (no fake backend lead transmission)
-    expect(screen.getByText(/Development Notice:/i)).toBeDefined();
-    expect(
-      screen.getByText(/Lead capture and live notification routing/i)
-    ).toBeDefined();
-
-    // Form inputs exist
+    // Form inputs and consent controls
     expect(screen.getByLabelText(/your name/i)).toBeDefined();
     expect(screen.getByLabelText(/phone \/ whatsapp/i)).toBeDefined();
+    expect(screen.getByText(/I consent to be contacted/i)).toBeDefined();
+    expect(screen.getByText(/Tenant Privacy:/i)).toBeDefined();
+
+    // Mode tabs
+    expect(screen.getByText(/Send Detailed Inquiry/i)).toBeDefined();
+    expect(screen.getByText(/Chat on WhatsApp/i)).toBeDefined();
   });
 });
 
