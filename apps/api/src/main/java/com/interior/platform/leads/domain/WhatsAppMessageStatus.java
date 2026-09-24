@@ -20,15 +20,15 @@ public enum WhatsAppMessageStatus {
 
     public boolean canTransitionTo(WhatsAppMessageStatus next) {
         if (next == null || this == next) {
-            return true;
+            return false;
         }
-        // FAILED cannot be transitioned out of unless re-attempted
+        // FAILED cannot be transitioned out of
         if (this == FAILED) {
             return false;
         }
-        // Can fail from intermediate states
+        // Can fail only prior to delivery (cannot fail once DELIVERED or READ)
         if (next == FAILED) {
-            return this != READ;
+            return this != READ && this != DELIVERED;
         }
         // Strict monotonic progression: QUEUED -> SUBMITTED -> SENT -> DELIVERED -> READ
         return next.rank > this.rank;

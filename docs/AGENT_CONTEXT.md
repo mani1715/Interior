@@ -547,9 +547,31 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
   - Final Verification Baseline:
     - Backend Tests: **253 / 253 PASS** (7 tests in `LeadIntegrationTest`, 0 failures, 0 errors).
     - Frontend Tests: **231 / 231 PASS** (29 test files, 3 tests in `LeadsCrm.test.tsx`, 0 failures, 0 errors).
+- **PHASE 26.1 — PASS:** Leads + PII + RLS + WhatsApp Security Hardening Closure.
+  - Database Security & RLS (`V018__lead_security_hardening.sql` applied to PostgreSQL 18.3):
+    - `public_insert_studio_leads`: Enforces WITH CHECK condition: `status = 'NEW'`, `assigned_user_id IS NULL`, `archived_at IS NULL`, target studio `PUBLISHED + ACTIVE`, project attribution belongs to studio, is `READY`, `PORTFOLIO`, and unarchived. Zero SELECT policy for public (public queries return zero rows under FORCED RLS).
+    - `lead_activities`: Immutable audit trail. Tenants have SELECT and INSERT policies; public INSERT permitted only with `actor_id IS NULL` and initial events; NO UPDATE policy exists.
+    - Added `idempotency_key` unique constraints on `studio_leads` and `lead_whatsapp_messages`.
+    - Created secure stored function `public.submit_public_lead` with `SECURITY DEFINER` and `SET search_path = public, pg_temp`.
+  - Privacy & Data Minimization:
+    - Enforced data minimization in `LeadSummaryDto`: returns `phoneMasked` (`+91 ••••• •4321`) and null for `phoneNormalized` and `emailNormalized`. Full PII is strictly restricted to `LeadDetailDto` via `GET /api/v1/leads/{id}` for authenticated studio members.
+    - Verified lead PII is strictly excluded from Discovery search, autocomplete suggestions, SEO sitemaps, and public indexing.
+  - Rate Limiting & Abuse Prevention:
+    - Added studio-level flood rate limiting (30 inquiries / 10 minutes) and contact-level phone rate limiting (3 inquiries / 15 minutes) in `PublicLeadService`.
+  - State Machine & Concurrency Hardening:
+    - Hardened `LeadStatus.canTransitionTo`: ARCHIVED cannot jump directly to WON; WON cannot jump back to NEW; LOST cannot jump directly to WON.
+    - Optimistic concurrency control strictly enforced (409 Conflict on stale versions for both status updates and archiving).
+    - Team assignment security enforces that assigned user must be an ACTIVE member of the target studio.
+  - WhatsApp Truthfulness & Deduplication:
+    - Monotonic status progression in `WhatsAppMessageStatus.canTransitionTo`: DELIVERED or READ messages cannot regress to FAILED; duplicate status webhooks return false to prevent duplicate audit activities.
+    - Default `consentWhatsapp = false` in `EnquirySheet.tsx`.
+    - Frontend `/workspace/leads` disables managed messaging compose when provider is `NOT_CONFIGURED` while preserving direct WhatsApp chat link.
+  - Verification Baseline:
+    - Backend Tests: **280 / 280 PASS** (+27 new tests across `LeadSecurityClosureTest` and `PhoneNormalizationServiceTest`, 0 failures, 0 errors).
+    - Frontend Tests: **231 / 231 PASS** (29 test files, 0 failures, 0 errors).
     - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
     - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes).
-    - Flyway Migrations: 18 migrations (`V000` through `V017`) applied, validated, and passing on PostgreSQL 18 and H2 test mode.
+    - Flyway Migrations: 19 migrations (`V000` through `V018`) applied, validated, and passing on PostgreSQL 18.3 and H2 test mode.
 - **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 27.** Await explicit user instruction before any Phase 27 work.
 

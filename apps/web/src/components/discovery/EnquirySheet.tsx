@@ -41,7 +41,7 @@ export function EnquirySheet({
   const [budget, setBudget] = useState(project?.budgetRange || '');
   const [preferredChannel, setPreferredChannel] = useState<PreferredContactChannel>('ANY');
   const [consentContact, setConsentContact] = useState(true);
-  const [consentWhatsapp, setConsentWhatsapp] = useState(true);
+  const [consentWhatsapp, setConsentWhatsapp] = useState(false);
   const [message, setMessage] = useState(
     projectTitle
       ? `Hello! I came across your "${projectTitle}" project. I would like to explore a similar design brief for my property.`

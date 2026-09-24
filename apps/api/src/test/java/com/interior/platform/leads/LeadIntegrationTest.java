@@ -192,19 +192,21 @@ class LeadIntegrationTest {
 
         LeadSummaryDto summary = listResp.getBody().items().get(0);
         assertEquals("Rahul Sharma", summary.name());
-        assertEquals("+919876543210", summary.phoneNormalized());
+        assertNull(summary.phoneNormalized(), "Summary view must omit raw phone for privacy");
         assertTrue(summary.phoneMasked().contains("••••"));
-        assertEquals("rahul@example.com", summary.emailNormalized());
+        assertNull(summary.emailNormalized(), "Summary view must omit raw email for privacy");
         assertEquals("NEW", summary.status());
         assertTrue(summary.hasWhatsappConsent());
 
-        // Detail check including audit activities
+        // Detail check: full PII only accessible to authorized studio member in detail view
         ResponseEntity<LeadDetailDto> detailResp = leadController.getLeadDetail(
                 studioReq, summary.id(), studioA.studioId().toString(), null
         );
         assertEquals(200, detailResp.getStatusCode().value());
         LeadDetailDto detail = detailResp.getBody();
         assertNotNull(detail);
+        assertEquals("+919876543210", detail.phoneNormalized());
+        assertEquals("rahul@example.com", detail.emailNormalized());
         assertEquals(1, detail.activities().size());
         assertEquals("LEAD_CREATED", detail.activities().get(0).activityType());
     }

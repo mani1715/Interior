@@ -399,7 +399,9 @@ public class JdbcLeadRepository implements LeadRepository {
 
     @Override
     public boolean isStudioMember(UUID studioId, UUID userId) {
-        String sql = "SELECT COUNT(*) FROM studio_members WHERE studio_id = ? AND user_id = ?";
+        String sql = "SELECT COUNT(*) FROM studio_members sm " +
+                     "JOIN users u ON u.id = sm.user_id " +
+                     "WHERE sm.studio_id = ? AND sm.user_id = ? AND u.status = 'ACTIVE'";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, userId);
         return count != null && count > 0;
     }

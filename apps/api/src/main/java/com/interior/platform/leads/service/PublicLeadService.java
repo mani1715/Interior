@@ -57,6 +57,9 @@ public class PublicLeadService {
         LeadRepository.PublicStudioTarget studio = leadRepository.findPublicStudioBySlug(req.targetStudioSlug().trim())
                 .orElseThrow(() -> new BadRequestException("This professional is not currently accepting inquiries."));
 
+        // 3b. Studio-level abuse protection: Max 30 inquiries per 10 minutes per studio
+        rateLimiterService.acquire("lead_studio_" + studio.id(), 30, Duration.ofMinutes(10));
+
         // 4. Target Project Validation (if supplied)
         UUID projectId = null;
         String projectTitle = null;
@@ -78,6 +81,8 @@ public class PublicLeadService {
 
         // 6. Data Normalization & Sanitization
         String phoneNormalized = phoneNormalizationService.normalize(req.phone());
+        // 6b. Contact Flood Protection: Max 3 inquiries per 15 minutes per phone & studio
+        rateLimiterService.acquire("lead_contact_" + studio.id() + "_" + phoneNormalized, 3, Duration.ofMinutes(15));
         String emailNormalized = (req.email() != null && !req.email().isBlank()) ? req.email().trim().toLowerCase() : null;
         String sanitizedName = sanitizeText(req.name(), 100);
         String sanitizedMessage = sanitizeText(req.message(), 2000);
@@ -161,6 +166,9 @@ public class PublicLeadService {
         // 2. Target Studio Validation
         LeadRepository.PublicStudioTarget studio = leadRepository.findPublicStudioBySlug(req.targetStudioSlug().trim())
                 .orElseThrow(() -> new BadRequestException("This professional is not currently accepting inquiries."));
+
+        // 2b. Studio abuse protection: Max 30 handoffs per 10 minutes per studio
+        rateLimiterService.acquire("wa_handoff_studio_" + studio.id(), 30, Duration.ofMinutes(10));
 
         // 3. Studio Public WhatsApp Consent Verification
         LeadRepository.PublicWhatsAppContact contact = leadRepository.findPublicWhatsAppContact(studio.id())

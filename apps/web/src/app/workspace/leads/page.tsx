@@ -735,23 +735,28 @@ export default function LeadsWorkspacePage() {
                 {/* Managed WhatsApp Compose (truthful error if disabled) */}
                 {selectedLead.hasWhatsappConsent && (
                   <form onSubmit={handleSendWhatsApp} className="pt-2 border-t border-emerald-200 space-y-2">
-                    <span className="text-[11px] font-semibold text-emerald-900 block">
+                    <span className="text-[11px] font-semibold text-emerald-950 block">
                       Send Managed WhatsApp Message
                     </span>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Type message to dispatch via verified WhatsApp provider..."
+                        placeholder={
+                          whatsappStatus && !whatsappStatus.configured
+                            ? 'Managed WhatsApp provider not configured (use direct chat above)'
+                            : 'Type message to dispatch via verified WhatsApp provider...'
+                        }
+                        disabled={whatsappStatus ? !whatsappStatus.configured : false}
                         value={waMessageBody}
                         onChange={(e) => setWaMessageBody(e.target.value)}
-                        className="flex-1 px-3 py-1.5 rounded-xl text-xs border border-emerald-300 bg-white focus:outline-none"
+                        className="flex-1 px-3 py-1.5 rounded-xl text-xs border border-emerald-300 bg-white focus:outline-none disabled:bg-sand-100 disabled:text-charcoal-400"
                       />
                       <Button
                         size="sm"
                         variant="primary"
                         type="submit"
-                        disabled={isSendingWa}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white"
+                        disabled={isSendingWa || (whatsappStatus ? !whatsappStatus.configured : false)}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50"
                         leftIcon={<Send className="w-3.5 h-3.5" />}
                       >
                         {isSendingWa ? 'Sending...' : 'Send'}
@@ -763,7 +768,7 @@ export default function LeadsWorkspacePage() {
                     )}
 
                     {whatsappStatus && !whatsappStatus.configured && (
-                      <p className="text-[10px] text-emerald-800">
+                      <p className="text-[10px] text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200">
                         Provider Status: {whatsappStatus.status} (Managed messaging requires configured provider)
                       </p>
                     )}
