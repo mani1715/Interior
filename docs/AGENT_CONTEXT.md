@@ -573,5 +573,25 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
     - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes).
     - Flyway Migrations: 19 migrations (`V000` through `V018`) applied, validated, and passing on PostgreSQL 18.3 and H2 test mode.
+- **PHASE 26.2 — PASS:** Security Definer + Public Lead Write Final Hardening Closure.
+  - Dedicated Non-Superuser Owner (`lead_ingest_role`): Created `lead_ingest_role` with `NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT`. Transferred `public.submit_public_lead` ownership to `lead_ingest_role`.
+  - Schema Qualification & Ambiguity Elimination: Fully schema-qualified all table references (`public.designer_studios`, `public.studio_projects`, `public.studio_leads`, `public.lead_activities`) and table-aliased all column filters (`sp.studio_id`, `sl.studio_id`), resolving PL/pgSQL variable reference collision on output column `studio_id`.
+  - Hardened Search Path: Configured `SET search_path = pg_catalog, public` (immutable, trusted order; excluded attacker-controlled/temporary schemas).
+  - Schema Creation Hardening: Explicitly revoked `CREATE ON SCHEMA public FROM PUBLIC` to eliminate search-path object shadowing.
+  - Routine Privileges: Execution revoked from `PUBLIC`. Narrowly granted `EXECUTE` only to `lead_ingest_role`, `test_rls_public_user`, and `CURRENT_USER`.
+  - Direct Table Privilege Elimination: Revoked all direct table privileges (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) on `studio_leads`, `lead_activities`, `lead_notes`, `lead_whatsapp_messages` from `PUBLIC` and `test_rls_public_user`. Public callers cannot read leads/activities and cannot directly insert or forge CRM events.
+  - Hardened RLS Policy Composition:
+    - `ingest_select_studio_leads`: Dedicated SELECT policy for `lead_ingest_role` for idempotency and reference validation.
+    - `ingest_insert_studio_leads`: Strictly bounds INSERT for `lead_ingest_role` with `status = 'NEW'`, `assigned_user_id IS NULL`, `archived_at IS NULL`.
+    - `ingest_insert_lead_activities`: Bounds activity insertion for `lead_ingest_role` with `actor_id IS NULL` and `activity_type IN ('LEAD_CREATED', 'WHATSAPP_HANDOFF_OPENED')`.
+    - Immutability preserved: no UPDATE policy exists on `lead_activities`.
+  - Dedicated PostgreSQL 18 Test Suite:
+    - Created `PostgreSqlLeadSecurityClosureTest.java` running against real PostgreSQL 18.3 with the restricted role `test_rls_public_user`: verifies function invocation, direct privilege denial, negative attribution checks (unpublished, suspended, private, draft), idempotency, and escalation prevention.
+  - Final Verification Baseline:
+    - Backend Tests: **285 / 285 PASS** (+5 new tests in `PostgreSqlLeadSecurityClosureTest`, 0 failures, 0 errors).
+    - Frontend Tests: **231 / 231 PASS** (29 test files, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+    - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes).
+    - Flyway Migrations: 20 migrations (`V000` through `V019`) applied, validated, and passing on PostgreSQL 18.3 and H2 test mode.
 - **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 27.** Await explicit user instruction before any Phase 27 work.
-
