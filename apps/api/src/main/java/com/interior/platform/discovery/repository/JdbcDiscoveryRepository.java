@@ -359,6 +359,8 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
         Map<UUID, List<String>> specialtiesByStudio = batchFetchSpecialties(studioIds);
         Map<UUID, Integer> countsByStudio = batchFetchProjectCounts(studioIds);
         Map<UUID, List<String>> sampleCoversByStudio = batchFetchSampleCovers(studioIds);
+        Map<UUID, Boolean> verifiedByStudio = batchFetchVerification(studioIds);
+        Map<UUID, ReviewStats> reviewsByStudio = batchFetchReviewStats(studioIds);
 
         List<DiscoveryProfessionalCardDto> results = new ArrayList<>(rows.size());
         for (StudioRow r : rows) {
@@ -366,6 +368,11 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
             try {
                 profTypeLabel = ProfessionalType.fromCode(r.professionalType()).getDisplayName();
             } catch (Exception ignored) {}
+
+            boolean isVerified = verifiedByStudio.getOrDefault(r.id(), false);
+            ReviewStats stats = reviewsByStudio.get(r.id());
+            Double reviewAvg = stats != null && stats.count() > 0 ? stats.average() : null;
+            int reviewCount = stats != null ? stats.count() : 0;
 
             results.add(new DiscoveryProfessionalCardDto(
                     r.id(),
@@ -381,7 +388,10 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
                     servicesByStudio.getOrDefault(r.id(), Collections.emptyList()),
                     specialtiesByStudio.getOrDefault(r.id(), Collections.emptyList()),
                     countsByStudio.getOrDefault(r.id(), 0),
-                    sampleCoversByStudio.getOrDefault(r.id(), Collections.emptyList())
+                    sampleCoversByStudio.getOrDefault(r.id(), Collections.emptyList()),
+                    isVerified,
+                    reviewAvg,
+                    reviewCount
             ));
         }
 
@@ -798,6 +808,37 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
             }
         }, studioIds.toArray());
 
+        return map;
+    }
+
+    private record ReviewStats(double average, int count) {}
+
+    private Map<UUID, Boolean> batchFetchVerification(List<UUID> studioIds) {
+        if (studioIds == null || studioIds.isEmpty()) return Collections.emptyMap();
+        String inSql = String.join(",", Collections.nCopies(studioIds.size(), "?"));
+        String sql = "SELECT studio_id FROM studio_verifications WHERE studio_id IN (" + inSql + ") " +
+                     "AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at > now())";
+        Map<UUID, Boolean> map = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            map.put(getUuid(rs, "studio_id"), true);
+        }, studioIds.toArray());
+        return map;
+    }
+
+    private Map<UUID, ReviewStats> batchFetchReviewStats(List<UUID> studioIds) {
+        if (studioIds == null || studioIds.isEmpty()) return Collections.emptyMap();
+        String inSql = String.join(",", Collections.nCopies(studioIds.size(), "?"));
+        String sql = "SELECT studio_id, AVG(rating) as avg_rating, count(*) as count_reviews " +
+                     "FROM studio_reviews WHERE studio_id IN (" + inSql + ") " +
+                     "AND status = 'PUBLISHED' GROUP BY studio_id";
+        Map<UUID, ReviewStats> map = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            UUID sid = getUuid(rs, "studio_id");
+            double avg = rs.getDouble("avg_rating");
+            double rounded = Math.round(avg * 10.0) / 10.0;
+            int count = rs.getInt("count_reviews");
+            map.put(sid, new ReviewStats(rounded, count));
+        }, studioIds.toArray());
         return map;
     }
 

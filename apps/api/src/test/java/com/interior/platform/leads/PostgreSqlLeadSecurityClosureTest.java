@@ -31,6 +31,7 @@ class PostgreSqlLeadSecurityClosureTest {
         try (Connection adminConn = getAdminConnection()) {
             postgresAvailable = true;
             try (Statement stmt = adminConn.createStatement()) {
+                stmt.execute("REVOKE ALL ON studio_leads, lead_activities, lead_notes, lead_whatsapp_messages FROM test_rls_public_user;");
                 stmt.execute("DELETE FROM lead_activities;");
                 stmt.execute("DELETE FROM lead_notes;");
                 stmt.execute("DELETE FROM lead_whatsapp_messages;");

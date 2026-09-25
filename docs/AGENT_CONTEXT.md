@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-24, PHASE 26 (Leads + CRM + WhatsApp) COMPLETE & PASS. Full regression, backend test suite, frontend vitest, typecheck, lint, and production build verified. Strict Boundary: DO NOT START PHASE 27.
+Last updated: 2026-09-25, PHASE 27 (Reviews + Verification + Collections) COMPLETE & PASS. Full regression, backend test suite (308/308), frontend vitest (245/245), typecheck, lint, and production build verified. Strict Boundary: DO NOT START PHASE 28.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -594,4 +594,30 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
     - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes).
     - Flyway Migrations: 20 migrations (`V000` through `V019`) applied, validated, and passing on PostgreSQL 18.3 and H2 test mode.
-- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 27.** Await explicit user instruction before any Phase 27 work.
+- **PHASE 27 — PASS:** Reviews + Truthful Verification + Private Collections.
+  - Three Separate Subsystems Implemented:
+    1. **Genuine Client Reviews**:
+       - Bounded review collection originating exclusively from genuine studio/client relationships (`WON` leads from Phase 26) via cryptographic 256-bit review invitation tokens.
+       - Token exchange pattern: single-use raw token exchanged for HttpOnly scoped session cookie (`review_session`), redirecting user to clean URL `/review/submit` without token leakage in browser history/referrers.
+       - Bounded 1-5 overall and category ratings (design quality, communication, timeliness, budget adherence), verified client badge, reviewer privacy controls (`FIRST_NAME`, `INITIALS`, `ANONYMOUS`), and studio single public response.
+       - Truthful aggregate calculations excluding unapproved, reported, or removed reviews.
+    2. **Truthful Professional/Business Verification**:
+       - Rigorous identity verification state machine (`NOT_SUBMITTED`, `PENDING`, `NEEDS_MORE_INFO`, `VERIFIED`, `REJECTED`, `REVERIFY_REQUIRED`, `EXPIRED`).
+       - Private evidence documents storage (business registration, GST certificate, professional licenses; strictly NO Aadhaar or PAN card collection). Private files stored in non-public storage with access auditing.
+       - Append-only immutable audit logging of all admin and studio actions.
+       - Cryptographic snapshot fingerprinting of core studio profile; critical mutations immediately trigger transition to `REVERIFY_REQUIRED` and suppress the public badge.
+       - Restrained public presentation: displays "Verified Business" with subtle shield icon and informative tooltip disclaiming government endorsement or quality guarantees.
+    3. **Private User Inspiration Collections**:
+       - User-owned mood boards for saving public projects. Owner model is strictly `user_id` using dedicated `app.current_user_id` RLS session context (never studio tenant RLS).
+       - Complete privacy: studios/designers never see who saved their projects, and collection save counts NEVER influence search discovery ranking.
+       - Graceful tombstone handling when saved projects are made private, unpublished, or deleted.
+  - Search Discovery Isolation Guardrail:
+    - Absolutely ZERO search ranking influence from reviews, ratings, verification status, or collection save counts. Phase 25 ranking SQL remains 100% untouched.
+  - Verification Baseline:
+    - Backend Tests: **308 / 308 PASS** (+23 new tests across `ReviewIntegrationTest`, `StudioVerificationTest`, `UserCollectionTest`, and `PostgreSqlReviewsVerificationCollectionsTest`, 0 failures, 0 errors).
+    - Frontend Tests: **245 / 245 PASS** (+14 new tests across `Reviews.test.tsx`, `Verification.test.tsx`, `Collections.test.tsx`, 32 test files, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+    - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build across all routes including `/account/collections`, `/review/invite/[token]`, `/review/submit`, and `/workspace/verification`).
+    - Database Migrations: 21 migrations (`V000` through `V020`) validated and applied to PostgreSQL 18.3 (`interior_design_dev`) and H2 test environment.
+- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 28.** Await explicit user instruction before any Phase 28 work.

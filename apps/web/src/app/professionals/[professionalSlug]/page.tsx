@@ -13,6 +13,9 @@ import { buildBreadcrumbJsonLd, buildStudioJsonLd, SafeJsonLd } from '@/lib/seo/
 import { TEMPLATE_REGISTRY } from '@/lib/portfolio/template-registry';
 import { PortfolioTemplateKey } from '@/lib/portfolio/types';
 import { normalizePortfolioProps } from '@/lib/portfolio/normalize-props';
+import { VerificationBadge } from '@/components/verification/VerificationBadge';
+import { ReviewSection } from '@/components/reviews/ReviewSection';
+import { getPublicVerificationBadge } from '@/lib/verification/api';
 
 interface PageProps {
   params: Promise<{
@@ -59,7 +62,10 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
   const { professionalSlug } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://interior.com';
 
-  const liveStudio = await fetchPublicStudio(professionalSlug);
+  const [liveStudio, verification] = await Promise.all([
+    fetchPublicStudio(professionalSlug),
+    getPublicVerificationBadge(professionalSlug).catch(() => ({ verified: false })),
+  ]);
 
   if (liveStudio) {
     const breadcrumbData = buildBreadcrumbJsonLd(
@@ -170,6 +176,9 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
                     <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-sand-100 border border-sand-200 text-charcoal-800">
                       {liveStudio.professionalTitle || liveStudio.professionalType || 'Interior Studio'}
                     </span>
+                    {verification.verified && (
+                      <VerificationBadge verified={true} businessName={liveStudio.name} size="sm" />
+                    )}
                     {liveStudio.city && (
                       <span className="text-xs text-charcoal-500 flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-bronze-600" />
@@ -306,6 +315,9 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
                 </div>
               )}
             </div>
+
+            {/* Client Reviews Section */}
+            <ReviewSection studioSlug={liveStudio.slug} studioName={liveStudio.name} />
           </div>
         </main>
 
@@ -353,6 +365,9 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
                     <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--foreground)]">
                       {professional.professionalTypeLabel}
                     </span>
+                    {verification.verified && (
+                      <VerificationBadge verified={true} businessName={professional.studioName} size="sm" />
+                    )}
                     {professional.startingBudgetLabel && (
                       <span className="text-xs text-[var(--muted)] font-mono">
                         From {professional.startingBudgetLabel}
@@ -467,6 +482,9 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
               </div>
             )}
           </div>
+
+          {/* Client Reviews Section */}
+          <ReviewSection studioSlug={professional.slug} studioName={professional.studioName} />
         </div>
       </main>
 

@@ -5,6 +5,7 @@ import { MessageSquare, ArrowRight, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EnquirySheet } from './EnquirySheet';
 import { Project } from '@/lib/discovery/types';
+import { SaveToCollectionButton } from '@/components/collections/SaveToCollectionButton';
 
 export interface ProjectDetailActionsProps {
   project: Project;
@@ -47,6 +48,12 @@ export function ProjectDetailActions({ project }: ProjectDetailActionsProps) {
         >
           I Want Something Similar
         </Button>
+
+        <SaveToCollectionButton
+          projectId={project.id}
+          variant="button"
+          className="min-h-[44px] justify-center px-4 text-sm font-medium"
+        />
 
         <Button
           variant="outline"
