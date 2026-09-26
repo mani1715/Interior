@@ -17,6 +17,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import com.interior.platform.analytics.domain.AnalyticsEventType;
+import com.interior.platform.analytics.service.AnalyticsService;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,15 +29,18 @@ public class PublicLeadService {
     private final LeadRepository leadRepository;
     private final PhoneNormalizationService phoneNormalizationService;
     private final RateLimiterService rateLimiterService;
+    private final AnalyticsService analyticsService;
 
     public PublicLeadService(
             LeadRepository leadRepository,
             PhoneNormalizationService phoneNormalizationService,
-            RateLimiterService rateLimiterService
+            RateLimiterService rateLimiterService,
+            AnalyticsService analyticsService
     ) {
         this.leadRepository = leadRepository;
         this.phoneNormalizationService = phoneNormalizationService;
         this.rateLimiterService = rateLimiterService;
+        this.analyticsService = analyticsService;
     }
 
     @Transactional
@@ -152,6 +158,17 @@ public class PublicLeadService {
                 details,
                 now
         ));
+
+        // 11. Record server analytics event
+        analyticsService.recordServerEvent(
+                studio.id(),
+                AnalyticsEventType.LEAD_CREATED,
+                "LEAD",
+                leadId,
+                source.name(),
+                projectTitle != null ? Map.of("projectTitle", projectTitle, "source", source.name()) : Map.of("source", source.name()),
+                "lead_created:" + leadId
+        );
 
         String referenceNumber = "INQ-" + leadId.toString().substring(0, 8).toUpperCase();
         return new PublicLeadSubmissionResponse(referenceNumber, "Inquiry received successfully.", studio.name());

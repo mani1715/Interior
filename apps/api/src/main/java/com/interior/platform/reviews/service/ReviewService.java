@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import com.interior.platform.analytics.domain.AnalyticsEventType;
+import com.interior.platform.analytics.service.AnalyticsService;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -30,17 +33,20 @@ public class ReviewService {
     private final ReviewInvitationService invitationService;
     private final LeadRepository leadRepository;
     private final StudioRepository studioRepository;
+    private final AnalyticsService analyticsService;
 
     public ReviewService(
             ReviewRepository reviewRepository,
             ReviewInvitationService invitationService,
             LeadRepository leadRepository,
-            StudioRepository studioRepository
+            StudioRepository studioRepository,
+            AnalyticsService analyticsService
     ) {
         this.reviewRepository = reviewRepository;
         this.invitationService = invitationService;
         this.leadRepository = leadRepository;
         this.studioRepository = studioRepository;
+        this.analyticsService = analyticsService;
     }
 
     @Transactional
@@ -108,6 +114,16 @@ public class ReviewService {
         reviewRepository.createReview(review);
         reviewRepository.markInvitationUsed(invitation.studioId(), invitation.id(), now);
         reviewRepository.revokeSessionsForInvitation(invitation.id());
+
+        analyticsService.recordServerEvent(
+                invitation.studioId(),
+                AnalyticsEventType.REVIEW_SUBMITTED,
+                "REVIEW",
+                review.id(),
+                "client_review",
+                Map.of("rating", req.rating()),
+                "review_sub:" + review.id()
+        );
 
         return toDto(review, null);
     }

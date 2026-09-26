@@ -16,6 +16,7 @@ import { normalizePortfolioProps } from '@/lib/portfolio/normalize-props';
 import { VerificationBadge } from '@/components/verification/VerificationBadge';
 import { ReviewSection } from '@/components/reviews/ReviewSection';
 import { getPublicVerificationBadge } from '@/lib/verification/api';
+import { PublicTelemetryTracker } from '@/components/analytics/PublicTelemetryTracker';
 
 interface PageProps {
   params: Promise<{
@@ -146,6 +147,11 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
         <div>
           <SafeJsonLd data={breadcrumbData} />
           <SafeJsonLd data={studioJsonLd} />
+          <PublicTelemetryTracker
+            eventType="PUBLIC_PROFILE_VIEW"
+            entityType="STUDIO"
+            entitySlug={liveStudio.slug}
+          />
           <TemplateComp {...portfolioProps} />
         </div>
       );
@@ -156,6 +162,11 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
       <div className="min-h-screen bg-[#FAF8F5] text-[#1F1F1F] flex flex-col selection:bg-[#B88A5A]/20 selection:text-[#1F1F1F]">
         <SafeJsonLd data={breadcrumbData} />
         <SafeJsonLd data={studioJsonLd} />
+        <PublicTelemetryTracker
+          eventType="PUBLIC_PROFILE_VIEW"
+          entityType="STUDIO"
+          entitySlug={liveStudio.slug}
+        />
         <PublicHeader currentPath="/professionals" />
 
         <main id="main-content" className="flex-1 w-full py-6 sm:py-10">
@@ -337,6 +348,11 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
+      <PublicTelemetryTracker
+        eventType="PUBLIC_PROFILE_VIEW"
+        entityType="STUDIO"
+        entitySlug={professional.slug}
+      />
       <PublicHeader currentPath="/professionals" />
 
       <main id="main-content" className="flex-1 w-full py-6 sm:py-10">

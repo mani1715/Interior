@@ -620,4 +620,36 @@ Astra proceeded with Phase 11 after this closure. The following section is the c
     - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
     - Production Build: **PASS** (Next.js 16 Turbopack optimized production build across all routes including `/account/collections`, `/review/invite/[token]`, `/review/submit`, and `/workspace/verification`).
     - Database Migrations: 21 migrations (`V000` through `V020`) validated and applied to PostgreSQL 18.3 (`interior_design_dev`) and H2 test environment.
-- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 28.** Await explicit user instruction before any Phase 28 work.
+- **PHASE 28 — PASS:** Analytics + Plans + Billing Foundation.
+  - Three Core Pillars Implemented:
+    1. **Privacy-Safe Product/Business Analytics**:
+       - Privacy-First Telemetry: `/public/analytics/events` endpoint accepts low-trust client interactions (`PUBLIC_PROFILE_VIEW`, `PUBLIC_PROJECT_VIEW`, `DISCOVERY_RESULT_IMPRESSION`, `DISCOVERY_RESULT_CLICK`, `INQUIRY_OPENED`, `WHATSAPP_HANDOFF_OPENED`).
+       - Strict Data Hygiene: Referrers sanitized to domain-only; URL tokens and query parameters scrubbed; client IPs and user agents anonymized to daily SHA-256 session hashes; bounded hourly deduplication keys prevent metric spam.
+       - High-Trust Business Telemetry: Domain services record canonical server-side events (`LEAD_CREATED`, `LEAD_STATUS_CHANGED` -> `WON`, `REVIEW_SUBMITTED`, `AI_GENERATION_COMPLETED`) with zero public tampering possible.
+       - Incremental Daily Aggregation: `studio_daily_metrics` table maintains fast, pre-aggregated daily counts for rapid dashboard querying without expensive raw event scans.
+       - Studio Analytics Workspace: `/workspace/analytics` renders period selector (7d, 30d, 90d), key stat cards, deterministic client acquisition funnel with honest non-duplicating conversion rates, top projects table, and truthful zero-state.
+    2. **Subscription Plans & Entitlement Architecture**:
+       - Platform Default `BASE` Plan: Internal non-commercial baseline tier seeded with `purchasable = false`, price ₹0, period `NONE`. Studios without an active paid subscription deterministically fall back to `BASE`.
+       - Unlimited Platform Capacity: Base entitlements provide unlimited capacity (null numeric limit = unlimited) for projects, uploads, and AI credits.
+       - Strict Verification Separation: Verification is evidence-based and cannot be purchased or packaged as an entitlement. Reviews cannot be bought, boosted, or suppressed.
+       - Zero Search Ranking Influence: Analytics, subscription tiers, and billing status have 0.0% impact on discovery ranking. Phase 25 ranking SQL remains 100% untouched.
+    3. **Production-Safe Billing Lifecycle**:
+       - Provider Abstraction: `BillingProvider` interface implemented with production default `DisabledBillingProvider` returning `billingProviderStatus = 'NOT_CONFIGURED'` and `commercialCheckoutEnabled = false`.
+       - No Fake Commercial Tiers: Zero fake commercial tiers (`PROFESSIONAL`, `STUDIO`) or mock pricing shown in production UI. Studio billing page truthfully informs user that commercial checkout is not configured and all features remain active with no payment required.
+       - Period-End Cancellation: Canceling an active subscription sets `cancel_at_period_end = true` until the period concludes; zero data or project deletion occurs upon expiration or cancellation.
+       - Idempotent Webhooks & Financial Audit Logs: `billing_events` records raw provider payloads with provider+event_id unique constraint; `billing_transactions` maintains immutable transaction history.
+  - Verification Baseline:
+    - Backend Tests: **319 / 319 PASS** (+11 new tests across `AnalyticsIntegrationTest`, `BillingIntegrationTest`, and `PostgreSqlAnalyticsBillingRlsTest`, 0 failures, 0 errors).
+    - Frontend Tests: **251 / 251 PASS** (+6 new tests across `AnalyticsWorkspace.test.tsx` and `BillingWorkspace.test.tsx`, 34 test files, 0 failures, 0 errors).
+    - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+    - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+    - Production Build: **PASS** (Next.js 16 Turbopack optimized production build clean across all routes including `/workspace/analytics` and `/workspace/billing`).
+    - Database Migrations: 22 migrations (`V000` through `V021`) validated and applied to PostgreSQL 18.3 (`interior_design_dev`) and H2 test environment.
+  - **COMMERCIAL CONFIGURATION REQUIRED BEFORE PAID LAUNCH:**
+    - The platform operates in internal non-commercial mode (`BASE` plan active, `DisabledBillingProvider` active, ₹0 fees, commercial checkout disabled).
+    - Before launching paid subscriptions:
+      1. Register and configure production payment provider gateway credentials (e.g. Razorpay or Stripe API keys and webhook signing secrets).
+      2. Implement and test real `BillingProvider` gateway adapter adhering to raw webhook payload signature verification.
+      3. Define explicit commercial tiers in `billing_plans` and `plan_entitlements` migrations with approved pricing, GST handling, and currency rules.
+      4. Ensure legal terms of service, billing policy, refund terms, and GST invoicing compliance are in place.
+- **NEXT ACTION:** **STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 29.** Phase 29 remains ADMIN + PRODUCTION HARDENING. Await explicit user instruction before any Phase 29 work.

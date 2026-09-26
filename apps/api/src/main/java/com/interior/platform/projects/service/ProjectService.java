@@ -50,6 +50,8 @@ public class ProjectService {
     private final AuthorizationService authorizationService;
     private final AuditService auditService;
     private final com.interior.platform.media.service.MediaService mediaService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.billing.service.EntitlementService entitlementService;
 
     public ProjectService(
             ProjectRepository projectRepository,
@@ -137,6 +139,10 @@ public class ProjectService {
 
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
         requireStudioManagePermission(context, actor);
+
+        if (entitlementService != null) {
+            entitlementService.assertProjectCreationAllowed(context.studioId());
+        }
 
         validateBudgetAndClient(
                 request.budgetMin(),

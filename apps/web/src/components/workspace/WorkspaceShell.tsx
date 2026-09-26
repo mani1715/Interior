@@ -14,6 +14,7 @@ import {
   BarChart3,
   Bell,
   Building2,
+  CreditCard,
   User,
   LogOut,
   MoreHorizontal,
@@ -52,6 +53,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 
 const SECONDARY_NAV_ITEMS: NavItem[] = [
   { id: 'business', label: 'Business Profile', href: '/workspace/business', icon: Building2 },
+  { id: 'billing', label: 'Billing & Plans', href: '/workspace/billing', icon: CreditCard },
   { id: 'account', label: 'Account Profile', href: '/account', icon: User },
 ];
 

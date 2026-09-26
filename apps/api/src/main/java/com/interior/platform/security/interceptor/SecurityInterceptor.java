@@ -29,6 +29,11 @@ public class SecurityInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        Object existingActor = request.getAttribute(ACTOR_ATTRIBUTE);
+        if (existingActor instanceof ActorContext preset && preset.isAuthenticated()) {
+            return true;
+        }
+
         String sessionToken = extractSessionToken(request);
         ActorContext actor = ActorContext.anonymous();
         com.interior.platform.security.domain.SessionRecord session = null;

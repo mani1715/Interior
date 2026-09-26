@@ -1,0 +1,175 @@
+-- ============================================================================
+-- V021: Analytics + Plans + Billing Foundation (H2 Compatibility)
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. ANALYTICS SUBSYSTEM
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE analytics_events (
+    id uuid NOT NULL PRIMARY KEY,
+    studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
+    event_type varchar(64) NOT NULL,
+    entity_type varchar(32) NULL,
+    entity_id uuid NULL,
+    source varchar(64) NULL,
+    occurred_at timestamptz NOT NULL,
+    anonymous_session_hash varchar(64) NULL,
+    metadata text NULL,
+    deduplication_key varchar(255) NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_analytics_event_dedupe UNIQUE (deduplication_key)
+);
+
+CREATE INDEX idx_analytics_events_studio_occurred ON analytics_events (studio_id, occurred_at DESC);
+CREATE INDEX idx_analytics_events_studio_type ON analytics_events (studio_id, event_type, occurred_at DESC);
+CREATE INDEX idx_analytics_events_entity ON analytics_events (entity_type, entity_id);
+
+CREATE TABLE studio_daily_metrics (
+    studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
+    metric_date date NOT NULL,
+    profile_views bigint NOT NULL DEFAULT 0,
+    project_views bigint NOT NULL DEFAULT 0,
+    discovery_impressions bigint NOT NULL DEFAULT 0,
+    discovery_clicks bigint NOT NULL DEFAULT 0,
+    inquiries_opened bigint NOT NULL DEFAULT 0,
+    leads_created bigint NOT NULL DEFAULT 0,
+    leads_won bigint NOT NULL DEFAULT 0,
+    reviews_submitted bigint NOT NULL DEFAULT 0,
+    ai_generations bigint NOT NULL DEFAULT 0,
+    whatsapp_handoffs bigint NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (studio_id, metric_date)
+);
+
+CREATE INDEX idx_daily_metrics_range ON studio_daily_metrics (studio_id, metric_date DESC);
+
+-- ----------------------------------------------------------------------------
+-- 2. PLANS & ENTITLEMENTS SUBSYSTEM
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE billing_plans (
+    id uuid NOT NULL PRIMARY KEY,
+    code varchar(64) NOT NULL UNIQUE,
+    name varchar(128) NOT NULL,
+    description text NULL,
+    billing_period varchar(32) NULL,
+    currency varchar(3) NOT NULL DEFAULT 'INR',
+    price_minor bigint NOT NULL DEFAULT 0,
+    active boolean NOT NULL DEFAULT true,
+    purchasable boolean NOT NULL DEFAULT false,
+    display_order integer NOT NULL DEFAULT 0,
+    provider_price_id varchar(128) NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT chk_billing_plans_price CHECK (price_minor >= 0),
+    CONSTRAINT chk_billing_plans_period CHECK (billing_period IS NULL OR billing_period IN ('NONE', 'MONTHLY', 'ANNUAL'))
+);
+
+CREATE TABLE plan_entitlements (
+    id uuid NOT NULL PRIMARY KEY,
+    plan_id uuid NOT NULL REFERENCES billing_plans(id) ON DELETE CASCADE,
+    entitlement_key varchar(64) NOT NULL,
+    value_type varchar(32) NOT NULL,
+    boolean_value boolean NULL,
+    numeric_value bigint NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_plan_entitlement UNIQUE (plan_id, entitlement_key),
+    CONSTRAINT chk_entitlement_value_type CHECK (value_type IN ('BOOLEAN', 'NUMERIC')),
+    CONSTRAINT chk_entitlement_values CHECK (
+        (value_type = 'BOOLEAN' AND boolean_value IS NOT NULL AND numeric_value IS NULL)
+        OR
+        (value_type = 'NUMERIC' AND boolean_value IS NULL AND (numeric_value IS NULL OR numeric_value >= 0))
+    )
+);
+
+CREATE INDEX idx_plan_entitlements_plan ON plan_entitlements (plan_id);
+
+-- ----------------------------------------------------------------------------
+-- 3. BILLING & SUBSCRIPTIONS SUBSYSTEM
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE studio_subscriptions (
+    id uuid NOT NULL PRIMARY KEY,
+    studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
+    plan_id uuid NOT NULL REFERENCES billing_plans(id),
+    status varchar(32) NOT NULL,
+    provider varchar(64) NOT NULL DEFAULT 'NONE',
+    provider_customer_id varchar(128) NULL,
+    provider_subscription_id varchar(128) NULL,
+    current_period_start timestamptz NULL,
+    current_period_end timestamptz NULL,
+    cancel_at_period_end boolean NOT NULL DEFAULT false,
+    cancelled_at timestamptz NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    version bigint NOT NULL DEFAULT 1,
+    CONSTRAINT chk_sub_status CHECK (status IN ('INACTIVE', 'PENDING', 'ACTIVE', 'PAST_DUE', 'CANCEL_AT_PERIOD_END', 'CANCELLED', 'EXPIRED'))
+);
+
+CREATE INDEX idx_subscriptions_studio ON studio_subscriptions (studio_id, status);
+
+CREATE TABLE billing_transactions (
+    id uuid NOT NULL PRIMARY KEY,
+    studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
+    subscription_id uuid NULL REFERENCES studio_subscriptions(id) ON DELETE SET NULL,
+    provider varchar(64) NOT NULL,
+    provider_payment_id varchar(128) NULL,
+    provider_order_id varchar(128) NULL,
+    amount_minor bigint NOT NULL,
+    currency varchar(3) NOT NULL DEFAULT 'INR',
+    status varchar(32) NOT NULL,
+    description varchar(255) NULL,
+    receipt_url varchar(512) NULL,
+    occurred_at timestamptz NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT chk_tx_amount CHECK (amount_minor >= 0),
+    CONSTRAINT chk_tx_status CHECK (status IN ('PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED'))
+);
+
+CREATE INDEX idx_transactions_studio ON billing_transactions (studio_id, occurred_at DESC);
+
+CREATE TABLE billing_events (
+    id uuid NOT NULL PRIMARY KEY,
+    studio_id uuid NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
+    event_type varchar(64) NOT NULL,
+    provider varchar(64) NOT NULL,
+    provider_event_id varchar(128) NOT NULL,
+    details text NULL,
+    occurred_at timestamptz NOT NULL DEFAULT now(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_billing_event_provider UNIQUE (provider, provider_event_id)
+);
+
+CREATE INDEX idx_billing_events_studio ON billing_events (studio_id, occurred_at DESC);
+
+-- ----------------------------------------------------------------------------
+-- 4. SEED INTERNAL NON-COMMERCIAL BASE PLAN
+-- ----------------------------------------------------------------------------
+
+INSERT INTO billing_plans (
+    id, code, name, description, billing_period, currency, price_minor, active, purchasable, display_order, created_at, updated_at
+) VALUES (
+    '01923000-0000-7000-8000-000000000001',
+    'BASE',
+    'Base Operational Access',
+    'Internal default operational entitlement configuration preserving all standard platform capabilities.',
+    'NONE',
+    'INR',
+    0,
+    true,
+    false,
+    0,
+    now(),
+    now()
+);
+
+INSERT INTO plan_entitlements (id, plan_id, entitlement_key, value_type, boolean_value, numeric_value, created_at) VALUES
+('01923000-0000-7000-8000-000000000010', '01923000-0000-7000-8000-000000000001', 'PORTFOLIO_PUBLISH', 'BOOLEAN', true, NULL, now()),
+('01923000-0000-7000-8000-000000000011', '01923000-0000-7000-8000-000000000001', 'PROJECT_LIMIT', 'NUMERIC', NULL, NULL, now()),
+('01923000-0000-7000-8000-000000000012', '01923000-0000-7000-8000-000000000001', 'STORAGE_LIMIT_BYTES', 'NUMERIC', NULL, NULL, now()),
+('01923000-0000-7000-8000-000000000013', '01923000-0000-7000-8000-000000000001', 'AI_MONTHLY_CREDITS', 'NUMERIC', NULL, NULL, now()),
+('01923000-0000-7000-8000-000000000014', '01923000-0000-7000-8000-000000000001', 'LEADS_CRM', 'BOOLEAN', true, NULL, now()),
+('01923000-0000-7000-8000-000000000015', '01923000-0000-7000-8000-000000000001', 'ANALYTICS_BASIC', 'BOOLEAN', true, NULL, now()),
+('01923000-0000-7000-8000-000000000016', '01923000-0000-7000-8000-000000000001', 'ANALYTICS_ADVANCED', 'BOOLEAN', true, NULL, now());

@@ -13,6 +13,7 @@ import { BeforeAiReality } from '@/components/media/BeforeAiReality';
 import { AIConceptBadge } from '@/components/ui/Badge';
 import { getProjectBySlug, getRelatedProjects, getProfessionalBySlug } from '@/lib/discovery/queries';
 import { SafeJsonLd } from '@/lib/seo/structured-data';
+import { PublicTelemetryTracker } from '@/components/analytics/PublicTelemetryTracker';
 
 interface PageProps {
   params: Promise<{
@@ -107,6 +108,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       {/* Truthful Structured Data */}
       <SafeJsonLd data={breadcrumbJsonLd} />
       <SafeJsonLd data={projectJsonLd} />
+      <PublicTelemetryTracker
+        eventType="PUBLIC_PROJECT_VIEW"
+        entityType="PROJECT"
+        entitySlug={project.slug}
+        metadata={{ categoryCode: project.category }}
+      />
 
       <PublicHeader currentPath="/projects" />
 

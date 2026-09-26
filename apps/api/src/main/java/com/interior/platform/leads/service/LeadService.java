@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import com.interior.platform.analytics.domain.AnalyticsEventType;
+import com.interior.platform.analytics.service.AnalyticsService;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,17 +30,20 @@ public class LeadService {
     private final SecurityRepository securityRepository;
     private final AuthorizationService authorizationService;
     private final PhoneNormalizationService phoneNormalizationService;
+    private final AnalyticsService analyticsService;
 
     public LeadService(
             LeadRepository leadRepository,
             SecurityRepository securityRepository,
             AuthorizationService authorizationService,
-            PhoneNormalizationService phoneNormalizationService
+            PhoneNormalizationService phoneNormalizationService,
+            AnalyticsService analyticsService
     ) {
         this.leadRepository = leadRepository;
         this.securityRepository = securityRepository;
         this.authorizationService = authorizationService;
         this.phoneNormalizationService = phoneNormalizationService;
+        this.analyticsService = analyticsService;
     }
 
     @Transactional(readOnly = true)
@@ -233,6 +239,16 @@ public class LeadService {
                     details,
                     Instant.now()
             ));
+
+            analyticsService.recordServerEvent(
+                    studioId,
+                    AnalyticsEventType.LEAD_STATUS_CHANGED,
+                    "LEAD",
+                    leadId,
+                    "crm",
+                    Map.of("fromStatus", current.status().name(), "toStatus", newStatus.name()),
+                    null
+            );
         }
 
         if (nextFollowUpAt != null && !nextFollowUpAt.equals(current.nextFollowUpAt())) {
