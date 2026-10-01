@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BottomSheet } from '@/components/overlay/BottomSheet';
+import { Dialog } from '@/components/overlay/Dialog';
 import { Button } from '@/components/ui/Button';
 import {
   CATEGORIES,
@@ -19,7 +19,7 @@ export interface ProjectFilterSheetProps {
   filters: FilterParams;
   onFilterChange: (key: keyof FilterParams, value: string | undefined) => void;
   onClearAll: () => void;
-  totalResults: number;
+  totalResults?: number;
 }
 
 export function ProjectFilterSheet({
@@ -41,7 +41,7 @@ export function ProjectFilterSheet({
   ].filter(Boolean).length;
 
   return (
-    <BottomSheet
+    <Dialog maxWidth="xl"
       isOpen={isOpen}
       onClose={onClose}
       title="Filter Projects"
@@ -64,7 +64,7 @@ export function ProjectFilterSheet({
             onClick={onClose}
             className="flex-1 justify-center min-h-[44px]"
           >
-            Show {totalResults} {totalResults === 1 ? 'Project' : 'Projects'}
+            {totalResults === undefined ? 'Done' : `Show ${totalResults} ${totalResults === 1 ? 'Project' : 'Projects'}`}
           </Button>
         </div>
       }
@@ -274,6 +274,7 @@ export function ProjectFilterSheet({
           </div>
         </div>
       </div>
-    </BottomSheet>
+    </Dialog>
   );
 }
+

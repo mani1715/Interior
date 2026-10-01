@@ -120,7 +120,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
 
   if (authLoading || (loading && !summary && !error)) {
     return (
-      <div className="min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex flex-col items-center justify-center p-4">
+      <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex flex-col items-center justify-center p-4">
         <div className="w-10 h-10 border-4 border-bronze-200 border-t-bronze-600 rounded-full animate-spin mb-4" />
         <p className="text-sm text-charcoal-600 font-medium">Loading professional workspace...</p>
       </div>
@@ -130,7 +130,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   // Account Suspended Screen
   if (user && user.status === 'SUSPENDED') {
     return (
-      <div className="min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex items-center justify-center p-6">
+      <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white border border-terracotta-200 rounded-2xl p-8 text-center shadow-sm">
           <div className="w-12 h-12 bg-terracotta-50 text-terracotta-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShieldAlert className="w-6 h-6" />
@@ -154,7 +154,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const isDesigner = user && (user.roles.includes('DESIGNER') || user.roles.includes('DESIGNER_TEAM') || user.roles.includes('SUPER_ADMIN'));
   if (user && !isDesigner) {
     return (
-      <div className="min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex items-center justify-center p-6">
+      <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex items-center justify-center p-6">
         <div className="max-w-lg w-full bg-white border border-sand-200 rounded-2xl p-8 text-center shadow-sm">
           <div className="w-12 h-12 bg-bronze-50 text-bronze-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-6 h-6" />
@@ -191,7 +191,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const studio = summary?.studio;
 
   return (
-    <div className="min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex flex-col md:flex-row">
+    <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex flex-col md:flex-row">
       {/* ============================================================ */}
       {/* DESKTOP SIDEBAR (Visible at md / 768px+)                     */}
       {/* ============================================================ */}

@@ -1,3 +1,4 @@
+import { GalleryPhoto } from '../../gallery/PortfolioGallery';
 /* eslint-disable @next/next/no-img-element -- Supplied remote media has no Next image loader contract yet. */
 import type { PortfolioTemplateProps } from '@/lib/portfolio/template-contract';
 import type { PreviewSectionDto } from '@/lib/portfolio/types';
@@ -47,7 +48,7 @@ export function BasicSection({ section, portfolio: p, id, anchors, heroIsHeading
       body = <>{label(ai ? 'Concept to reality' : 'Before & after')}{items(c.pairs).filter(pair => ai ? mediaUrl(pair.conceptImageUrl) && mediaUrl(pair.realityImageUrl) : mediaUrl(pair.beforeImageUrl) && mediaUrl(pair.afterImageUrl)).map((pair, i) => <article key={i} className={styles.comparison}>
         {text(pair.title) && <h3>{text(pair.title)}</h3>}<div className={styles.grid}>{(ai
           ? [{ src: pair.conceptImageUrl, label: 'AI Concept Visualization' }, { src: pair.realityImageUrl, label: 'Real Result' }]
-          : [{ src: pair.beforeImageUrl, label: 'Before' }, { src: pair.afterImageUrl, label: 'After' }]).map(media => <figure key={media.label}><img src={mediaUrl(media.src)} alt={`${media.label}${text(pair.title) ? ` — ${text(pair.title)}` : ''}`} width={960} height={720} loading="lazy" referrerPolicy="no-referrer" /><figcaption>{media.label}</figcaption></figure>)}</div>{paragraph(pair.caption)}</article>)}</>; break;
+          : [{ src: pair.beforeImageUrl, label: 'Before' }, { src: pair.afterImageUrl, label: 'After' }]).map(media => <figure key={media.label}><GalleryPhoto src={mediaUrl(media.src)} alt={`${media.label}${text(pair.title) ? ` — ${text(pair.title)}` : ''}`} width={960} height={720} loading="lazy" referrerPolicy="no-referrer" /><figcaption>{media.label}</figcaption></figure>)}</div>{paragraph(pair.caption)}</article>)}</>; break;
     }
     default: return null;
   }

@@ -37,7 +37,7 @@ export default async function ProfessionalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
+    <div className="public-editorial min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
       <PublicHeader currentPath="/professionals" />
 
       <main id="main-content" className="flex-1 w-full py-6 sm:py-10">

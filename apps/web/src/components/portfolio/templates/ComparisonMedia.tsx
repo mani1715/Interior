@@ -1,3 +1,4 @@
+import { GalleryPhoto } from '../gallery/PortfolioGallery';
 /* eslint-disable @next/next/no-img-element -- render only supplied media; no invented optimization service. */
 export function ComparisonMedia({ pairs, ai, mediaUrl, text }: {
   pairs: Record<string, unknown>[]; ai: boolean;
@@ -15,7 +16,7 @@ export function ComparisonMedia({ pairs, ai, mediaUrl, text }: {
         { src: pair.realityImageUrl, label: 'Real Result' },
       ] : [{ src: pair.beforeImageUrl, label: 'Before' }, { src: pair.afterImageUrl, label: 'After' }]).map(item => (
         <figure key={item.label}>
-          <img src={mediaUrl(item.src)} alt={`${item.label}${text(pair.title) ? ` — ${text(pair.title)}` : ''}`} width={960} height={720} loading="lazy" decoding="async" />
+          <GalleryPhoto src={mediaUrl(item.src)} alt={`${item.label}${text(pair.title) ? ` — ${text(pair.title)}` : ''}`} width={960} height={720} loading="lazy" decoding="async" />
           <figcaption>{item.label}</figcaption>
         </figure>
       ))}</div>

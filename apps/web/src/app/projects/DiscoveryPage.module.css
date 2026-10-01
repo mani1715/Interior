@@ -1,0 +1,11 @@
+.page{padding-top:28px!important;padding-bottom:80px!important}
+.hero{display:grid;grid-template-columns:.9fr 1.1fr;margin:32px 0 52px;background:#eae7df;min-height:410px}
+.intro{padding:54px 44px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.intro>span{font-size:10px;letter-spacing:.19em;color:#766044}
+.page .intro h1{font:400 clamp(40px,4vw,59px)/1.06 Georgia,serif;letter-spacing:-.045em;margin:25px 0;max-width:540px}
+.intro h1 em{color:#646d5d}.intro p{font-size:14px;line-height:1.8;max-width:340px;color:#565d50}
+.intro a{display:flex;align-items:center;gap:40px;margin-top:25px;padding:12px 0;border-bottom:1px solid #68735f;font-size:12px;color:#29352c;min-height:44px}
+.image{position:relative;min-height:410px;overflow:hidden;margin:0}.image img{object-fit:cover;object-position:60% center}
+.image figcaption{position:absolute;bottom:16px;left:20px;background:#faf8f3ed;color:#343b32;padding:9px 12px;font-size:9px;letter-spacing:.1em}
+@media(max-width:767px){.hero{grid-template-columns:1fr;margin:24px 0 35px}.intro{padding:32px 26px}.page .intro h1{font-size:43px}.image{min-height:235px;aspect-ratio:3/2}.image figcaption{left:12px;font-size:8px}.page{padding-top:20px!important}}
+.image{min-width:0;width:100%}@media(max-width:767px){.image{aspect-ratio:auto}}

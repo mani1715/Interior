@@ -36,7 +36,7 @@ export default function ReviewInvitePage() {
   }, [token, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50">
+    <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-zinc-50">
       <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm text-center space-y-4">
         {loading && (
           <div className="space-y-4 py-8">

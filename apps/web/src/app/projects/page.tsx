@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import Image from 'next/image';
+import styles from './DiscoveryPage.module.css';
 import { PublicHeader } from '@/components/navigation/PublicHeader';
 import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -99,10 +101,10 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
+    <div className="public-editorial min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
       <PublicHeader currentPath="/projects" />
 
-      <main id="main-content" className="flex-1 w-full py-6 sm:py-10">
+      <main id="main-content" className={styles.page}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb Navigation */}
           <div className="mb-4 sm:mb-6">
@@ -114,19 +116,10 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
             />
           </div>
 
-          {/* Page Editorial Header (Single H1) */}
-          <div className="mb-6 sm:mb-10 text-left">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-[var(--brand)] block mb-1.5">
-              Project-First Discovery
-            </span>
-            <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-[var(--foreground)] mb-2.5">
-              Discover Interior Projects Across India
-            </h1>
-            <p className="text-xs sm:text-base text-[var(--muted)] max-w-2xl leading-relaxed">
-              Find authentic interior work you love before choosing who builds it. Filter by space, design style, city, and budget range.
-            </p>
-          </div>
-
+          <section className={styles.hero} aria-labelledby="discovery-title">
+            <div className={styles.intro}><span>THE PROJECT LIBRARY</span><h1 id="discovery-title">Good design.<br /><em>Find your starting point.</em></h1><p>Explore spaces, discover the details, and meet the professionals behind the work.</p><a href="#project-search">Explore the library <span aria-hidden="true">↘</span></a></div>
+            <figure className={styles.image}><Image src="/images/approved/tv-unit.png" alt="Warm timber and stone living-room concept" fill sizes="(max-width: 767px) 100vw, 55vw" loading="eager" /><figcaption>SPACES TO INSPIRE · AI CONCEPT VISUALIZATION</figcaption></figure>
+          </section>
           {/* Interactive Client Discovery Island with URL State */}
           <Suspense fallback={<div className="py-12 text-center text-xs text-[var(--muted)]">Loading projects...</div>}>
             <ProjectsDiscoveryClient
@@ -142,3 +135,4 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
     </div>
   );
 }
+

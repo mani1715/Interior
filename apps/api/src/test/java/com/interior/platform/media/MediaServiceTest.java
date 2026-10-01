@@ -125,6 +125,17 @@ class MediaServiceTest {
     }
 
     @Test
+    void galleryManagementUsesActiveMembershipAndElevatedRole() {
+        assertEquals(studioId, mediaService.authorizeGalleryStudio(ownerActor, studioId, true));
+        assertThrows(AccessDeniedException.class, () -> mediaService.authorizeGalleryStudio(ownerActor, otherStudioId, true));
+        when(securityRepository.getStudioMemberships(userId)).thenReturn(List.of(
+                new StudioMemberRecord(UuidV7.randomUuid(), studioId, "Aura Studio", "aura-studio", userId, "MEMBER", Instant.now())));
+        assertThrows(AccessDeniedException.class, () -> mediaService.authorizeGalleryStudio(memberActor, studioId, true));
+        assertEquals(studioId, mediaService.authorizeGalleryStudio(memberActor, studioId, false));
+        assertThrows(com.interior.platform.common.exception.UnauthorizedException.class, () -> mediaService.authorizeGalleryStudio(ActorContext.anonymous(), studioId, false));
+    }
+
+    @Test
     @DisplayName("createUploadIntent succeeds and creates pending record")
     void testCreateUploadIntentSuccess() {
         when(projectRepository.findProjectById(studioId, projectId)).thenReturn(Optional.of(sampleProject));

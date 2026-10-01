@@ -61,6 +61,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   global.fetch = vi.fn().mockImplementation((url: string) => {
     const urlStr = String(url);
+    if (urlStr.includes('/public/studios/studio-elegance/projects/modern-fluted-tv-unit-guntur')) {
+      const pr=projects[0];
+      return Promise.resolve({ok:true,json:async()=>({id:pr.id,slug:pr.slug,title:pr.title,categoryCode:'TV_UNITS',fullDescription:pr.description,city:'Guntur',styleCodes:['MODERN'],studio:{studioId:'studio-1',slug:'studio-elegance',name:'Studio Elégance'},canonicalUrl:'/projects/'+pr.slug,metaTitle:pr.title,metaDescription:pr.description,media:[{id:'media-1',isCover:true,isAiConcept:true,altText:'Italian Statuario Composite',largeUrl:pr.coverImage,mediumUrl:pr.coverImage,originalWidth:1200,originalHeight:900}]})} as Response);
+    }
+    if (urlStr.endsWith('/public/studios/studio-elegance')) {
+      return Promise.resolve({ok:true,json:async()=>({id:'studio-1',slug:'studio-elegance',name:'Studio Elégance',professionalTitle:'Interior Studio',city:'Guntur',contacts:[],specialties:[],services:[],serviceAreas:[],projects:[],canonicalUrl:'/professionals/studio-elegance',indexingEnabled:true})} as Response);
+    }
     if (urlStr.includes('/public/discovery/professionals')) {
       return Promise.resolve({
         ok: true,
@@ -261,7 +268,7 @@ describe('Phase 06 — ProjectCard & ProfessionalCard Components', () => {
     expect(screen.getByText(sampleProject.title)).toBeDefined();
     expect(screen.getByText(sampleProject.categoryName)).toBeDefined();
     expect(screen.getByText(sampleProject.locationName)).toBeDefined();
-    expect(screen.getByText(sampleProject.materials[0])).toBeDefined();
+    expect(screen.getByRole('link', { name: sampleProject.title }).getAttribute('href')).toContain('studio=');
     expect(screen.getByText(sampleProject.studioName)).toBeDefined();
 
     // Verify truthfulness: NO "verified" claims
@@ -269,20 +276,21 @@ describe('Phase 06 — ProjectCard & ProfessionalCard Components', () => {
     expect(verifiedElements.length).toBe(0);
   });
 
-  it('allows toggling local demo save state on ProjectCard', () => {
+  it('opens the real collection flow without claiming a local demo save', () => {
     render(<ProjectCard project={sampleProject} />);
-    const saveButton = screen.getByRole('button', { name: /save to inspiration/i });
+    const saveButton = screen.getByRole('button', { name: /save project to collection/i });
     expect(saveButton).toBeDefined();
 
     fireEvent.click(saveButton);
-    expect(screen.getByRole('button', { name: /remove from saved inspiration/i })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /remove from saved inspiration/i })).toBeNull();
+    expect(screen.getByRole('dialog')).toBeDefined();
   });
 
-  it('renders ProfessionalCard with trade type, city, starting budget, and preview thumbnails', () => {
+  it('renders ProfessionalCard with supplied trade, city, and specialties without invented pricing', () => {
     render(<ProfessionalCard professional={sampleProf} />);
     expect(screen.getByText(sampleProf.studioName)).toBeDefined();
     expect(screen.getByText(sampleProf.locationName)).toBeDefined();
-    expect(screen.getByText(new RegExp(sampleProf.startingBudgetLabel || 'Starts from', 'i'))).toBeDefined();
+    expect(screen.queryByText(/starts from/i)).toBeNull();
 
     // Check specialties chips
     sampleProf.specialties.slice(0, 2).forEach((spec) => {
@@ -415,8 +423,8 @@ describe('Phase 06 — Route Integration & Truthfulness', () => {
 
     const headings = screen.getAllByRole('heading', { level: 1 });
     expect(headings.length).toBe(1);
-    expect(headings[0].textContent).toContain('Discover Interior Projects Across India');
-    expect(screen.getByText('Project-First Discovery')).toBeDefined();
+    expect(headings[0].textContent).toContain('Find your starting point.');
+    expect(screen.getByText('THE PROJECT LIBRARY')).toBeDefined();
   });
 
   it('/projects/[projectSlug] route renders detail story with specs, gallery, and attribution', async () => {
@@ -433,7 +441,7 @@ describe('Phase 06 — Route Integration & Truthfulness', () => {
 
     // Technical specifications
     expect(screen.getByText('Project Specifications')).toBeDefined();
-    expect(screen.getByText('Italian Statuario Composite')).toBeDefined();
+    expect(screen.getByAltText('Italian Statuario Composite')).toBeDefined();
 
     // Attribution
     expect(screen.getAllByText('Studio Elégance').length).toBeGreaterThan(0);
@@ -520,3 +528,4 @@ describe('Phase 06 — Route Integration & Truthfulness', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
   });
 });
+

@@ -24,7 +24,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-sand-50/50">
+    <div className="auth-editorial min-h-[80vh] flex items-center justify-center px-4 py-12 bg-sand-50/50">
       <div className="w-full max-w-lg bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <span className="text-xs font-semibold tracking-widest uppercase text-bronze-700 mb-2 block">

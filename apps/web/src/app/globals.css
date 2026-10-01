@@ -1,4 +1,42 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@source '../';
+
+@theme inline {
+  --color-bronze-100: #FAF8F5;
+  --color-bronze-500: #B88A5A;
+  --color-sand-50: #FAF8F5;
+  --color-sand-300: #E7E1D8;
+  --color-sand-400: #D9D9D9;
+  --color-sand-500: #6B6B6B;
+  --color-charcoal-100: #F4F4F4;
+  --color-charcoal-300: #D9D9D9;
+  --color-charcoal-400: #6B6B6B;
+  --color-charcoal-600: #4A4A4A;
+  --color-charcoal-800: #1F1F1F;
+  --color-charcoal-900: #1F1F1F;
+  --color-charcoal-950: #1F1F1F;
+  --color-bronze-50: #FAF8F5;
+  --color-bronze-200: #E7E1D8;
+  --color-bronze-300: #D9D9D9;
+  --color-bronze-400: #B88A5A;
+  --color-bronze-600: #8E653B;
+  --color-bronze-700: #8E653B;
+  --color-bronze-800: #1F1F1F;
+  --color-bronze-900: #1F1F1F;
+  --color-sand-100: #FAF8F5;
+  --color-sand-200: #E7E1D8;
+  --color-charcoal-700: #1F1F1F;
+  --color-charcoal-500: #6B6B6B;
+  --color-forest-600: #2E5D4B;
+}
+
 :root {
+  --foreground: #1F1F1F;
+  --charcoal: #1F1F1F;
+  --muted: #6B6B6B;
+  --surface-raised: #F4F4F4;
   /* ==========================================================================
      LOCKED PLATFORM PALETTE
      Approved invariants — do NOT alter or add undocumented colors.
@@ -149,6 +187,7 @@
   }
 }
 
+@layer base {
 /* Box Sizing & Reset */
 *,
 *::before,
@@ -239,4 +278,5 @@ a:hover {
   max-width: 768px;
   margin-left: auto;
   margin-right: auto;
+}
 }

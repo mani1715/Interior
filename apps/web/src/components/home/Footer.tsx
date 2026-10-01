@@ -1,102 +1,10 @@
-import React from 'react';
 import Link from 'next/link';
-
+import styles from './EditorialHome.module.css';
 export function Footer() {
-  const footerSections = [
-    {
-      title: 'Discover',
-      links: [
-        { label: 'All Projects', href: '/projects' },
-        { label: 'TV Units & Consoles', href: '/categories/tv-units' },
-        { label: 'Modular Kitchens', href: '/categories/modular-kitchens' },
-        { label: 'Master Bedroom Suites', href: '/categories/bedroom' },
-        { label: 'Pooja Mandir Units', href: '/categories/pooja-units' },
-      ],
-    },
-    {
-      title: 'For Professionals',
-      links: [
-        { label: 'Create Portfolio', href: '#portfolio-builder' },
-        { label: 'AI Spatial Visualizer', href: '#ai-visualizer' },
-        { label: 'Watermark Protection', href: '#portfolio-builder' },
-        { label: 'Studio Showcase', href: '/professionals' },
-      ],
-    },
-    {
-      title: 'Product',
-      links: [
-        { label: 'How It Works', href: '#how-it-works' },
-        { label: 'Google Discoverability', href: '#seo-discoverability' },
-        { label: 'Transformation Craft', href: '#transformation-experience' },
-        { label: 'Design System (Internal)', href: '/design-system' },
-      ],
-    },
-    {
-      title: 'Standards & Legal',
-      links: [
-        { label: 'Privacy Policy (Planned)', href: undefined },
-        { label: 'Terms of Service (Planned)', href: undefined },
-        { label: 'AI Disclaimer Notice', href: '#ai-visualizer' },
-        { label: 'Copyright & Protection', href: '#portfolio-builder' },
-      ],
-    },
-  ];
-
-  return (
-    <footer className="w-full bg-[var(--surface)] border-t border-[var(--border)] pt-12 pb-16 sm:pt-16 sm:pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
-          {/* Brand Info */}
-          <div className="col-span-2 md:col-span-1 space-y-3">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-[var(--charcoal)] flex items-center justify-center font-serif font-bold text-base shadow-sm">
-                E
-              </div>
-              <span className="font-serif text-base font-semibold tracking-wider text-[var(--foreground)]">
-                ELÉGANCE
-              </span>
-            </Link>
-            <p className="text-xs text-[var(--muted)] leading-relaxed">
-              The portfolio, discovery, and AI visualization platform engineered for interior designers, studios, and architects across India.
-            </p>
-          </div>
-
-          {/* Nav Groups */}
-          {footerSections.map((group, idx) => (
-            <div key={idx} className="space-y-3">
-              <h5 className="font-serif text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">
-                {group.title}
-              </h5>
-              <ul className="space-y-2">
-                {group.links.map((link, lIdx) => (
-                  <li key={lIdx}>
-                    {link.href ? (
-                      <Link
-                        href={link.href}
-                        className="text-xs text-[var(--muted)] hover:text-[var(--brand)] transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-[var(--muted)] opacity-70 cursor-default">
-                        {link.label}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--muted)]">
-          <p>© 2026 Elégance Interior Platform. All architectural rights reserved.</p>
-          <p className="font-mono text-[11px]">
-            Mobile-First • Locked Palette • Tenant Isolation Architecture
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
+  return <footer className={styles.footer}>
+    <div className={styles.footerTop}><div><Link href="/" className={styles.wordmark}>elégance</Link><p>Thoughtful spaces.<br />The people who bring them to life.</p></div>
+      <nav aria-label="Footer discovery"><span>DISCOVER</span><Link href="/projects">Interior projects</Link><Link href="/interior-journey">The interior journey</Link><Link href="/professionals">Professionals & studios</Link><Link href="/categories/modular-kitchens">Modular kitchens</Link><Link href="/categories/wardrobes">Wardrobes & storage</Link></nav>
+      <nav aria-label="Footer professionals"><span>FOR PROFESSIONALS</span><Link href="/onboarding/professional">Build your portfolio</Link><Link href="/workspace">Your workspace</Link><Link href="/#ai-visualizer">AI visualization</Link><Link href="/account/collections">Your collections</Link></nav>
+    </div><div className={styles.footerBottom}><span>© {new Date().getFullYear()} Elégance Interior Platform</span><span>Considered design. Across India.</span></div>
+  </footer>;
 }

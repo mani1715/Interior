@@ -559,7 +559,7 @@ export default function ProfessionalOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface-base)] text-charcoal-900 pb-20">
+    <div className="workspace-editorial min-h-screen bg-[var(--surface-base)] text-charcoal-900 pb-20">
       {/* Top Banner Header */}
       <div className="bg-white border-b border-sand-200 sticky top-16 z-30 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">

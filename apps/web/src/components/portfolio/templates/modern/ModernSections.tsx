@@ -1,3 +1,4 @@
+import { GalleryPhoto } from '../../gallery/PortfolioGallery';
 /* eslint-disable @next/next/no-img-element -- media loader is not part of the portfolio contract. */
 import type { PortfolioTemplateProps } from '@/lib/portfolio/template-contract';
 import type { PreviewSectionDto } from '@/lib/portfolio/types';
@@ -33,7 +34,7 @@ export function ModernSection({section:p, portfolio:x, id, anchors, isHero}: {se
           const media = ai
             ? [{ src: item.conceptImageUrl, label: 'AI Concept Visualization' }, { src: item.realityImageUrl, label: 'Real Result' }]
             : [{ src: item.beforeImageUrl, label: 'Before' }, { src: item.afterImageUrl, label: 'After' }];
-          return <article key={i}>{text(item.title) && <h3>{text(item.title)}</h3>}<div>{media.map(asset => <figure key={asset.label}><img src={mediaUrl(asset.src)} alt={`${asset.label}${text(item.title) ? ` — ${text(item.title)}` : ''}`} width={960} height={720} loading="lazy" /><figcaption>{asset.label}</figcaption></figure>)}</div></article>;
+          return <article key={i}>{text(item.title) && <h3>{text(item.title)}</h3>}<div>{media.map(asset => <figure key={asset.label}><GalleryPhoto src={mediaUrl(asset.src)} alt={`${asset.label}${text(item.title) ? ` — ${text(item.title)}` : ''}`} width={960} height={720} loading="lazy" /><figcaption>{asset.label}</figcaption></figure>)}</div></article>;
         })}</div>
       </>;
       break;

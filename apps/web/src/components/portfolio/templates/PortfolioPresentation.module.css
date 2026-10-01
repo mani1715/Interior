@@ -1,0 +1,18 @@
+/* Shared presentation refinements, scoped to the six template canvases. */
+.canvas{overflow-x:clip;--portfolio-title-size:clamp(2rem,3.6cqi,3rem);--portfolio-section-size:clamp(1.5rem,2.3cqi,1.875rem)}
+.canvas :is(h1,h2){text-wrap:balance;letter-spacing:-.035em}
+.canvas p{line-height:1.7}
+.canvas figure{perspective:1400px}
+.canvas figure img{backface-visibility:hidden}
+.canvas figcaption{font-size:12px;line-height:1.6;letter-spacing:.025em}
+.canvas [data-media-sequence]{gap:clamp(20px,3cqi,44px)}
+.canvas article:only-child:has(figure img){grid-column:1/-1}
+.canvas :is(a,button,summary){scroll-margin-block:100px}
+.canvas[id^="basic-main"] section{scroll-margin-top:160px}
+@media(prefers-reduced-motion:no-preference){
+ .canvas [data-portfolio-motion="media"]{transform:perspective(1400px) translate3d(var(--portfolio-x,0px),var(--portfolio-y,0px),var(--portfolio-depth,0px)) rotateY(var(--portfolio-turn,0deg));transform-origin:center;will-change:transform}
+ .canvas [data-portfolio-motion="text"]{transform:translate3d(0,var(--portfolio-text,0px),0);will-change:transform}
+ .canvas [data-portfolio-motion]:focus-within{transform:none}
+}
+@media(prefers-reduced-motion:reduce){.canvas [data-portfolio-motion]{transform:none!important;will-change:auto}}
+@media print{.canvas [data-portfolio-motion]{transform:none!important}}

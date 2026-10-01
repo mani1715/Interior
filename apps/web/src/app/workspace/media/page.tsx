@@ -1,5 +1,6 @@
 'use client';
 
+import { GalleryFolderManager } from '@/components/media/GalleryFolderManager';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
@@ -199,6 +200,7 @@ export default function MediaWorkspacePage() {
         </div>
       </div>
 
+      <GalleryFolderManager media={mediaList} projects={projects}/>
       {/* Metrics Banner */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white border border-sand-200 rounded-xl p-4 shadow-sm">

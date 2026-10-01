@@ -1,3 +1,4 @@
+import motionStyles from '../PortfolioPresentation.module.css';
 import { PortfolioMotion } from '../PortfolioMotion';
 import { visualPalette } from '../visual-palette';
 import { useId } from 'react';
@@ -40,7 +41,7 @@ export function BasicTemplate(props: PortfolioTemplateProps) {
   return <div className={styles.root} style={{...visualPalette(props, ['#FAF8F5', '#1F1F1F', '#B88A5A'])}} data-font={props.fontPairing || 'SYSTEM_SANS'} data-mobile={props.isMobilePreview || undefined}>
     <a href={`#${mainId}`} className={styles.skip}>Skip to portfolio content</a>
     <BasicHeader name={name} links={links} sticky={navigation.sticky} cta={ctaHref ? { href: ctaHref, label: navigation.primaryCtaLabel } : undefined} />
-    <main id={mainId} tabIndex={-1}>
+    <main className={motionStyles.canvas} id={mainId} tabIndex={-1}>
       {!hero && <div className={styles.section}><h1>{name}</h1></div>}
       {rendered.map(({ section, id }) => <BasicSection key={section.sectionId} section={section} portfolio={props} id={id} anchors={anchors} heroIsHeading={section === hero?.section} />)}
     </main><PortfolioMotion mainId={mainId}/>

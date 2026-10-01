@@ -1,0 +1,322 @@
+[
+  {
+    "active": "#story-wardrobe",
+    "cinematic": false,
+    "height": 800,
+    "images": true,
+    "overflow": false,
+    "width": 360
+  },
+  {
+    "active": "#story-kitchen",
+    "cinematic": false,
+    "height": 800,
+    "images": true,
+    "overflow": false,
+    "width": 360
+  },
+  {
+    "active": "#story-hall",
+    "cinematic": false,
+    "height": 800,
+    "images": true,
+    "overflow": false,
+    "width": 360
+  },
+  {
+    "active": "#story-tv-unit",
+    "cinematic": false,
+    "height": 800,
+    "images": true,
+    "overflow": false,
+    "width": 360
+  },
+  {
+    "active": "#story-feature",
+    "cinematic": false,
+    "height": 800,
+    "images": true,
+    "overflow": false,
+    "width": 360
+  },
+  {
+    "active": "#story-wardrobe",
+    "cinematic": false,
+    "height": 844,
+    "images": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "active": "#story-kitchen",
+    "cinematic": false,
+    "height": 844,
+    "images": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "active": "#story-hall",
+    "cinematic": false,
+    "height": 844,
+    "images": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "active": "#story-tv-unit",
+    "cinematic": false,
+    "height": 844,
+    "images": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "active": "#story-feature",
+    "cinematic": false,
+    "height": 844,
+    "images": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "active": "#story-wardrobe",
+    "cinematic": false,
+    "height": 932,
+    "images": true,
+    "overflow": false,
+    "width": 430
+  },
+  {
+    "active": "#story-kitchen",
+    "cinematic": false,
+    "height": 932,
+    "images": true,
+    "overflow": false,
+    "width": 430
+  },
+  {
+    "active": "#story-hall",
+    "cinematic": false,
+    "height": 932,
+    "images": true,
+    "overflow": false,
+    "width": 430
+  },
+  {
+    "active": "#story-tv-unit",
+    "cinematic": false,
+    "height": 932,
+    "images": true,
+    "overflow": false,
+    "width": 430
+  },
+  {
+    "active": "#story-feature",
+    "cinematic": false,
+    "height": 932,
+    "images": true,
+    "overflow": false,
+    "width": 430
+  },
+  {
+    "active": "story-wardrobe",
+    "cinematic": true,
+    "height": 1024,
+    "images": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "story-kitchen",
+    "cinematic": true,
+    "height": 1024,
+    "images": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "story-hall",
+    "cinematic": true,
+    "height": 1024,
+    "images": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "story-tv-unit",
+    "cinematic": true,
+    "height": 1024,
+    "images": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "story-feature",
+    "cinematic": true,
+    "height": 1024,
+    "images": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "active": "story-wardrobe",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "story-kitchen",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "story-hall",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "story-tv-unit",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "story-feature",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "active": "story-wardrobe",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1366
+  },
+  {
+    "active": "story-kitchen",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1366
+  },
+  {
+    "active": "story-hall",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1366
+  },
+  {
+    "active": "story-tv-unit",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1366
+  },
+  {
+    "active": "story-feature",
+    "cinematic": true,
+    "height": 768,
+    "images": true,
+    "overflow": false,
+    "width": 1366
+  },
+  {
+    "active": "story-wardrobe",
+    "cinematic": true,
+    "height": 900,
+    "images": true,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "story-kitchen",
+    "cinematic": true,
+    "height": 900,
+    "images": true,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "story-hall",
+    "cinematic": true,
+    "height": 900,
+    "images": true,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "story-tv-unit",
+    "cinematic": true,
+    "height": 900,
+    "images": true,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "story-feature",
+    "cinematic": true,
+    "height": 900,
+    "images": true,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "active": "story-wardrobe",
+    "cinematic": true,
+    "height": 1000,
+    "images": true,
+    "overflow": false,
+    "width": 1600
+  },
+  {
+    "active": "story-kitchen",
+    "cinematic": true,
+    "height": 1000,
+    "images": true,
+    "overflow": false,
+    "width": 1600
+  },
+  {
+    "active": "story-hall",
+    "cinematic": true,
+    "height": 1000,
+    "images": true,
+    "overflow": false,
+    "width": 1600
+  },
+  {
+    "active": "story-tv-unit",
+    "cinematic": true,
+    "height": 1000,
+    "images": true,
+    "overflow": false,
+    "width": 1600
+  },
+  {
+    "active": "story-feature",
+    "cinematic": true,
+    "height": 1000,
+    "images": true,
+    "overflow": false,
+    "width": 1600
+  }
+]

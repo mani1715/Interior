@@ -95,7 +95,7 @@ export default async function CategoryLandingPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
+    <div className="public-editorial min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
       <SafeJsonLd data={breadcrumbJsonLd} />
 
       <PublicHeader currentPath="/projects" />

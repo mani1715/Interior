@@ -65,3 +65,14 @@
 @container(min-width:1200px) { .root figure[data-entered] { animation-name:photoWide; } }
 @keyframes photoWide { from { opacity:.75; clip-path:inset(0 8% 0 0); transform:translateX(-10px) scale(1.015); } to { opacity:1; clip-path:inset(0); transform:none; } }
 @media(hover:hover) and (pointer:fine) { @container(min-width:1200px) { .root figure:hover img { transform:scale(1.03); } } }
+
+/* Restrained type scale: portfolio imagery takes precedence over display text. */
+.root .section h1 { font-size:var(--portfolio-title-size); line-height:1.16; letter-spacing:-.025em; max-width:24ch; margin-left:0; }
+.root .section h2 { font-size:var(--portfolio-section-size); line-height:1.25; letter-spacing:-.018em; max-width:32ch; margin-bottom:24px; }
+.root .section h3 { font-size:1.0625rem; line-height:1.45; letter-spacing:0; }
+.root .section blockquote { font-size:1.125rem; line-height:1.65; }
+.root .section :is(a,button,summary) { font-size:.875rem; }
+.root figure:hover img { transform:none; }
+.root .section { padding-block:48px; } .root .hero { padding-block:56px; } .root .heroMeta { margin-top:28px; align-items:start; } .root .serviceRows b { font-size:1.0625rem; }
+
+.root .heroMeta { grid-template-columns:1fr; gap:18px; max-width:60ch; } .root .heroMeta .action { justify-self:start; }

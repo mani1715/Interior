@@ -65,7 +65,7 @@ function ReviewSubmitForm() {
 
   if (submittedSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50">
+      <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-zinc-50">
         <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm text-center space-y-4">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
             ✓
@@ -89,7 +89,7 @@ function ReviewSubmitForm() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-12 px-4 flex justify-center items-center">
+    <div className="workspace-editorial min-h-screen bg-zinc-50 py-12 px-4 flex justify-center items-center">
       <div className="max-w-xl w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm space-y-6">
         <div className="space-y-1 text-center">
           <span className="text-[11px] font-semibold tracking-wider uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
@@ -244,7 +244,7 @@ function ReviewSubmitForm() {
 
 export default function ReviewSubmitPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="workspace-editorial min-h-screen bg-zinc-50 flex items-center justify-center">Loading...</div>}>
       <ReviewSubmitForm />
     </Suspense>
   );

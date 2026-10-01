@@ -50,13 +50,13 @@ export interface Project {
   categoryName: string;
   location: string; // slug e.g. 'guntur'
   locationName: string;
-  style: StyleKey;
+  style: StyleKey | '';
   styleName: string;
-  budgetRange: BudgetRangeKey;
+  budgetRange: BudgetRangeKey | '';
   budgetLabel: string;
-  propertyType: PropertyTypeKey;
+  propertyType: PropertyTypeKey | '';
   propertyTypeName: string;
-  professionalType: ProfessionalTypeKey;
+  professionalType: ProfessionalTypeKey | '';
   professionalTypeName: string;
   professionalSlug: string;
   professionalName: string;
@@ -66,7 +66,7 @@ export interface Project {
   coverImage: string;
   gallery: GalleryItem[];
   materials: string[];
-  completionYear: number;
+  completionYear?: number;
   duration: string;
   services: string[];
   featured?: boolean;

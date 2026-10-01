@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useId } from 'react';
 import { X } from 'lucide-react';
 
 export interface DialogProps {
@@ -33,11 +33,25 @@ export function Dialog({
   className = '',
 }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    dialogRef.current?.querySelector<HTMLElement>('button, a[href], input, select, textarea')?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        closeRef.current();
+      }
+      if (e.key === 'Tab') {
+        const nodes = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]') || []);
+        const first = nodes[0], last = nodes[nodes.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
       }
     };
 
@@ -47,10 +61,11 @@ export function Dialog({
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
+      previous?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -59,8 +74,8 @@ export function Dialog({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'dialog-title' : undefined}
-      aria-describedby={description ? 'dialog-description' : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={description ? descriptionId : undefined}
     >
       {/* Backdrop */}
       <div
@@ -78,12 +93,12 @@ export function Dialog({
         <div className="flex items-start justify-between p-5 border-b border-[var(--border)]">
           <div>
             {title && (
-              <h3 id="dialog-title" className="font-serif text-lg font-semibold text-[var(--foreground)]">
+              <h3 id={titleId} className="font-serif text-lg font-semibold text-[var(--foreground)]">
                 {title}
               </h3>
             )}
             {description && (
-              <p id="dialog-description" className="text-xs text-[var(--muted)] mt-1">
+              <p id={descriptionId} className="text-xs text-[var(--muted)] mt-1">
                 {description}
               </p>
             )}
@@ -92,7 +107,7 @@ export function Dialog({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>

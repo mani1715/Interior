@@ -2,7 +2,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { PortfolioMotion } from '../portfolio/templates/PortfolioMotion';
+import { PortfolioMotion, portfolioDepth } from '../portfolio/templates/PortfolioMotion';
 import { contrast, visualPalette } from '../portfolio/templates/visual-palette';
 import { TEMPLATE_REGISTRY } from '@/lib/portfolio/template-registry';
 import { basicFixture } from './BasicTemplate.fixture';
@@ -21,7 +21,7 @@ describe('progressive portfolio presentation', () => {
     }
   });
 
-  it('observes once, disconnects, and immediately removes enhancement when reduced motion changes', () => {
+  it('observes visible text continuously and removes enhancement when reduced motion changes', () => {
     let reduced = false;
     let onChange: () => void = () => {};
     let onEntry: (entries: {isIntersecting:boolean;target:Element}[]) => void = () => {};
@@ -31,16 +31,34 @@ describe('progressive portfolio presentation', () => {
       constructor(f: typeof onEntry){onEntry=f;}
       observe=observe; disconnect=disconnect; unobserve=unobserve;
     });
-    const {container,unmount}=render(<><main id="qa"><section>Visible content</section></main><PortfolioMotion mainId="qa"/></>);
-    const section=container.querySelector('section')!;
+    const {container,unmount}=render(<><main id="qa"><section><h2>Visible content</h2></section></main><PortfolioMotion mainId="qa"/></>);
+    const section=container.querySelector('h2')!;
     expect(observe).toHaveBeenCalledWith(section);
-    expect(section.hasAttribute('data-entered')).toBe(false);
+    expect(section.hasAttribute('data-portfolio-motion')).toBe(true);
     act(()=>onEntry([{isIntersecting:true,target:section}]));
-    expect(section.getAttribute('data-entered')).toBe('true');
-    expect(unobserve).toHaveBeenCalledWith(section);
+    expect(section.getAttribute('data-portfolio-motion')).toBe('text');
+    expect(unobserve).not.toHaveBeenCalled();
     act(()=>{reduced=true;onChange();});
-    expect(section.hasAttribute('data-entered')).toBe(false);
+    expect(section.hasAttribute('data-portfolio-motion')).toBe(false);
     unmount();expect(disconnect).toHaveBeenCalled();
+  });
+
+  it('uses opposite photo entrances, gentler compact movement and bounded reversible depth', () => {
+    expect(portfolioDepth(0,-1,false).x).toBeLessThan(0);
+    expect(portfolioDepth(0,1,false).x).toBeGreaterThan(0);
+    expect(Math.abs(portfolioDepth(0,1,true).x)).toBeLessThan(Math.abs(portfolioDepth(0,1,false).x));
+    Object.values(portfolioDepth(.5,1,false)).forEach(value => expect(Math.abs(value)).toBe(0));
+    expect(portfolioDepth(-1,1,false)).toEqual(portfolioDepth(0,1,false));
+    expect(portfolioDepth(2,1,false)).toEqual(portfolioDepth(1,1,false));
+  });
+
+  it('moves comparison pairs as one plane and leaves disclosure content static', () => {
+    vi.stubGlobal('matchMedia',()=>({matches:false,addEventListener:vi.fn(),removeEventListener:vi.fn()}));
+    vi.stubGlobal('IntersectionObserver',class {observe(){} disconnect(){}});
+    const {container}=render(<><main id="qa-pair"><section data-section-type="BEFORE_AFTER"><article><figure><img alt="Before"/></figure><figure><img alt="After"/></figure></article></section><details><summary>Question</summary><p>Answer</p></details></main><PortfolioMotion mainId="qa-pair"/></>);
+    expect(container.querySelector('article')?.getAttribute('data-portfolio-motion')).toBe('media');
+    expect(container.querySelectorAll('figure[data-portfolio-motion]')).toHaveLength(0);
+    expect(container.querySelector('details p')?.hasAttribute('data-portfolio-motion')).toBe(false);
   });
 
   it('does not observe at all for reduced-motion users', () => {
@@ -73,3 +91,4 @@ describe('progressive portfolio presentation', () => {
     }
   });
 });
+

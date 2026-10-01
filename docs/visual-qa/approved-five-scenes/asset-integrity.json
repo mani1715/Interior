@@ -1,0 +1,42 @@
+[
+  {
+    "Scene": 1,
+    "Source": "ChatGPT Image Sep 29, 2026, 10_28_24 AM.png",
+    "Asset": "wardrobe.png",
+    "Bytes": 1784376,
+    "SHA256": "4E5843D6D4435D35128D7991BC8B1E5E75138831712FE5303915BECEFA21BC9A",
+    "ExactMatch": true
+  },
+  {
+    "Scene": 2,
+    "Source": "ChatGPT Image Sep 29, 2026, 10_28_40 AM.png",
+    "Asset": "kitchen.png",
+    "Bytes": 1851301,
+    "SHA256": "2C6E946CDFD1DEBE196441DDFD1C37BC8288ACB1097716F109CC8119AA73E1AB",
+    "ExactMatch": true
+  },
+  {
+    "Scene": 3,
+    "Source": "ChatGPT Image Sep 29, 2026, 10_28_51 AM.png",
+    "Asset": "hall.png",
+    "Bytes": 1967536,
+    "SHA256": "6F53686C46E51DB8CA4A47F2A346D6101B6E9447C30C386A1C81C485B09B4B68",
+    "ExactMatch": true
+  },
+  {
+    "Scene": 4,
+    "Source": "ChatGPT Image Sep 29, 2026, 10_28_58 AM.png",
+    "Asset": "tv-unit.png",
+    "Bytes": 1884444,
+    "SHA256": "0CD356B3879FA0796CD260CBE243CB30BABA4009CE797EF07214A01C43648353",
+    "ExactMatch": true
+  },
+  {
+    "Scene": 5,
+    "Source": "ChatGPT Image Sep 29, 2026, 10_29_05 AM.png",
+    "Asset": "feature.png",
+    "Bytes": 1928253,
+    "SHA256": "D985EC4607F3D74678E038251E12943AD652CE72594D294E50EE80C5FDDCF717",
+    "ExactMatch": true
+  }
+]

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Dialog } from '@/components/overlay/Dialog';
 import { UserCollectionDto } from '@/lib/collections/types';
 import {
   createCollection,
@@ -96,19 +97,8 @@ export function SaveToCollectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <h3 className="font-semibold text-zinc-900 text-base">Save to Collection</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-
+    <Dialog isOpen={isOpen} onClose={onClose} title="Save to Collection">
+      <div className="space-y-4">
         {error && (
           <div className="p-2.5 text-xs text-red-600 bg-red-50 rounded-lg">
             {error}
@@ -225,6 +215,6 @@ export function SaveToCollectionModal({
           </div>
         )}
       </div>
-    </div>
+    </Dialog>
   );
 }

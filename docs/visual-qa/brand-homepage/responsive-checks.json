@@ -1,0 +1,37 @@
+[
+  {
+    "headings": 1,
+    "height": 800,
+    "pinned": false,
+    "scrollWidth": 345,
+    "width": 360
+  },
+  {
+    "headings": 1,
+    "height": 932,
+    "pinned": false,
+    "scrollWidth": 415,
+    "width": 430
+  },
+  {
+    "headings": 1,
+    "height": 1024,
+    "pinned": true,
+    "scrollWidth": 753,
+    "width": 768
+  },
+  {
+    "headings": 1,
+    "height": 768,
+    "pinned": true,
+    "scrollWidth": 1009,
+    "width": 1024
+  },
+  {
+    "headings": 1,
+    "height": 900,
+    "pinned": true,
+    "scrollWidth": 1425,
+    "width": 1440
+  }
+]

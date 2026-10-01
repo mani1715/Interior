@@ -9,7 +9,8 @@ import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discove
 import { ProjectCard } from './ProjectCard';
 import { DiscoverySearchBar } from './DiscoverySearchBar';
 import { ProjectFilterSheet } from './ProjectFilterSheet';
-import { ProjectFilterSidebar } from './ProjectFilterSidebar';
+import styles from './ProjectLibrary.module.css';
+import Link from 'next/link';
 import { ActiveFilterBar } from './ActiveFilterBar';
 import { Button } from '@/components/ui/Button';
 
@@ -154,18 +155,20 @@ export function ProjectsDiscoveryClient({
   ].filter(Boolean).length;
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8">
+    <div id="project-search" className={styles.library}>
       {/* 1. Prominent Search Bar */}
       <DiscoverySearchBar
+        suggestions={[]}
         initialQuery={filters.q || ''}
         onSearch={handleSearch}
         placeholder="Search TV units, modular kitchens, styles, or cities..."
       />
 
       {/* 2. Quick Horizontal Category Chips Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className={styles.categories}>
         <button
           type="button"
+          aria-pressed={!filters.category}
           onClick={() => handleFilterChange('category', undefined)}
           className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[38px] border ${
             !filters.category
@@ -178,6 +181,7 @@ export function ProjectsDiscoveryClient({
         {CATEGORIES.slice(0, 8).map((cat) => (
           <button
             key={cat.slug}
+            aria-pressed={filters.category === cat.slug}
             type="button"
             onClick={() => handleFilterChange('category', filters.category === cat.slug ? undefined : cat.slug)}
             className={`px-3.5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all min-h-[38px] border ${
@@ -192,7 +196,7 @@ export function ProjectsDiscoveryClient({
       </div>
 
       {/* 3. Mobile Control Bar: Filter Trigger + Sort Select */}
-      <div className="flex items-center justify-between gap-3 lg:hidden pt-2 border-t border-[var(--border)]">
+      <div className={styles.toolbar}>
         <button
           type="button"
           onClick={() => setMobileFilterOpen(true)}
@@ -225,48 +229,22 @@ export function ProjectsDiscoveryClient({
       </div>
 
       {/* 4. Active Filters Bar with Result Count and Live Announcer */}
-      <ActiveFilterBar
+      {!error && !isLoading && <ActiveFilterBar
         filters={filters}
         totalResults={total}
         onRemoveFilter={handleRemoveFilter}
         onClearAll={handleClearAll}
-      />
+      />}
 
       {/* 5. Main Grid Layout (Desktop Sidebar + Projects Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Desktop Sidebar (hidden on mobile) */}
-        <div className="hidden lg:block lg:col-span-3 sticky top-24 p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-          {/* Desktop Sort */}
-          <div className="mb-6 pb-4 border-b border-[var(--border)]">
-            <label className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)] block mb-2">
-              Sort By
-            </label>
-            <select
-              value={filters.sort || 'recommended'}
-              onChange={handleSortChange}
-              aria-label="Sort projects desktop"
-              className="w-full py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-xs text-[var(--foreground)] focus:outline-none focus:border-[var(--brand)]"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <ProjectFilterSidebar
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onClearAll={handleClearAll}
-          />
-        </div>
-
+      <div className={styles.results}>
         {/* Project Results Area */}
         <div className="lg:col-span-9">
-          {error ? (
+          {isLoading ? (
+            <div role="status" className="py-16 text-center text-sm text-[var(--muted)]">Finding projects for your space…</div>
+          ) : error ? (
             /* Truthful Error State */
-            <div className="py-16 text-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 space-y-4">
+            <div className={styles.unavailable} role="status">
               <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
                 <AlertCircle className="w-6 h-6" />
               </div>
@@ -275,7 +253,7 @@ export function ProjectsDiscoveryClient({
                   Discovery is temporarily unavailable
                 </h4>
                 <p className="text-xs sm:text-sm text-[var(--muted)] max-w-md mx-auto leading-relaxed">
-                  We are unable to load projects at this moment. Please check your connection and try again.
+                  The project library could not connect. Try again in a moment, or explore our interior concepts.
                 </p>
               </div>
               <div className="pt-2 flex justify-center">
@@ -287,6 +265,7 @@ export function ProjectsDiscoveryClient({
                 >
                   Try Again
                 </Button>
+                <Link className={styles.journeyLink} href="/interior-journey">Explore the interior journey ↗</Link>
               </div>
             </div>
           ) : projects.length > 0 ? (
@@ -346,8 +325,9 @@ export function ProjectsDiscoveryClient({
         filters={filters}
         onFilterChange={handleFilterChange}
         onClearAll={handleClearAll}
-        totalResults={total}
+        totalResults={error || isLoading ? undefined : total}
       />
     </div>
   );
 }
+

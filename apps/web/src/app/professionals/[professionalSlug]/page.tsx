@@ -1,3 +1,4 @@
+import { PublicPortfolioGallery } from '@/components/portfolio/gallery/PublicPortfolioGallery';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -5,8 +6,6 @@ import { MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
 import { PublicHeader } from '@/components/navigation/PublicHeader';
 import { Footer } from '@/components/home/Footer';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import { ProjectCard } from '@/components/discovery/ProjectCard';
-import { getProfessionalBySlug, getProjectsByProfessional } from '@/lib/discovery/queries';
 import { fetchPublicStudio } from '@/lib/seo/api';
 import { buildStudioMetadata } from '@/lib/seo/metadata';
 import { buildBreadcrumbJsonLd, buildStudioJsonLd, SafeJsonLd } from '@/lib/seo/structured-data';
@@ -32,31 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return buildStudioMetadata(liveStudio);
   }
 
-  const professional = getProfessionalBySlug(professionalSlug);
-  if (!professional) {
-    return {
-      title: 'Professional Not Found | Interior',
-    };
-  }
-
-  const title = `${professional.studioName} | ${professional.professionalTypeLabel} in ${professional.locationName}`;
-  const description = professional.bio;
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `/professionals/${professional.slug}`,
-    },
-    openGraph: {
-      title,
-      description,
-      url: `/professionals/${professional.slug}`,
-      siteName: 'Interior Platform',
-      locale: 'en_IN',
-      type: 'profile',
-    },
-  };
+  return { title: 'Professional Not Found | Elégance', robots: { index: false, follow: false } };
 }
 
 export default async function ProfessionalDetailPage({ params }: PageProps) {
@@ -152,14 +127,17 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
             entityType="STUDIO"
             entitySlug={liveStudio.slug}
           />
-          <TemplateComp {...portfolioProps} />
+          <PublicHeader currentPath="/professionals" />
+          <div id="main-content"><TemplateComp {...portfolioProps} /><PublicPortfolioGallery studioSlug={liveStudio.slug}/></div>
+          <div className="public-editorial max-w-7xl mx-auto px-6 py-12"><ReviewSection studioSlug={liveStudio.slug} studioName={liveStudio.name} /></div>
+          <Footer />
         </div>
       );
     }
 
     // Studio Profile Layout without portfolio
     return (
-      <div className="min-h-screen bg-[#FAF8F5] text-[#1F1F1F] flex flex-col selection:bg-[#B88A5A]/20 selection:text-[#1F1F1F]">
+      <div className="public-editorial min-h-screen bg-[#FAF8F5] text-[#1F1F1F] flex flex-col selection:bg-[#B88A5A]/20 selection:text-[#1F1F1F]">
         <SafeJsonLd data={breadcrumbData} />
         <SafeJsonLd data={studioJsonLd} />
         <PublicTelemetryTracker
@@ -289,7 +267,7 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
                   {liveStudio.projects.map((p) => (
                     <Link
                       key={p.id}
-                      href={`/projects/${p.slug}`}
+                      href={`/projects/${p.slug}?studio=${encodeURIComponent(liveStudio.slug)}`}
                       className="group block rounded-2xl border border-sand-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all"
                     >
                       <div className="aspect-[4/3] bg-sand-100 relative overflow-hidden">
@@ -337,174 +315,6 @@ export default async function ProfessionalDetailPage({ params }: PageProps) {
     );
   }
 
-  // Fallback to local discovery mock if not found in live API
-  const professional = getProfessionalBySlug(professionalSlug);
-
-  if (!professional) {
-    notFound();
-  }
-
-  const projects = getProjectsByProfessional(professional.slug);
-
-  return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
-      <PublicTelemetryTracker
-        eventType="PUBLIC_PROFILE_VIEW"
-        entityType="STUDIO"
-        entitySlug={professional.slug}
-      />
-      <PublicHeader currentPath="/professionals" />
-
-      <main id="main-content" className="flex-1 w-full py-6 sm:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
-          {/* Breadcrumbs */}
-          <Breadcrumb
-            items={[
-              { label: 'Home', href: '/' },
-              { label: 'Professionals', href: '/professionals' },
-              { label: professional.studioName, href: `/professionals/${professional.slug}`, current: true },
-            ]}
-          />
-
-          {/* Studio Profile Header Card */}
-          <div className="p-6 sm:p-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-start sm:items-center gap-4 sm:gap-6">
-                <div
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-serif font-bold text-3xl text-[var(--charcoal)] shadow-sm flex-shrink-0"
-                  style={{ backgroundColor: professional.avatarColor }}
-                >
-                  {professional.avatarChar}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--foreground)]">
-                      {professional.professionalTypeLabel}
-                    </span>
-                    {verification.verified && (
-                      <VerificationBadge verified={true} businessName={professional.studioName} size="sm" />
-                    )}
-                    {professional.startingBudgetLabel && (
-                      <span className="text-xs text-[var(--muted)] font-mono">
-                        From {professional.startingBudgetLabel}
-                      </span>
-                    )}
-                  </div>
-
-                  <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-[var(--foreground)]">
-                    {professional.studioName}
-                  </h1>
-
-                  <p className="text-xs sm:text-sm text-[var(--muted)] mt-1 flex items-center gap-1.5 flex-wrap">
-                    <span>Principal: <strong className="text-[var(--foreground)]">{professional.name}</strong></span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[var(--brand)]" />
-                      {professional.locationName}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Service Areas */}
-              <div className="text-xs text-[var(--muted)] flex flex-col sm:items-end gap-1.5 pt-4 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
-                <span className="font-semibold uppercase tracking-wider text-[10px] text-[var(--brand)]">
-                  Serving Cities
-                </span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {professional.serviceAreas.map((area, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-0.5 rounded bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--foreground)] font-medium text-[11px]"
-                    >
-                      {area}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Bio */}
-            <div className="mt-6 pt-6 border-t border-[var(--border)]">
-              <h2 className="font-serif text-base font-semibold text-[var(--foreground)] mb-2">
-                Studio Philosophy & Overview
-              </h2>
-              <p className="text-xs sm:text-sm text-[var(--muted)] leading-relaxed max-w-4xl">
-                {professional.bio}
-              </p>
-            </div>
-
-            {/* Specialties & Services */}
-            <div className="mt-6 pt-6 border-t border-[var(--border)] grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--brand)] mb-2">
-                  Specialties & Craft
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {professional.specialties.map((spec, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-xl text-xs font-medium bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--foreground)]"
-                    >
-                      {spec}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--brand)] mb-2">
-                  Trade Services Offered
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {professional.services.map((svc, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-xl text-xs font-medium bg-[var(--surface-alt)] border border-[var(--border)] text-[var(--foreground)]"
-                    >
-                      {svc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Published Projects Section */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-              <div>
-                <h2 className="font-serif text-xl sm:text-2xl font-semibold text-[var(--foreground)]">
-                  Published Projects
-                </h2>
-                <p className="text-xs text-[var(--muted)]">
-                  Explore turnkey spatial work designed and delivered by {professional.studioName}.
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-[var(--muted)]">
-                {projects.length} {projects.length === 1 ? 'Project' : 'Projects'}
-              </span>
-            </div>
-
-            {projects.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--muted)]">
-                No public projects currently listed for this studio.
-              </div>
-            )}
-          </div>
-
-          {/* Client Reviews Section */}
-          <ReviewSection studioSlug={professional.slug} studioName={professional.studioName} />
-        </div>
-      </main>
-
-      <Footer />
-    </div>
-  );
+  // Never substitute a demo profile for a missing public studio.
+  notFound();
 }

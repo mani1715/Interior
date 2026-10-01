@@ -50,10 +50,10 @@ describe('Phase 07 — Frontend Authentication & Role Tests', () => {
   });
 
   describe('PublicHeader Auth Awareness', () => {
-    it('renders unauthenticated state with Sign In and Join Atelier links by default', () => {
+    it('renders unauthenticated state with Sign In and For professionals links by default', () => {
       render(<PublicHeader />);
       expect(screen.getByText('Sign In')).toBeDefined();
-      expect(screen.getByText('Join Atelier')).toBeDefined();
+      expect(screen.getByText('For professionals')).toBeDefined();
     });
 
     it('renders authenticated state with user name, role badge, and Sign Out button', () => {

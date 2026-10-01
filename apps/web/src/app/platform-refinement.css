@@ -1,0 +1,46 @@
+/* Scoped to platform surfaces: portfolio template canvases keep their identities. */
+.public-editorial{min-height:100vh;background:var(--background);color:var(--text-primary)}
+.public-editorial main{padding-top:44px;padding-bottom:70px}
+.public-editorial main>div{max-width:1360px;margin-inline:auto}
+.public-editorial main h1{font:400 clamp(36px,4.4vw,64px)/1.12 var(--font-serif);letter-spacing:-.035em;max-width:950px;margin:24px 0}
+.public-editorial main h2{font-weight:400;letter-spacing:-.025em}
+.public-editorial main p{line-height:1.8}
+.public-editorial main .rounded-2xl{border-radius:2px;box-shadow:none}
+.public-editorial main .rounded-xl{border-radius:3px}
+.public-editorial main input:not([type=checkbox]):not([type=radio]),.public-editorial main select{min-height:48px}
+.public-editorial main button{min-height:44px}
+.public-editorial main .text-xs{font-size:13px}
+.public-editorial main .text-\[var\(--brand\)\]{color:var(--text-primary)}
+.public-editorial main .xl\:grid-cols-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+.auth-editorial{position:relative;min-height:calc(100svh - 76px);background:var(--background);padding:60px 22px}
+.auth-editorial>div{border-radius:2px;box-shadow:none;border-color:var(--color-sage-neutral);padding:38px}
+.auth-editorial h1{font-size:40px;font-weight:400;letter-spacing:-.025em}
+.auth-editorial button{min-height:48px;border-radius:3px}
+.workspace-editorial{--radius-md:4px;--radius-lg:6px}
+.workspace-editorial main{min-width:0}
+.workspace-editorial main h1{font:400 clamp(28px,3vw,40px)/1.2 var(--font-serif);letter-spacing:-.02em}
+.workspace-editorial main h2,.workspace-editorial main h3{font-family:var(--font-sans);font-weight:500}
+.workspace-editorial main .rounded-2xl{border-radius:6px;box-shadow:none}
+.workspace-editorial main .rounded-xl{border-radius:5px}
+.workspace-editorial input:not([type=checkbox]):not([type=radio]),.workspace-editorial select,.workspace-editorial button{min-height:44px}
+.workspace-editorial table{font-size:13px}
+.workspace-editorial th{font-weight:500;padding-top:16px;padding-bottom:16px}
+.workspace-editorial td{padding-top:16px;padding-bottom:16px}
+.workspace-editorial aside{border-color:var(--color-sage-neutral)}
+@media(max-width:767px){.public-editorial main{padding-top:24px}.public-editorial main h1{font-size:36px}.public-editorial main .xl\:grid-cols-3{grid-template-columns:1fr}.auth-editorial{padding:28px 16px}.auth-editorial>div{padding:26px}.auth-editorial h1{font-size:34px}}
+@media(prefers-reduced-motion:no-preference){.public-editorial main,.auth-editorial>div{animation:editorial-enter .45s both}@keyframes editorial-enter{from{opacity:.65;transform:translateY(8px)}to{opacity:1;transform:none}}}
+
+
+/* Public controls share the homepage's editorial palette; status tokens stay semantic. */
+.public-editorial,.auth-editorial{--background:#faf8f3;--text-primary:#242923;--text-secondary:#4e534b;--text-muted:#62665d;--color-sage-neutral:#e7e2d8;--border:#d9d5ca}
+.public-editorial main h1{text-wrap:balance;line-height:1.06;letter-spacing:-.045em}
+.public-editorial main :is(input,select,textarea){border-color:#c7c9bc;background:#fffefa;color:#242923;border-radius:3px}
+.public-editorial main :is(input,select,textarea):focus-visible{outline:2px solid #806648;outline-offset:2px}
+.public-editorial main :is(button,a):focus-visible,.auth-editorial :is(button,a,input):focus-visible{outline:2px solid #806648;outline-offset:4px}
+.auth-editorial>div{background:#fffefa;border-color:#d9d5ca;box-shadow:0 20px 60px #29352c08}
+/* Discovery selections and search actions use the same deep-olive CTA treatment. */
+.public-editorial main button.bg-\[var\(--brand\)\]{background:#29352c;color:#faf8f3;border-color:#29352c;box-shadow:none}
+.public-editorial main button.rounded-full{border-radius:4px}
+.public-editorial main input[role=combobox]{border:0;background:transparent;box-shadow:none;border-radius:0;min-width:0}
+.public-editorial main input[role=combobox]:focus-visible{outline:0}
+.public-editorial main form:focus-within{outline:2px solid #806648;outline-offset:3px;border-radius:3px}

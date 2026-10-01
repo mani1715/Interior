@@ -142,7 +142,7 @@ describe('Phase 25 — Search & Discovery Engine Frontend', () => {
 
     it('has touch target at least 44px on interactive elements', () => {
       render(<ProjectCard project={baseProject} />);
-      const saveBtn = screen.getByLabelText(/Save to inspiration/i);
+      const saveBtn = screen.getByLabelText(/Save project to collection/i);
       expect(saveBtn.className).toContain('min-h-[44px]');
       expect(saveBtn.className).toContain('min-w-[44px]');
     });
@@ -198,7 +198,7 @@ describe('Phase 25 — Search & Discovery Engine Frontend', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Discovery is temporarily unavailable')).toBeDefined();
-        expect(screen.getByText(/We are unable to load projects at this moment/i)).toBeDefined();
+        expect(screen.getByText(/The project library could not connect/i)).toBeDefined();
         expect(screen.getByRole('button', { name: /try again/i })).toBeDefined();
       });
 
@@ -284,3 +284,4 @@ describe('Phase 25 — Search & Discovery Engine Frontend', () => {
     });
   });
 });
+

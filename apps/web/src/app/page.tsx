@@ -1,19 +1,9 @@
 import type { Metadata } from 'next';
 import { PublicHeader } from '@/components/navigation/PublicHeader';
-import { Hero } from '@/components/home/Hero';
-import { CoreValueStrip } from '@/components/home/CoreValueStrip';
-import { TransformationExperience } from '@/components/home/TransformationExperience';
-import { PortfolioSection } from '@/components/home/PortfolioSection';
-import { DiscoverySection } from '@/components/home/DiscoverySection';
-import { AiVisualizerSection } from '@/components/home/AiVisualizerSection';
-import { BeforeAiRealitySection } from '@/components/home/BeforeAiRealitySection';
-import { SeoSection } from '@/components/home/SeoSection';
-import { ProjectInspiration } from '@/components/home/ProjectInspiration';
-import { HowItWorks } from '@/components/home/HowItWorks';
-import { ProfessionalTypes } from '@/components/home/ProfessionalTypes';
-import { LeadJourney } from '@/components/home/LeadJourney';
-import { MobileWorkflow } from '@/components/home/MobileWorkflow';
-import { FinalCta } from '@/components/home/FinalCta';
+import { BrandHero } from '@/components/home/BrandHero';
+import motion from '@/components/home/HomeMotion.module.css';
+import { ScrollEntrances } from '@/components/home/ScrollEntrances';
+import { EditorialHome } from '@/components/home/EditorialHome';
 import { Footer } from '@/components/home/Footer';
 import { serializeJsonLd } from '@/lib/seo/structured-data';
 
@@ -62,75 +52,10 @@ const jsonLd = {
 };
 
 export default function HomePage() {
-  return (
-    <>
-      {/* Truthful Homepage Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
-      />
-
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col selection:bg-[var(--brand)] selection:text-[var(--charcoal)]">
-        {/* Public Header with responsive drawer */}
-        <PublicHeader
-          navLinks={[
-            { label: 'Projects', href: '/projects' },
-            { label: 'Professionals', href: '/professionals' },
-            { label: 'Portfolio', href: '#portfolio-builder' },
-            { label: 'AI Visualizer', href: '#ai-visualizer' },
-            { label: 'Transformation', href: '#transformation-experience' },
-          ]}
-        />
-
-        <main id="main-content" className="flex-1 w-full">
-          {/* 01 Hero (Single H1) */}
-          <Hero />
-
-          {/* 02 Core Value Pillars Strip */}
-          <CoreValueStrip />
-
-          {/* 03 Transformation Signature Experience (7-Stage Architectural Evolution) */}
-          <TransformationExperience />
-
-          {/* 04 Dedicated Portfolio Builder Section */}
-          <div id="portfolio-builder">
-            <PortfolioSection />
-          </div>
-
-          {/* 05 Real Project Discovery */}
-          <DiscoverySection />
-
-          {/* 06 AI Spatial Visualizer (Formula, References & Disclaimer) */}
-          <AiVisualizerSection />
-
-          {/* 07 Signature 3-Stage Narrative (Site -> AI -> Built Reality) */}
-          <BeforeAiRealitySection />
-
-          {/* 08 Organic Google Discoverability */}
-          <SeoSection />
-
-          {/* 09 Project Inspiration Gallery */}
-          <ProjectInspiration />
-
-          {/* 10 Professional How It Works */}
-          <HowItWorks />
-
-          {/* 11 Professional Types Supported */}
-          <ProfessionalTypes />
-
-          {/* 12 Lead Journey & Direct WhatsApp Workflow */}
-          <LeadJourney />
-
-          {/* 13 Mobile-First Job-Site Utility */}
-          <MobileWorkflow />
-
-          {/* 14 Final Call to Action */}
-          <FinalCta />
-        </main>
-
-        {/* 15 Production Footer */}
-        <Footer />
-      </div>
-    </>
-  );
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+    <PublicHeader />
+    <main id="main-content" className={motion.home}><BrandHero /><ScrollEntrances><EditorialHome /></ScrollEntrances></main>
+    <Footer />
+  </>;
 }

@@ -873,6 +873,16 @@ public class MediaService {
         );
     }
 
+    /** Reuses media membership and management checks for custom gallery folders. */
+    public UUID authorizeGalleryStudio(ActorContext actor, UUID requestedStudioId, boolean write) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        if (write) requireStudioManagePermission(context, actor);
+        return context.studioId();
+    }
+
     private UserRecord validateActiveUser(UUID userId) {
         UserRecord user = securityRepository.findUserById(userId)
                 .orElseThrow(() -> new AccessDeniedException("User account not found"));
