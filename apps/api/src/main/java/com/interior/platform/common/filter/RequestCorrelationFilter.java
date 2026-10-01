@@ -31,10 +31,11 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         request.setAttribute(REQUEST_ID_ATTRIBUTE, requestId);
         response.setHeader(REQUEST_ID_HEADER, requestId);
 
+        org.slf4j.MDC.put("requestId", requestId);
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Clean up if needed
+            org.slf4j.MDC.remove("requestId");
         }
     }
 }

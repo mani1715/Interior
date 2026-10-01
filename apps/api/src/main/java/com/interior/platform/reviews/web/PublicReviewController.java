@@ -30,10 +30,16 @@ public class PublicReviewController {
 
     private final ReviewInvitationService invitationService;
     private final ReviewService reviewService;
+    private final com.interior.platform.security.service.RateLimiterService rateLimiterService;
 
-    public PublicReviewController(ReviewInvitationService invitationService, ReviewService reviewService) {
+    public PublicReviewController(
+            ReviewInvitationService invitationService,
+            ReviewService reviewService,
+            com.interior.platform.security.service.RateLimiterService rateLimiterService
+    ) {
         this.invitationService = invitationService;
         this.reviewService = reviewService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     @GetMapping("/studios/{slug}/reviews")
@@ -56,6 +62,7 @@ public class PublicReviewController {
             HttpServletResponse response,
             @Valid @RequestBody ExchangeReviewTokenRequest req
     ) {
+        rateLimiterService.acquire("review_exchange:" + getClientIp(request), 10, Duration.ofMinutes(1));
         ReviewInvitationService.ExchangeReviewSessionResult result = invitationService.exchangeToken(req.token());
 
         // Attach HttpOnly, Secure, SameSite=Lax session cookie
@@ -91,6 +98,7 @@ public class PublicReviewController {
             @CookieValue(value = SESSION_COOKIE_NAME, required = false) String sessionCookie,
             @RequestHeader(value = "X-Review-Session", required = false) String sessionHeader
     ) {
+        rateLimiterService.acquire("review_submit:" + getClientIp(request), 5, Duration.ofMinutes(1));
         String sessionToken = resolveSessionToken(sessionCookie, sessionHeader, request);
         PublicStudioReviewDto submitted = reviewService.submitReview(sessionToken, req);
 
@@ -107,6 +115,7 @@ public class PublicReviewController {
             @PathVariable("id") UUID reviewId,
             @Valid @RequestBody ReviewReportRequest req
     ) {
+        rateLimiterService.acquire("review_report:" + getClientIp(request), 5, Duration.ofMinutes(1));
         ActorContext actor = extractActor(request);
         UUID reporterUserId = (actor != null && actor.isAuthenticated()) ? actor.userId() : null;
         String clientIp = getClientIp(request);

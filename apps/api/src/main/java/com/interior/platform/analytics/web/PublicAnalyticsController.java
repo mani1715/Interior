@@ -19,9 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicAnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final com.interior.platform.security.service.RateLimiterService rateLimiterService;
 
-    public PublicAnalyticsController(AnalyticsService analyticsService) {
+    public PublicAnalyticsController(
+            AnalyticsService analyticsService,
+            com.interior.platform.security.service.RateLimiterService rateLimiterService
+    ) {
         this.analyticsService = analyticsService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     @PostMapping("/events")
@@ -35,6 +40,7 @@ public class PublicAnalyticsController {
         }
 
         String clientIp = resolveClientIp(servletRequest);
+        rateLimiterService.acquire("analytics_ingest:" + clientIp, 120, java.time.Duration.ofMinutes(1));
         String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
 
         analyticsService.recordPublicEvent(request, clientIp, userAgent);

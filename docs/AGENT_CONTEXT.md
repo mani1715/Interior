@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-09-28, PHASE 28 (Analytics + Plans + Billing Foundation) COMPLETE & PASS. Full regression, backend test suite (319/319), frontend vitest (251/251), typecheck, lint, and production build verified. Strict Boundary: DO NOT START PHASE 29.
+Last updated: 2026-10-01, PHASE 29 (Admin + Production Hardening) COMPLETE & PASS. Full regression, backend test suite (337/337), frontend vitest (276/276), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 ARE COMPLETE.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -671,3 +671,38 @@ Homepage follow-up: regenerated professional-section cabinetry image (AI concept
 All six templates now share CSS 3D photo entrances/parallax and text-from-below motion, gentler compact behavior, reduced-motion cleanup, full-width single comparison groups and BASIC sticky-anchor correction. Frontend 266/266 tests pass; final focused 7/7, lint and production build/typecheck pass. See docs/PORTFOLIO_MOTION_QA.md for browser evidence and local-only six-theme sample gallery. No contract/backend/security edits, deployment or Phase 29 work.
 
 2026-09-30 user-review revision: removed oversized portfolio display scale across all six themes (headings capped 48px/30px, phone 32px/24px), reduced padding, aligned enquiry buttons and softened motion. Browser checked all six at 1280px and 390px, no overflow; focused tests 7/7, lint/build/typecheck pass. Latest evidence in PORTFOLIO_MOTION_QA.md. No deployment or Phase 29 work.
+
+## 2026-10-01 — Phase 29: Admin + Production Hardening COMPLETE
+
+All Phase 29 requirements implemented, tested, and verified across backend, frontend, database, containerization, and operations:
+1. **Platform Administration Subsystem**:
+   - `AdminService` and `AdminController` (`/api/v1/admin/dashboard`, `/users`, `/studios`, `/verification`, `/reviews`, `/audit-logs`).
+   - Server-enforced platform authorization checking `ADMIN` / `SUPER_ADMIN` roles, strictly separate from tenant memberships.
+   - Frontend console under `/admin` with role guard layout, operational metrics cards, user management with status transition modal, studio management with suspension modal, verification review with approve/reject workflow, review moderation with audit invariant, and immutable audit log viewer.
+2. **Production Security Hardening**:
+   - Double-submit CSRF protection on mutation endpoints (`POST`, `PUT`, `DELETE`).
+   - In-memory rate limiting applied to auth token exchange, review submission, review reporting, public analytics event ingestion, and admin endpoints.
+   - Conditional HSTS `Strict-Transport-Security` emitted only on HTTPS/secure requests.
+   - Startup `ProductionConfigurationValidator` preventing boot if `dev-auth-enabled=true` in `production`.
+   - Structured logging with MDC `requestId` correlation.
+   - Actuator health probes `/actuator/health/liveness` and `/actuator/health/readiness` exposed without authentication.
+3. **Database Migration V023**:
+   - `V023__admin_and_production_hardening.sql`: Indexes on `audit_events`, `users`, `designer_studios`, `studio_verifications`, `studio_reviews`, and `review_reports`. Public read RLS policy on `studio_reviews`.
+4. **Containerization & CI/CD**:
+   - `apps/api/Dockerfile`: Eclipse Temurin 21 JRE, non-root `spring:spring`, liveness health check.
+   - `apps/web/Dockerfile`: Node 20 Alpine, Next.js production build, non-root `nextjs:nodejs`, `/health` check.
+   - `docker-compose.yml`: PostgreSQL 16, Spring Boot API, Next.js Web with container dependencies and health probes.
+   - `.github/workflows/ci.yml`: Full lint, typecheck, frontend tests, Next.js build, and Maven test pipeline.
+5. **Operational Documentation**:
+   - `docs/PRODUCTION_DEPLOYMENT.md`
+   - `docs/DISASTER_RECOVERY.md`
+   - `docs/SECURITY_HARDENING.md`
+   - `docs/ADMIN_OPERATIONS.md`
+6. **Full Verification Baseline**:
+   - Backend Tests: **337 / 337 PASS** (0 failures, 0 errors).
+   - Frontend Tests: **276 / 276 PASS** (39 test files, 0 failures, 0 errors).
+   - Typecheck: **PASS** (`tsc --noEmit` 0 errors).
+   - Lint: **PASS** (`eslint .` 0 warnings, 0 errors).
+   - Production Build: **PASS** (`next build` clean across all static and dynamic routes).
+   - Database Migrations: 23 migrations (`V000` through `V023`) validated and applied.
+

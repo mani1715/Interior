@@ -1,13 +1,13 @@
 # ASTRA PROJECT HANDOFF
 ## Canonical Project Context & Handoff for Astra (Senior Architect & Meta-Prompt Engineer)
 
-**Last Updated:** September 28, 2026  
+**Last Updated:** October 1, 2026  
 **Repository Source of Truth:** `https://github.com/mani1715/Interior.git`  
 **Current Branch:** `main`  
-**Current HEAD Commit:** `96023ff204560af687e827eb72499101ca37c0de`  
+**Current HEAD Commit:** `phase-29: implement admin and production hardening`  
 **Local / Remote Sync:** `local HEAD == origin/main` (Clean working tree)  
-**Completed Phases:** Phase 00 through Phase 28 (100% COMPLETE & PASS)  
-**Next Phase:** **PHASE 29 — ADMIN + PRODUCTION HARDENING (NOT STARTED)**
+**Completed Phases:** Phase 00 through Phase 29 (100% COMPLETE & PASS)  
+**Platform Status:** PRODUCTION-READY HARDENED PLATFORM BASELINE (All Canonical Phases 01-29 Complete)
 
 ---
 
@@ -601,17 +601,27 @@ Fresh test suite run executed and verified 100% clean on September 28, 2026:
 
 ---
 
-## 38. PHASE 29 SCOPE — ADMIN + PRODUCTION HARDENING
+## 38. PHASE 29 — ADMIN + PRODUCTION HARDENING (COMPLETE)
 
-**STATUS:** **NEXT PHASE — NOT STARTED (STRICT MANDATORY INSTRUCTION: DO NOT START PHASE 29)**
+**STATUS:** **100% COMPLETE & VERIFIED**
 
-Preliminary scope for Phase 29:
-- **Platform Administration:** Admin portal for platform operators.
-- **Content Moderation:** Review reporting, portfolio moderation, and media abuse flagging.
-- **Verification Administration:** Admin workflow for reviewing studio evidence documents and granting/revoking "Verified Business" status.
-- **Audit Visibility:** Centralized security audit log inspection.
-- **Production Observability:** Spring Boot Actuator endpoints, health monitoring, logging, and error alerting.
-- **Security Hardening:** Production HTTP headers, strict Content Security Policy (CSP), secret manager integration, and database backup/restore drills.
+Key deliverables implemented & verified:
+- **Platform Administration & RBAC:** Explicit `ADMIN` and `SUPER_ADMIN` platform authorization enforced server-side via `AdminService` and separate from studio tenant membership.
+- **Operational Dashboard (`/admin`):** Truthful operational metrics (active studios, registered users, pending verifications, review moderation queue, storage count and size, live audit trail).
+- **User Management (`/admin/users`):** Inspection of users, account states (`ACTIVE`, `SUSPENDED`, `DISABLED`), state transition dialog with mandatory audited justification.
+- **Studio Management (`/admin/studios`):** Studio inspection, publication/verification badges, suspension workflow with immediate discovery isolation.
+- **Verification Workflow (`/admin/verification`):** Document and registration credential review, approve/reject decision modal with audit logging.
+- **Review Moderation (`/admin/reviews`):** Community flag inspection, moderation actions (`PUBLISHED`, `FLAGGED`, `REMOVED`), strict invariant preventing rating or text corruption.
+- **Security Hardening & Protection:**
+  - Double-submit CSRF protection on mutation endpoints.
+  - Rate limiting on auth, token exchange, reviews, analytics ingestion, and admin endpoints.
+  - HSTS Strict-Transport-Security emitted conditionally on HTTPS requests only.
+  - Startup `ProductionConfigurationValidator` preventing boot if `dev-auth-enabled=true` in `production`.
+  - Structured logging with SLF4J MDC `requestId` correlation.
+  - Actuator probes `/actuator/health/liveness` and `/actuator/health/readiness`.
+- **Flyway V023 Migration:** Performance indexing on `audit_events`, `users`, `designer_studios`, `studio_verifications`, `studio_reviews`, and `review_reports`. Public read RLS policy on `studio_reviews`.
+- **Containerization & CI/CD:** Production multi-stage `apps/api/Dockerfile`, `apps/web/Dockerfile`, `docker-compose.yml`, and GitHub Actions CI workflow.
+- **Operational Documentation:** `docs/PRODUCTION_DEPLOYMENT.md`, `docs/DISASTER_RECOVERY.md`, `docs/SECURITY_HARDENING.md`, and `docs/ADMIN_OPERATIONS.md`.
 
 ---
 
