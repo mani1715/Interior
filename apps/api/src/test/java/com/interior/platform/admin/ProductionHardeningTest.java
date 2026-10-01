@@ -92,6 +92,21 @@ class ProductionHardeningTest {
 
         // Reflection or setter simulation: in production with dev-auth enabled, it must throw IllegalStateException
         org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
+
+        assertThrows(IllegalStateException.class, () -> validator.run(null));
+    }
+
+    @Test
+    @DisplayName("ProductionConfigurationValidator rejects insecure session cookie in production")
+    void productionConfigurationValidatorRejectsInsecureCookieInProd() {
+        MockEnvironment prodEnv = new MockEnvironment();
+        prodEnv.setActiveProfiles("production");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(prodEnv);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", false);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", false);
         org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
 
         assertThrows(IllegalStateException.class, () -> validator.run(null));

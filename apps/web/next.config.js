@@ -22,14 +22,23 @@ const securityHeaders = [
   },
   {
     key: 'Content-Security-Policy',
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; frame-ancestors 'none'; object-src 'none';",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; frame-ancestors 'none'; object-src 'none';",
   },
 ];
 
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
-  images: { qualities: [75, 90] },
+  images: {
+    qualities: [75, 90],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
   async headers() {
     return [
       {
@@ -37,6 +46,17 @@ const nextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  async rewrites() {
+    if (process.env.INTERNAL_API_URL) {
+      return [
+        {
+          source: '/api/v1/:path*',
+          destination: `${process.env.INTERNAL_API_URL}/:path*`,
+        },
+      ];
+    }
+    return [];
   },
 };
 

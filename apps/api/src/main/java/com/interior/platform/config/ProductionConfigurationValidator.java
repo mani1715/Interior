@@ -24,6 +24,9 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     @Value("${app.security.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
+    @Value("${app.security.session-cookie-secure:true}")
+    private boolean sessionCookieSecure;
+
     public ProductionConfigurationValidator(Environment environment) {
         this.environment = environment;
     }
@@ -49,6 +52,12 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         if (isProduction) {
             if (devAuthEnabled) {
                 String errorMsg = "CRITICAL SECURITY FAULT: app.security.dev-auth-enabled MUST NOT be true in production!";
+                log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
+            }
+
+            if (!sessionCookieSecure) {
+                String errorMsg = "CRITICAL SECURITY FAULT: app.security.session-cookie-secure MUST be true in production!";
                 log.error(errorMsg);
                 throw new IllegalStateException(errorMsg);
             }
