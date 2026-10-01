@@ -27,6 +27,12 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     @Value("${app.security.session-cookie-secure:true}")
     private boolean sessionCookieSecure;
 
+    @Value("${app.storage.provider:LOCAL}")
+    private String storageProvider;
+
+    @Value("${app.storage.s3.endpoint:}")
+    private String s3Endpoint;
+
     public ProductionConfigurationValidator(Environment environment) {
         this.environment = environment;
     }
@@ -36,13 +42,24 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         Set<String> activeProfiles = Set.copyOf(Arrays.asList(environment.getActiveProfiles()));
         boolean isProduction = activeProfiles.contains("prod") || activeProfiles.contains("production");
 
+        String storageStatus;
+        if ("S3_COMPATIBLE".equalsIgnoreCase(storageProvider)) {
+            if (s3Endpoint != null && !s3Endpoint.isBlank()) {
+                storageStatus = "CONFIGURED (S3/R2 Cloud Storage)";
+            } else {
+                storageStatus = "NOT_CONFIGURED (S3/R2 Endpoint Missing)";
+            }
+        } else {
+            storageStatus = isProduction ? "TEST_ONLY (Local Filesystem — Ephemeral)" : "TEST_ONLY (Local Filesystem)";
+        }
+
         log.info("================================================================================");
         log.info("           PLATFORM SYSTEM STARTUP & CONFIGURATION MATRIX                       ");
         log.info("================================================================================");
         log.info(" Active Profiles       : {}", activeProfiles.isEmpty() ? "[default]" : activeProfiles);
         log.info(" Database (PostgreSQL) : CONFIGURED");
         log.info(" Auth (OIDC)           : {}", isProduction ? "NOT_CONFIGURED (Requires OIDC Client ID)" : "DEV_PERSONA_SANDBOX");
-        log.info(" Object Storage        : TEST_ONLY (Local Filesystem)");
+        log.info(" Object Storage        : {}", storageStatus);
         log.info(" AI Visualizer         : NOT_CONFIGURED (DisabledAiImageProvider)");
         log.info(" WhatsApp              : MODE_A_ACTIVE (Direct wa.me) | MODE_B_NOT_CONFIGURED");
         log.info(" Billing Gateway       : NOT_CONFIGURED (DisabledBillingProvider)");
@@ -64,6 +81,10 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
 
             if (allowedOrigins.contains("*") || allowedOrigins.contains("localhost")) {
                 log.warn("PRODUCTION WARNING: app.security.allowed-origins contains localhost or wildcard: '{}'. Lock this down to the canonical production domain before public traffic.", allowedOrigins);
+            }
+
+            if ("LOCAL".equalsIgnoreCase(storageProvider)) {
+                log.warn("PRODUCTION STORAGE WARNING: Running with LOCAL filesystem storage in production. Container storage is ephemeral. Set app.storage.provider=S3_COMPATIBLE for persistent media.");
             }
         }
     }
