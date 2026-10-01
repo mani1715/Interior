@@ -2,335 +2,386 @@
 ## Canonical Launch Architecture & Operations Runbook
 
 **Current Baseline:** Phase 29 Complete & Verified  
-**Architecture Type:** Modular Monolith (Stateless Next.js 16 + Stateless Spring Boot 3.4 + Managed PostgreSQL 16 + Cloudflare R2 / CDN)
+**Target Architecture:** Hostinger VPS (Docker Compose + Caddy) + AWS RDS PostgreSQL 16 + Cloudflare R2
 
 ---
 
 ## 1. Executive Summary & Topology
 
-The Interior Design Platform is designed as an operationally lean, secure, and cost-effective **Modular Monolith**. It avoids the operational tax of microservices, Kubernetes, Redis, or Kafka for launch, while ensuring strict defense-in-depth, horizontal compute scalability, and complete isolation of compute from persistent state and media.
+The Interior Design Platform is deployed as a secure, containerized **Modular Monolith** running on a **Hostinger VPS** managed via **Docker Compose**, with state persisted in a dedicated **AWS RDS for PostgreSQL 16** managed instance and media stored in **Cloudflare R2**.
+
+This architecture provides dedicated compute resources, predictable VPS hosting costs, enterprise-grade database management with automated backups/PITR, zero egress bandwidth costs for media, and unified-origin routing via a Caddy reverse proxy.
 
 ```
                     ┌───────────────────────────────────────────────┐
                     │            Cloudflare Global Edge             │
                     │  - Global Anycast DNS                         │
-                    │  - Automated TLS / HTTPS Termination          │
-                    │  - DDoS Protection & Web Application Firewall │
+                    │  - Full (Strict) Edge TLS                     │
+                    │  - DDoS Protection & Edge WAF                 │
                     └───────┬───────────────────────────────┬───────┘
                             │                               │
-             https://interior.com                           │ https://media.interior.com
-             https://interior.com/api/v1/*                  │
+              https://yourdomain.com                        │ https://media.yourdomain.com
+              https://yourdomain.com/api/v1/*               │
                             │                               │
                 ┌───────────▼───────────┐         ┌─────────▼─────────┐
-                │  Render Edge Ingress  │         │   Cloudflare R2   │
-                │  (Reverse Proxy / SSL)│         │   Public Bucket   │
-                └─────┬───────────┬─────┘         │ (WebP Derivatives)│
-                      │           │               └───────────────────┘
-         Static/HTML  │           │  /api/v1/*
-                      │           │
-         ┌────────────▼───┐   ┌───▼────────────┐
-         │ Next.js 16 Web │   │Spring Boot API │
-         │ (Node 20 / 3000│   │(Temurin 21/8080│
-         │ Standalone JIT)│   │Stateless Java) │
-         └────────────────┘   └───┬────────────┘
-                                  │
-                                  │ JDBC / SSL (HikariCP)
-                                  │ Private VPC
-                                  │
-                      ┌───────────▼───────────┐
-                      │  Managed PostgreSQL   │
-                      │  - Version 16+        │
-                      │  - UUIDv7 Primary Keys│
-                      │  - Row-Level Security │
-                      │  - Automated Backups  │
-                      └───────────────────────┘
-                                  ▲
-                                  │ IAM S3 API
-                      ┌───────────┴───────────┐
-                      │     Cloudflare R2     │
-                      │    Private Bucket     │
-                      │  (Originals, AI Refs, │
-                      │   Verification PDFs)  │
-                      └───────────────────────┘
+                │     Hostinger VPS     │         │   Cloudflare R2   │
+                │    (Ubuntu 24.04)     │         │   Public Bucket   │
+                │  Ports: 80 / 443 / 22 │         │ (WebP Derivatives)│
+                └───────────┬───────────┘         └───────────────────┘
+                            │
+              ┌─────────────▼─────────────┐
+              │    Caddy Reverse Proxy    │
+              │  (Docker Container:proxy) │
+              │  - Automatic HTTPS (ACME) │
+              │  - Unified Origin Routing │
+              └───────┬─────────────┬─────┘
+                      │             │
+         Static/HTML  │             │  /api/v1/*
+                      │             │
+        ┌─────────────▼───┐     ┌───▼─────────────┐
+        │ Next.js 16 Web  │     │ Spring Boot API │
+        │ (Docker: web)   │     │ (Docker: api)   │
+        │ Internal :3000  │     │ Internal :8080  │
+        └─────────────────┘     └───┬─────────────┘
+                                    │
+                                    │ TLS / SSL (HikariCP)
+                                    │ AWS Security Group (Port 5432)
+                                    │ Restricted to Hostinger VPS IP
+                                    │
+                        ┌───────────▼───────────┐
+                        │   AWS RDS PostgreSQL  │
+                        │  - Version 16         │
+                        │  - Region: ap-south-1 │
+                        │  - Enforced SSL       │
+                        │  - Row-Level Security │
+                        │  - Automated Backups  │
+                        └───────────────────────┘
+                                    ▲
+                                    │ IAM S3 API / Presigned URLs
+                        ┌───────────┴───────────┐
+                        │     Cloudflare R2     │
+                        │    Private Bucket     │
+                        │  (Originals, AI Refs, │
+                        │   Verification PDFs)  │
+                        └───────────────────────┘
 ```
 
 ---
 
-## 2. URL & Domain Architecture
+## 2. Unified Origin Domain Architecture
 
-### Topology Comparison
+The platform uses a **Unified Origin Model** (`Option A`):
 
-#### Option A: Unified Domain (`https://interior.com` + `https://interior.com/api/v1/*`) — **RECOMMENDED**
-- **Routing:** Edge router (Cloudflare or Render Ingress) routes `/api/v1/*` to the Spring Boot backend service, and all other paths to the Next.js frontend service.
-- **Security Advantages:**
-  - **`__Host-` Cookie Standard:** RFC 6265bis compliant. Auth session cookies (`__Host-session`) can enforce `Path=/`, `Secure`, and NO domain attribute, preventing subdomain hijacking or cookie leaking.
-  - **Zero CORS Preflight:** Eliminates browser `OPTIONS` preflight requests for every API mutation. Drastically reduces latency for mobile users in India.
-  - **Double-Submit CSRF:** Same-origin CSRF tokens (`XSRF-TOKEN`) work natively without cross-subdomain cookie relaxation.
-  - **Unified SSL Certificate:** A single apex/www certificate covers the entire application surface.
+- **Frontend Surface:** `https://yourdomain.com/*` → routed by Caddy to Next.js container (`web:3000`).
+- **Backend API Surface:** `https://yourdomain.com/api/v1/*` → routed by Caddy to Spring Boot container (`api:8080`).
+- **Media Delivery Surface (Optional):** `https://media.yourdomain.com/*` → Cloudflare R2 public bucket for processed derivatives.
 
-#### Option B: Separate Subdomains (`https://interior.com` + `https://api.interior.com`) — **FALLBACK**
-- Used if hosting backend and frontend on separate platforms without a unified edge reverse proxy.
-- **Trade-offs:** Requires CORS headers (`Access-Control-Allow-Credentials: true`), preflight latency, and relaxes `__Host-` cookie prefixes to standard domain cookies (`domain=.interior.com`).
-
-**Decision:** **Option A** is the primary production architecture. The Next.js `next.config.js` includes built-in fallback proxy rewrites via `INTERNAL_API_URL` if an edge proxy is not configured.
+### Operational Advantages of Unified Origin
+1. **Strict `__Host-` Cookies:** Session cookies (`__Host-session`) adhere to RFC 6265bis with `Path=/`, `Secure`, and no domain scope, preventing subdomain cookie leakage.
+2. **Zero CORS Preflight Overhead:** Browser requests from `https://yourdomain.com` to `/api/v1/*` are same-origin. This completely eliminates unnecessary `OPTIONS` preflight roundtrips, reducing API latency for mobile users.
+3. **Double-Submit CSRF Protection:** Same-origin CSRF tokens (`XSRF-TOKEN`) work natively without cross-subdomain relaxation.
+4. **Single SSL Certificate:** Caddy automatically issues and manages a single Let's Encrypt / ZeroSSL certificate for the primary domain.
 
 ---
 
-## 3. Recommended Hosting Architecture
+## 3. Hostinger VPS Specifications & Hardening
 
-### Primary Recommendation: Render + Cloudflare
-- **Frontend Compute:** Render Web Service running `apps/web/Dockerfile` (Node 20 Alpine, standalone Next.js 16).
-- **Backend Compute:** Render Web Service running `apps/api/Dockerfile` (Eclipse Temurin 21 JRE, Spring Boot 3.4).
-- **Database:** Render Managed PostgreSQL 16 (automated daily backups, enforced SSL, private VPC networking).
-- **Object Storage:** Cloudflare R2 (S3-compatible, zero egress fees, worldwide distribution).
-- **CDN:** Cloudflare CDN (global edge caching, edge SSL termination, DDoS protection).
-- **DNS & TLS:** Cloudflare Managed DNS with automated Let's Encrypt / Cloudflare Edge TLS.
+### Platform Requirements
+- **Hosting Type:** **Hostinger VPS** (KVM virtualization) with Docker. *(Shared web hosting is NOT supported; root access, Docker Engine, and systemd are required).*
+- **Operating System:** Ubuntu 24.04 LTS (or Debian 12 / Hostinger Docker VPS Application Template).
+- **Runtime Tools:** Docker Engine 26+, Docker Compose v2.
 
-### Why This Combination?
-1. **Low Operational Overhead:** No VPC peering headaches, no Kubernetes cluster management, zero YAML configuration drift.
-2. **Predictable Cost:** Starts at ~$25–$45/month with zero surprise egress bandwidth fees (Cloudflare R2 has $0 egress).
-3. **Region Latency:** Render Singapore or Frankfurt regions provide low latency to Indian and European traffic.
-4. **Git-Driven Continuous Delivery:** Automatic container rebuilds upon pushing to `main`.
+### Resource Sizing Guidelines
+| Tier | Specifications | Target Workload |
+|---|---|---|
+| **Minimum Baseline** | 2 vCPU, 4 GB RAM, 50 GB NVMe SSD (Hostinger KVM 2) | Launch baseline; Next.js + Spring Boot + Caddy. |
+| **Recommended / Preferred** | 4 vCPU, 8 GB RAM, 100 GB NVMe SSD (Hostinger KVM 4) | Production headroom; smooth JVM JIT compilation, React Server Component concurrency, and buffer cache. |
 
-### Secondary Alternative: AWS (ECS Fargate + RDS PostgreSQL + S3 + CloudFront)
-- Ideal when enterprise SOC2 compliance, dedicated AWS PrivateLink, or enterprise client procurement mandates AWS.
-- Baseline cost: ~$70–$120/month.
+### Swap Configuration (Burst Memory Protection)
+Configure a 2 GB swap file to prevent sudden Linux OOM-killer termination during peak traffic bursts:
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### Hostinger VPS Firewall & Network Security
+Configure the UFW firewall on the VPS to expose **only** necessary public ports:
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp   # SSH (restrict to admin IP if static: sudo ufw allow from <ADMIN_IP> to any port 22 proto tcp)
+sudo ufw allow 80/tcp   # HTTP (ACME challenge & HTTP->HTTPS redirect)
+sudo ufw allow 443/tcp  # HTTPS
+sudo ufw allow 443/udp  # HTTP/3 (QUIC)
+sudo ufw enable
+```
+
+**Critical Invariant:** Port `8080` (Spring Boot) and Port `3000` (Next.js) are **NEVER** exposed on the host interface. In `docker-compose.prod.yml`, they use Docker Compose `expose` directives, accessible **only** within the internal Docker bridge network (`interior_network`) by the Caddy reverse proxy.
 
 ---
 
-## 4. Compute vs. Media Storage Separation
+## 4. AWS RDS for PostgreSQL 16
 
-**Strict Invariant:** Compute containers are 100% stateless and ephemeral. No media, uploaded images, or client documents are ever stored on container disks in production.
+The persistent database is hosted on **AWS RDS for PostgreSQL 16**, fully isolated from the Hostinger VPS compute instances.
 
-### Media Layout:
+### Configuration Parameters
+- **Database Engine:** PostgreSQL 16.x.
+- **Recommended AWS Region:** `ap-south-1` (Mumbai) for low latency to Indian and regional traffic, closely matching the Hostinger VPS location.
+- **DB Instance Class:** `db.t4g.micro` (development/testing) or `db.t4g.small` / `db.t4g.medium` (production).
+- **Storage:** 20 GB to 100 GB gp3 with storage autoscaling enabled.
+- **Master Database Name:** `interiordb`.
+
+### RDS Network Security & Security Group Rules
+Because the Hostinger VPS is external to AWS VPC:
+1. **Public Accessibility:** Set `Publicly accessible = Yes` so external traffic can reach the RDS endpoint.
+2. **Security Group Restriction:** Configure an AWS VPC Security Group attached to the RDS instance with a single inbound rule:
+   - **Type:** PostgreSQL
+   - **Protocol:** TCP
+   - **Port Range:** `5432`
+   - **Source:** `<HOSTINGER_VPS_PUBLIC_IP>/32` (Single Hostinger VPS Public IP only).
+   - **Strict Warning:** **NEVER** use `0.0.0.0/0` or open access.
+3. If the Hostinger VPS IP changes, immediately update this Security Group inbound rule.
+
+### RDS SSL Enforcement & Verification
+- **Force SSL:** In the RDS custom DB Parameter Group, set `rds.force_ssl = 1`.
+- **Backend JDBC Configuration:**
+  ```properties
+  SPRING_DATASOURCE_URL=jdbc:postgresql://<rds-endpoint>:5432/interiordb?sslmode=verify-full
+  ```
+- **Truststore & Certificates:** The backend Docker container (`apps/api/Dockerfile`) installs the AWS RDS Global CA bundle (`https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`) into the system trust store during image build. This ensures that `sslmode=verify-full` verifies both the certificate chain and the exact RDS hostname, guarding against DNS spoofing and MITM attacks.
+
+### Database Roles & Privilege Model
+- **Runtime Application Role (`app_runtime`):**
+  - Granted `CONNECT`, `SELECT`, `INSERT`, `UPDATE`, `DELETE` on all application tables and sequences.
+  - **Invariants:** Must **NEVER** possess `SUPERUSER`, `BYPASSRLS`, `CREATEDB`, or `CREATEROLE`.
+- **Row-Level Security (RLS):**
+  - Enabled and forced (`ALTER TABLE ... FORCE ROW LEVEL SECURITY`) on all 26 tenant tables.
+  - Tenant context set per transaction: `SET LOCAL app.current_studio_id = '<studio_id>'`.
+
+### Automated Backups & Disaster Recovery
+- **Automated Snapshots:** Retained for 7 to 35 days with daily automated snapshot windows during low-traffic periods (e.g. 02:00 UTC).
+- **Point-in-Time Recovery (PITR):** Continuous transaction log archiving enabled.
+- **Deletion Protection:** Enabled on the RDS instance in the AWS Management Console to prevent accidental deletion.
+- **Final Snapshot:** "Create final snapshot before deletion" enabled.
+
+---
+
+## 5. Cloudflare R2 Media Storage Architecture
+
+Media assets are separated completely from VPS disk storage using **Cloudflare R2** (S3-compatible, zero egress bandwidth fees).
+
+### Storage Buckets & Policies
 1. **Private Bucket (`interior-platform-media-private`):**
-   - Strictly private. No public read access. Accessible only via backend API credentials.
-   - Keys:
+   - Public access: **Disabled**.
+   - Accessible only via backend API credentials with server-controlled paths:
      - `pending/{studioId}/{uploadIntentId}/{mediaAssetId}.ext` (quarantine uploads)
      - `studio/{studioId}/projects/{projectId}/original/{mediaAssetId}.ext` (high-res originals)
      - `ai/references/{studioId}/{generationId}.ext` (client style references)
-     - `ai/generations/{studioId}/{generationId}.ext` (AI renders before publication)
-     - `verification/{studioId}/{documentId}.pdf` (business registration proof documents)
-2. **Public Bucket / CDN Prefix (`interior-platform-media-public`):**
-   - Read-only public bucket mapped to `https://media.interior.com`.
-   - Keys:
-     - `public/studio/{studioId}/projects/{projectId}/derivatives/{variant}_{mediaAssetId}.webp`
-   - Cache headers emitted by CDN: `Cache-Control: public, max-age=31536000, immutable`.
-   - Only optimized derivatives (WebP/JPEG, watermarked or resized) are placed here.
+     - `ai/generations/{studioId}/{generationId}.ext` (AI concepts before publication)
+     - `verification/{studioId}/{documentId}.pdf` (private studio verification documents)
+   - Lifecycle rules: 7-day auto-expiry on `pending/**` quarantine objects.
+   - CORS policy configured for direct browser presigned uploads:
+     ```json
+     [
+       {
+         "AllowedOrigins": ["https://yourdomain.com"],
+         "AllowedMethods": ["PUT"],
+         "AllowedHeaders": ["Content-Type", "Content-Length"],
+         "MaxAgeSeconds": 3600
+       }
+     ]
+     ```
+2. **Public Bucket (`interior-platform-media-public`):**
+   - Custom domain / public access: `https://media.yourdomain.com`.
+   - Contains **only** processed, EXIF-stripped WebP/JPEG derivatives generated by `ImageProcessingService`.
+   - Cache headers emitted: `Cache-Control: public, max-age=31536000, immutable`.
 
 ---
 
-## 5. Database Architecture
+## 6. Docker & Compose Production Architecture
 
-### Requirements & Configuration
-- **Engine:** PostgreSQL 16 (Render Managed PostgreSQL).
-- **Region:** Singapore (`singapore`) or Frankfurt (`frankfurt`) — must match the backend compute service region.
-- **Recommended Launch Tier:** Starter Tier (1 vCPU, 1 GB RAM, 10–25 GB SSD storage) — adequate for initial production traffic without over-provisioning costs.
-- **Primary Keys:** RFC 9562 UUIDv7 generated application-side (`java.util.UUID` with time-ordered monotonic bits).
-- **Connection Security:** `sslmode=require` mandatory in production JDBC URL.
-- **Connection Strings:**
-  - **Internal Connection String (Render Private Network):** `jdbc:postgresql://dpg-<id>-a:5432/interiordb?sslmode=require` — used by the Spring Boot backend service for zero-latency, private intra-datacenter communication without routing over the public internet.
-  - **External Connection String:** `jdbc:postgresql://dpg-<id>-a.<region>-postgres.render.com:5432/interiordb?sslmode=require` — used only for administrator ad-hoc migrations or schema audits.
-- **Connection Pooling:** Spring Boot HikariCP configured in `application-production.properties`:
-  - `maximum-pool-size`: 10 (keeps total pool well within managed DB connection limits).
-  - `minimum-idle`: 2.
-  - `idle-timeout`: 30,000ms.
-  - `connection-timeout`: 20,000ms.
-  - `max-lifetime`: 1,200,000ms (20 minutes).
-- **Row-Level Security (RLS):** Enabled and enforced across all tenant tables (`designer_studios`, `projects`, `leads`, `client_invites`, `studio_reviews`, `billing_subscriptions`). Non-admin queries require `SET LOCAL app.current_studio_id = '<studio_uuid>'`.
-- **Database Credential Model:**
-  - The runtime application user possesses standard DML (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) privileges.
-  - In hardened enterprise environments with role separation, a DDL migration user runs Flyway, and the runtime `interior_app_user` has zero DDL privileges.
-  - **Critical Invariant:** The runtime application role must NEVER be granted `SUPERUSER` or `BYPASSRLS`.
-
-### Cloudflare R2 Storage Provisioning Specifications
-- **S3 API Endpoint:** `https://<account_id>.r2.cloudflarestorage.com`
-- **Region:** `auto`
-- **Private Bucket (`interior-platform-media-private`):**
-  - Public Access: **Disabled** (Strictly private).
-  - Object Versioning: **Enabled** (protects originals against accidental deletion or corruption).
-  - Lifecycle Policy: Auto-delete objects under `pending/**` older than 7 days (cleans up aborted quarantine uploads).
-  - CORS Configuration (for direct browser presigned uploads):
-    ```json
-    [
-      {
-        "AllowedOrigins": ["https://interior.com", "http://localhost:3000"],
-        "AllowedMethods": ["PUT"],
-        "AllowedHeaders": ["Content-Type", "Content-Length"],
-        "MaxAgeSeconds": 3600
-      }
-    ]
-    ```
-- **Public Bucket (`interior-platform-media-public`):**
-  - Public Access: **Enabled** (or mapped to custom domain `https://media.interior.com`).
-  - Directory Listing: **Disabled** (only known hash paths can be fetched).
-  - Content: Strictly public derivatives generated by the backend image processing pipeline.
-- **API Token Permissions:** Scoped exclusively to Read & Write on `interior-platform-media-private` and `interior-platform-media-public`.
-
-### Migration Strategy (Flyway)
-- Migrations are sequential and forward-only (`V001` through `V023`).
-- **Execution:** Flyway runs automatically on backend application startup.
-- **Concurrency Safety:** Flyway uses PostgreSQL table-level locking (`pg_advisory_lock` / `flyway_schema_history` table lock), guaranteeing that multiple backend instances starting concurrently cannot race or corrupt schema migrations.
-- **Failure Policy:** If a migration fails, the backend JVM aborts launch immediately. Traffic is never routed to an unmigrated or corrupted database state.
-- **Rollback Policy:** In production, schema rollbacks are strictly handled via new forward migrations (`V024__...`).
-
----
-
-## 6. Backup & Disaster Recovery
-
-### PostgreSQL Database:
-- **Automated Snapshots:** Daily snapshots at 02:00 UTC, retained for 30 days.
-- **Point-in-Time Recovery (PITR):** WAL archiving enabled on managed database (RPO < 15 minutes, RTO < 60 minutes).
-- **Pre-Deployment Backup Command:**
-  ```bash
-  pg_dump -h <db_host> -U <db_user> -Fc -d interiordb -f "backup_pre_deploy_$(date +%Y%m%d_%H%M%S).dump"
-  ```
-
-### Media Assets:
-- Cloudflare R2 / AWS S3 Object Versioning enabled on `interior-platform-media-private`.
-- Accidental delete protection enabled via bucket lifecycle policies.
-- 30-day auto-expiry lifecycle rule on `pending/**` quarantine directory.
-
----
-
-## 7. Secret Management & Environment Variables
-
-All production secrets must be injected via the hosting platform's secure environment manager (Render Secret Environment Variables or AWS Secrets Manager). **Never commit secrets to git or Docker images.**
-
-### Environment Matrix (See `.env.example`)
-
-| Variable | Category | Visibility | Description / Value |
-|---|---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Frontend | Public (Browser) | `https://interior.com` |
-| `NEXT_PUBLIC_API_BASE_URL` | Frontend | Public (Browser) | `https://interior.com/api/v1` |
-| `NODE_ENV` | Frontend | Server-Only | `production` |
-| `PORT` | Frontend | Server-Only | `3000` |
-| `INTERNAL_API_URL` | Frontend | Server-Only | `http://platform-api:8080/api/v1` |
-| `SPRING_PROFILES_ACTIVE` | Backend | Server-Only | `production` |
-| `SERVER_PORT` | Backend | Server-Only | `8080` |
-| `SERVER_FORWARD_HEADERS_STRATEGY` | Backend | Server-Only | `framework` |
-| `SPRING_DATASOURCE_URL` | Backend | Server-Only | `jdbc:postgresql://<host>:5432/<db>?sslmode=require` |
-| `SPRING_DATASOURCE_USERNAME` | Backend | Secret | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | Backend | Secret | High-entropy database password |
-| `APP_SECURITY_DEV_AUTH_ENABLED` | Backend | Server-Only | `false` (**Mandatory**) |
-| `APP_SECURITY_SESSION_COOKIE_SECURE`| Backend | Server-Only | `true` (**Mandatory**) |
-| `APP_SECURITY_ALLOWED_ORIGINS` | Backend | Server-Only | `https://interior.com` |
-
----
-
-## 8. Reverse Proxy, Forwarded Headers & TLS
-
-1. **Proxy Headers:** `server.forward-headers-strategy=framework` is enabled. Spring Boot automatically processes `X-Forwarded-Proto`, `X-Forwarded-Host`, and `X-Forwarded-For`.
-2. **HTTPS Detection:** `request.isSecure()` detects HTTPS through edge SSL termination, ensuring `Strict-Transport-Security` headers and `Secure` cookie attributes are correctly applied.
-3. **Security Headers Filter:** Emits:
-   - `Content-Security-Policy`: Disallows unsafe object loading; permits Next.js scripts and remote HTTPS images.
-   - `X-Frame-Options: DENY`
-   - `X-Content-Type-Options: nosniff`
-   - `Referrer-Policy: strict-origin-when-cross-origin`
-   - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (emitted on secure requests only).
-
----
-
-## 9. Container Resource Planning
-
-| Service | Minimum Spec (Launch) | Recommended Spec (Traffic) | Sizing Rationale |
-|---|---|---|---|
-| **Next.js Frontend** | 0.5 vCPU, 512 MB RAM | 1.0 vCPU, 1 GB RAM | Standalone JIT output with React Server Components. Low memory footprint. |
-| **Spring Boot API** | 0.5 vCPU, 1 GB RAM | 1.0 vCPU, 2 GB RAM | JVM container sizing flags: `-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0`. |
-| **PostgreSQL 16** | 1.0 vCPU, 2 GB RAM, 20 GB SSD | 2.0 vCPU, 4 GB RAM, 50 GB SSD | Accommodates GIN trigram indexes and concurrent Hikari connection pool. |
-
----
-
-## 10. Horizontal Scaling Strategy
-
-- **Stateless Compute:** Both frontend and backend are completely stateless.
-- **Session Scalability:** Sessions are persisted in the PostgreSQL `identity_sessions` table with SHA-256 token hashing. Multiple backend instances can validate sessions without Redis session-affinity or sticky sessions.
-- **In-Memory Rate Limiting:** Sliding-window buckets run per-instance; provides adequate protection at single/dual instance scale. For high multi-region scale, rate limits can be migrated to edge WAF rules (Cloudflare Rate Limiting).
-
----
-
-## 11. Step-by-Step Production Deployment Sequence
-
-Follow this exact order during initial production provisioning:
+The production environment on the Hostinger VPS runs using `docker-compose.prod.yml`:
 
 ```
-[1. Provision Database] ──> [2. Set Secrets] ──> [3. Deploy Backend] ──> [4. Verify Backend UP]
-                                                                                  │
-[8. Smoke Test] <── [7. Configure Storage/CDN] <── [6. Configure DNS/SSL] <── [5. Deploy Frontend]
+Hostinger VPS
+├── Container: interior-platform-proxy (Caddy 2.9 Alpine)
+│   └── Exposes ports 80, 443 (TCP & UDP)
+├── Container: interior-platform-web (Next.js 16 Standalone)
+│   └── Internal port 3000
+└── Container: interior-platform-api (Spring Boot 3.4 / Temurin 21)
+    └── Internal port 8080
 ```
 
-1. **Provision Managed PostgreSQL 16:**
-   - Create database `interiordb`.
-   - Enable SSL enforcement (`sslmode=require`).
-   - Create restricted application user `interior_app_user`.
-2. **Configure Environment Secrets:**
-   - Add backend environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_PASSWORD`, `APP_SECURITY_ALLOWED_ORIGINS`, etc.).
-   - Ensure `APP_SECURITY_DEV_AUTH_ENABLED=false` and `APP_SECURITY_SESSION_COOKIE_SECURE=true`.
-3. **Deploy Backend Service:**
-   - Build container from `apps/api/Dockerfile`.
-   - On container startup, Flyway validates and applies migrations `V001` through `V023`.
-   - `ProductionConfigurationValidator` asserts security parameters.
-4. **Verify Backend Health:**
-   - Probe liveness: `GET /api/v1/actuator/health/liveness` -> `{"status":"UP"}`.
-   - Probe readiness: `GET /api/v1/actuator/health/readiness` -> `{"status":"UP"}`.
-5. **Deploy Frontend Service:**
-   - Set frontend environment variables (`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_API_BASE_URL`).
-   - Build container from `apps/web/Dockerfile`.
-   - Probe frontend health: `GET /health` -> `{"status":"healthy"}`.
-6. **Configure Domain & DNS:**
-   - Point apex `interior.com` and `www.interior.com` CNAME/A records to Cloudflare / Render ingress.
-   - Enable automated SSL certificate provisioning.
-7. **Configure Cloudflare R2 / CDN:**
-   - Create `interior-platform-media-private` (private) and `interior-platform-media-public` (public).
-   - Route `media.interior.com` to public bucket with 1-year caching rules.
-8. **Run Launch Smoke Test:**
-   - Execute verification checklist below.
+### Logging & Disk Management
+Docker log rotation is enforced across all containers to prevent log files from exhausting the VPS SSD:
+```yaml
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
+### Caddy Reverse Proxy Configuration (`infrastructure/caddy/Caddyfile`)
+- Automatically provisions and renews TLS certificates via Let's Encrypt / ZeroSSL.
+- Injects standard security headers (`HSTS`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- Routes `/api/v1/*` to `api:8080` with standard forwarded headers (`X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host`).
+- Routes all other traffic to `web:3000`.
 
 ---
 
-## 12. Production Launch Smoke-Test Checklist
+## 7. CI/CD & Deployment Strategy
+
+The project utilizes **GitHub Actions** and **GitHub Container Registry (GHCR)**:
+
+1. **Continuous Integration (CI):** Every push and pull request runs:
+   - Frontend linting, typecheck, Vitest component/integration tests, and standalone build.
+   - Backend Maven compilation, unit tests, RLS security tests, and Flyway schema verification.
+2. **Container Build & Publish:** On push to `main`:
+   - Builds multi-stage Docker images for Web and API.
+   - Pushes versioned and `latest` tags to GitHub Container Registry (`ghcr.io/<owner>/interior-web`, `ghcr.io/<owner>/interior-api`).
+3. **Automated SSH Deployment:**
+   - Connects to the Hostinger VPS over SSH using a dedicated deployment key stored in GitHub Secrets.
+   - Pulls updated images (`docker compose -f docker-compose.prod.yml pull`).
+   - Restarts containers with zero drift (`docker compose -f docker-compose.prod.yml up -d --remove-orphans`).
+   - Automatically executes Flyway migrations (`V001` through `V023`) inside the Spring Boot container upon startup.
+   - Verifies health probes (`curl -fsSL http://localhost/health`).
+   - Automatically prunes dangling images older than 72 hours.
+
+### Required GitHub Secrets for Automated Deployment
+- `HOSTINGER_HOST`: Public IP of the Hostinger VPS.
+- `HOSTINGER_USER`: Deployment user (e.g. `deploy` or `root`).
+- `HOSTINGER_SSH_KEY`: Private SSH key matching `~/.ssh/authorized_keys` on the VPS.
+- `HOSTINGER_PORT`: SSH port (default `22`).
+
+---
+
+## 8. Step-by-Step Operator Runbook
+
+Follow these exact steps to commission the production platform:
+
+### Step A: AWS RDS PostgreSQL Provisioning
+1. Log in to the AWS Console in region `ap-south-1` (Mumbai).
+2. Create an AWS RDS PostgreSQL 16 instance:
+   - Database identifier: `interior-platform-db`.
+   - Master username: `postgres` (or custom admin username).
+   - Master password: generate a strong 32-character password.
+   - Database name: `interiordb`.
+   - Publicly Accessible: **Yes**.
+3. Create a custom DB Parameter Group and verify `rds.force_ssl = 1`.
+4. Create an AWS VPC Security Group:
+   - Inbound Rule: PostgreSQL (5432) from `<HOSTINGER_VPS_IP>/32`.
+   - Attach this Security Group to the RDS instance.
+5. Record the RDS Endpoint hostname (`<id>.ap-south-1.rds.amazonaws.com`).
+
+### Step B: Cloudflare R2 Provisioning
+1. In the Cloudflare Dashboard, navigate to **R2**.
+2. Create bucket `interior-platform-media-private` (Private, no public R2.dev domain).
+3. Create bucket `interior-platform-media-public` (Connect custom domain `media.yourdomain.com`).
+4. Generate an R2 API Token with Object Read & Write permissions on both buckets.
+
+### Step C: Hostinger VPS Setup
+1. Provision a Hostinger KVM VPS with Ubuntu 24.04 LTS.
+2. Connect to the VPS via SSH:
+   ```bash
+   ssh root@<HOSTINGER_VPS_IP>
+   ```
+3. Install Docker Engine and Docker Compose v2:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y ca-certificates curl gnupg
+   sudo install -m 0755 -d /etc/apt/keyrings
+   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+   sudo chmod a+r /etc/apt/keyrings/docker.gpg
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+   sudo apt-get update
+   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   ```
+4. Configure firewall (UFW) as specified in Section 3.
+5. Create deployment directory:
+   ```bash
+   sudo mkdir -p /opt/interior-platform/infrastructure/caddy
+   sudo chown -R $USER:$USER /opt/interior-platform
+   ```
+6. Copy `docker-compose.prod.yml` and `infrastructure/caddy/Caddyfile` to `/opt/interior-platform/`.
+7. Create `/opt/interior-platform/.env.production` (or `.env`) with restricted permissions:
+   ```bash
+   touch /opt/interior-platform/.env
+   chmod 600 /opt/interior-platform/.env
+   ```
+8. Populate `/opt/interior-platform/.env` using the template from `.env.example`.
+
+### Step D: Domain & DNS Configuration
+1. In Cloudflare DNS (or domain registrar DNS):
+   - `A` record for `@` pointing to `<HOSTINGER_VPS_IP>` (Proxy status: Proxied or DNS-only).
+   - `CNAME` record for `www` pointing to `yourdomain.com`.
+   - `CNAME` record for `media` pointing to Cloudflare R2 public bucket.
+
+### Step E: Initial Deployment & Health Verification
+1. On the Hostinger VPS:
+   ```bash
+   cd /opt/interior-platform
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+2. Inspect logs to confirm Flyway migration execution:
+   ```bash
+   docker compose -f docker-compose.prod.yml logs -f api
+   ```
+3. Verify all containers report healthy:
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   ```
+4. Verify public endpoints:
+   - `curl -I https://yourdomain.com/health` (HTTP 200)
+   - `curl -I https://yourdomain.com/api/v1/actuator/health/readiness` (HTTP 200)
+
+---
+
+## 9. Launch Smoke-Test Checklist
 
 Verify each of the following endpoints and workflows in the live environment:
 
-- [ ] **Public Homepage (`GET /`):** Page renders with semantic H1, brand hero, 2.5D scroll animation, and 0 console errors.
+- [ ] **Public Homepage (`GET /`):** Renders semantic H1, brand hero, 2.5D scroll animation, 0 console errors.
 - [ ] **Interior Showcase (`GET /interior-journey`):** 5 approved interior scenes render in order with accessible text.
-- [ ] **Public Discovery (`GET /projects`):** Catalog renders with project cards, filter chips, and GIN trigram search.
-- [ ] **Public Professional Directory (`GET /professionals`):** Studio listings render with location and specialty tags.
+- [ ] **Public Discovery (`GET /projects`):** Project catalog renders with filter chips and search.
+- [ ] **Public Directory (`GET /professionals`):** Studio listings render with location and specialty tags.
 - [ ] **Health Probes:**
   - `GET /health` -> HTTP 200 `{"status":"healthy"}`.
   - `GET /api/v1/actuator/health/liveness` -> HTTP 200 `{"status":"UP"}`.
   - `GET /api/v1/actuator/health/readiness` -> HTTP 200 `{"status":"UP"}`.
 - [ ] **Authentication Boundary:**
   - Visiting `/sign-in` displays sign-in screen.
-  - Attempting to access `/workspace` without authentication redirects to `/sign-in`.
-  - Attempting to access `/admin` without admin role displays Access Denied boundary.
+  - Accessing `/workspace` without auth redirects to `/sign-in`.
+  - Accessing `/admin` without admin role displays Access Denied boundary.
 - [ ] **Database & RLS Integrity:**
-  - Verify tenant queries enforce `app.current_studio_id`.
-  - Verify public reviews query only returns `status = 'PUBLISHED'`.
-- [ ] **Disabled Provider Truthfulness:**
-  - Billing workspace `/workspace/billing` shows commercial checkout not configured (`DisabledBillingProvider`).
-  - WhatsApp lead handoff shows direct WhatsApp link (`wa.me`) without claiming managed cloud API.
-  - Verification badge shows only for verified studios.
-- [ ] **Mobile Responsiveness:**
-  - Test on viewport 390px (iPhone) and 768px (iPad).
-  - Verify zero horizontal scrolling (`overflow-x: hidden`).
-  - Touch targets $\ge 44\text{px}$.
+  - Tenant queries enforce `app.current_studio_id`.
+  - Public reviews query returns only `status = 'PUBLISHED'`.
+- [ ] **Storage Privacy:**
+  - Presigned upload PUT functions to private bucket.
+  - Raw original cannot be accessed anonymously.
+  - Derivatives delivered via public bucket / CDN.
 - [ ] **Security Headers:**
-  - Inspect response headers on `https://interior.com`:
-    - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
-    - `X-Frame-Options: DENY`
-    - `X-Content-Type-Options: nosniff`
-    - `Content-Security-Policy` active.
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
 
 ---
 
-## 13. External Actions Still Required Before Launch
+## 10. Disaster Recovery Runbook
 
-The following items must be provisioned or configured in third-party provider dashboards (cannot be completed via code):
+In the event of a catastrophic VPS hardware failure or datacenter outage:
 
-1. **Domain Registration & DNS:** Purchase domain (e.g. `interior.com`) and point nameservers to Cloudflare.
-2. **Cloudflare Account:** Set up Cloudflare zone, enable Full (Strict) SSL, and configure edge caching rules.
-3. **Cloudflare R2 Buckets:** Create private bucket (`interior-platform-media-private`) and public bucket (`interior-platform-media-public`).
-4. **Render Account & Project:** Create Render team/account and link GitHub repository `https://github.com/mani1715/Interior.git`.
-5. **Render Managed PostgreSQL:** Provision PostgreSQL 16 database instance in Singapore or Frankfurt region.
-6. **Set Environment Secrets:** Inject all secrets listed in Section 7 into the Render dashboard.
+1. **Database Recovery:** AWS RDS maintains automated snapshots and point-in-time recovery independent of the VPS. If needed, restore a snapshot to a new RDS instance in minutes.
+2. **VPS Recovery:**
+   - Provision a fresh Hostinger VPS.
+   - Install Docker Engine and Docker Compose v2.
+   - Clone repository or copy `docker-compose.prod.yml` and `infrastructure/caddy/Caddyfile`.
+   - Restore `/opt/interior-platform/.env` from secure offline password manager.
+   - Update AWS RDS Security Group inbound rule to allow the new Hostinger VPS IP.
+   - Update Cloudflare DNS `A` record to point to the new Hostinger VPS IP.
+   - Run `docker compose -f docker-compose.prod.yml up -d`.
+3. **Media Recovery:** Cloudflare R2 bucket data remains completely intact and unaffected by VPS recreation.

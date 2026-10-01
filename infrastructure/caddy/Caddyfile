@@ -1,0 +1,38 @@
+{
+	# Global options
+	email {$ACME_EMAIL:admin@example.com}
+	admin off
+}
+
+{$APP_DOMAIN:localhost} {
+	# Production security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# API endpoints -> Spring Boot backend container
+	handle /api/v1/* {
+		reverse_proxy api:8080
+	}
+
+	# Direct health check
+	handle /health {
+		reverse_proxy web:3000
+	}
+
+	# Web frontend -> Next.js standalone container
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# Access and error logging
+	log {
+		output stdout
+		format json
+	}
+}
