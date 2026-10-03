@@ -175,7 +175,7 @@ public class JdbcPortfolioRepository implements PortfolioRepository {
         String sql = "INSERT INTO portfolio_sections (" +
                      "id, portfolio_id, studio_id, section_type, display_order, is_visible, " +
                      "schema_version, content, created_at, updated_at" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, now(), now())";
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, now(), now())";
         for (PortfolioSectionRecord s : sections) {
             jdbcTemplate.update(sql,
                     s.id(),
@@ -193,7 +193,7 @@ public class JdbcPortfolioRepository implements PortfolioRepository {
     @Override
     public void updateSection(PortfolioSectionRecord section) {
         String sql = "UPDATE portfolio_sections SET " +
-                     "is_visible = ?, content = ?, updated_at = now() " +
+                     "is_visible = ?, content = ?::jsonb, updated_at = now() " +
                      "WHERE id = ? AND portfolio_id = ?";
         jdbcTemplate.update(sql,
                 section.isVisible(),
@@ -229,7 +229,7 @@ public class JdbcPortfolioRepository implements PortfolioRepository {
     public void createVersionSnapshot(PortfolioVersionRecord versionRecord) {
         String sql = "INSERT INTO portfolio_versions (" +
                      "id, portfolio_id, studio_id, version_number, label, snapshot_payload, created_by, created_at" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, now())";
+                     ") VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, now())";
         jdbcTemplate.update(sql,
                 versionRecord.id(),
                 versionRecord.portfolioId(),

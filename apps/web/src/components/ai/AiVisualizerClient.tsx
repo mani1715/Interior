@@ -465,7 +465,7 @@ export function AiVisualizerClient() {
                     setSelectedProjectId(e.target.value);
                     setSelectedMediaId('');
                   }}
-                  disabled={submitting || !isConfigured}
+                  disabled={submitting}
                   className="w-full rounded-xl border border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] py-2 px-3 disabled:opacity-60"
                 >
                   <option value="">-- Choose project --</option>
@@ -517,7 +517,7 @@ export function AiVisualizerClient() {
                             key={m.id}
                             type="button"
                             onClick={() => setSelectedMediaId(m.id)}
-                            disabled={submitting || !isConfigured}
+                            disabled={submitting}
                             className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                               isSelected
                                 ? 'border-bronze-700 ring-2 ring-bronze-700/30'
@@ -576,7 +576,7 @@ export function AiVisualizerClient() {
                     <button
                       type="button"
                       onClick={() => setEditingMode('FULL_IMAGE')}
-                      disabled={submitting || !isConfigured}
+                      disabled={submitting}
                       className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
                         editingMode === 'FULL_IMAGE'
                           ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
@@ -590,7 +590,7 @@ export function AiVisualizerClient() {
                     <button
                       type="button"
                       onClick={() => setEditingMode('PRECISION_MASK')}
-                      disabled={submitting || !isConfigured || studioStatus?.supportsMaskEditing === false}
+                      disabled={submitting || studioStatus?.supportsMaskEditing === false}
                       className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
                         editingMode === 'PRECISION_MASK'
                           ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
@@ -627,7 +627,7 @@ export function AiVisualizerClient() {
                     onExportReady={(fn) => {
                       exportMaskRef.current = fn;
                     }}
-                    disabled={submitting || !isConfigured}
+                    disabled={submitting}
                   />
                 </div>
               )}
@@ -641,7 +641,7 @@ export function AiVisualizerClient() {
                   onTogglePreserveStructure={setPreserveStructure}
                   availableMedia={projectMedia}
                   libraryReferences={libraryReferences}
-                  disabled={submitting || !isConfigured}
+                  disabled={submitting}
                 />
               )}
 
@@ -658,7 +658,7 @@ export function AiVisualizerClient() {
                   roomType={projects.find((p) => p.id === selectedProjectId)?.categoryCode?.replace(/_/g, ' ')}
                   referenceCount={selectedReferences.length}
                   referencePurposes={selectedReferences.map((r: SelectedReferenceItem) => r.purpose)}
-                  disabled={submitting || !isConfigured}
+                  disabled={submitting}
                   maxLength={500}
                   presets={
                     editingMode === 'PRECISION_MASK'

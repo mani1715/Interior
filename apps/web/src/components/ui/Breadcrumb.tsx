@@ -37,6 +37,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className = '' })
                   style={{
                     color: 'var(--text-secondary)',
                     textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: '44px',
+                    padding: '4px 6px',
+                    margin: '-4px -6px',
                   }}
                 >
                   {item.label}

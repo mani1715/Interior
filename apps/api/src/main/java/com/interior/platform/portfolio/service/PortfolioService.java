@@ -422,6 +422,12 @@ public class PortfolioService {
 
         try {
             JsonNode snapshot = objectMapper.readTree(historical.snapshotPayload());
+            if (snapshot != null && snapshot.isTextual()) {
+                snapshot = objectMapper.readTree(snapshot.asText());
+            }
+            if (snapshot == null || !snapshot.has("portfolio")) {
+                throw new BadRequestException("Corrupt version snapshot payload");
+            }
             JsonNode root = snapshot.get("portfolio");
             JsonNode sectionsNode = snapshot.get("sections");
 
