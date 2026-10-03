@@ -62,9 +62,7 @@ export default function PortfolioPreviewPage() {
   return (
     <div className="min-h-screen bg-sand-100/50 flex flex-col">
       {/* Strict Search Engine Exclusion for Draft Portfolio Previews */}
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
+      <meta name="robots" content="noindex, nofollow" />
 
       {/* Top Banner: Studio Preview Control Bar */}
       <div className="sticky top-0 z-50 bg-charcoal-950 text-white px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-md">

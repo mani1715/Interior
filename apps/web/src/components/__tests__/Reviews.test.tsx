@@ -118,4 +118,31 @@ describe('Phase 27 — Reviews Components', () => {
       });
     });
   });
+
+  describe('WorkspaceReviewsPage', () => {
+    it('renders workspace reviews dashboard and navigates tabs', async () => {
+      vi.mocked(reviewsApi.getPublicReviews).mockResolvedValueOnce(mockReviewsResponse);
+      const listStudioInvitationsSpy = vi.fn().mockResolvedValue([
+        {
+          id: 'inv-1',
+          studioId: 'studio-001',
+          leadId: 'lead-1',
+          clientName: 'Rahul Verma',
+          status: 'PENDING',
+          expiresAt: '2026-12-31T00:00:00Z',
+          createdAt: '2026-10-01T00:00:00Z',
+          invitationUrl: '/review/invite/sample-token',
+        },
+      ]);
+      (reviewsApi as any).listStudioInvitations = listStudioInvitationsSpy;
+
+      const { default: WorkspaceReviewsPage } = await import('@/app/workspace/reviews/page');
+      render(<WorkspaceReviewsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Client Reviews & Invitations')).toBeDefined();
+        expect(screen.getByText('Average Rating')).toBeDefined();
+      });
+    });
+  });
 });

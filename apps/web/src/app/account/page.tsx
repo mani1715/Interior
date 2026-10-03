@@ -103,11 +103,35 @@ export default function AccountPage() {
                     </div>
                   </div>
                 ))}
-                <div className="p-3 bg-bronze-50/50 rounded-xl border border-bronze-200 text-xs text-bronze-900">
-                  <p className="font-medium">Designer Workspace</p>
-                  <p className="text-[11px] text-bronze-800 mt-0.5">
-                    Studio management, portfolio building, and publication workflows will activate in Phase 09.
-                  </p>
+                <div className="p-4 bg-bronze-50/60 rounded-xl border border-bronze-200 text-xs text-bronze-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-charcoal-900">Designer Workspace</p>
+                    <p className="text-[11px] text-charcoal-600 mt-0.5">
+                      Manage your published portfolio, projects, media library, reviews, and client leads.
+                    </p>
+                  </div>
+                  <Link
+                    href="/workspace"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-charcoal-900 text-white rounded-lg text-xs font-medium hover:bg-charcoal-800 transition-colors whitespace-nowrap self-start sm:self-auto"
+                  >
+                    <span>Open Workspace</span>
+                    <span>↗</span>
+                  </Link>
+                </div>
+
+                <div className="p-4 bg-sand-50 rounded-xl border border-sand-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-charcoal-900">Private Mood Boards</p>
+                    <p className="text-[11px] text-charcoal-600 mt-0.5">
+                      Curate design inspiration and saved projects. Completely private to you.
+                    </p>
+                  </div>
+                  <Link
+                    href="/account/collections"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-sand-300 text-charcoal-800 bg-white rounded-lg text-xs font-medium hover:bg-sand-50 transition-colors whitespace-nowrap self-start sm:self-auto"
+                  >
+                    <span>View Collections</span>
+                  </Link>
                 </div>
               </div>
             ) : (

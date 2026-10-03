@@ -21,6 +21,8 @@ import {
   X,
   ChevronRight,
   ShieldAlert,
+  ShieldCheck,
+  MessageSquare,
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -46,12 +48,14 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'media', label: 'Media', href: '/workspace/media', icon: Image },
   { id: 'ai', label: 'AI Studio', href: '/workspace/ai', icon: Sparkles },
   { id: 'leads', label: 'Leads', href: '/workspace/leads', icon: Users },
+  { id: 'reviews', label: 'Reviews', href: '/workspace/reviews', icon: MessageSquare },
   { id: 'seo', label: 'SEO Center', href: '/workspace/seo', icon: Search },
   { id: 'analytics', label: 'Analytics', href: '/workspace/analytics', icon: BarChart3 },
   { id: 'notifications', label: 'Notifications', href: '/workspace/notifications', icon: Bell },
 ];
 
 const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { id: 'verification', label: 'Studio Verification', href: '/workspace/verification', icon: ShieldCheck },
   { id: 'business', label: 'Business Profile', href: '/workspace/business', icon: Building2 },
   { id: 'billing', label: 'Billing & Plans', href: '/workspace/billing', icon: CreditCard },
   { id: 'account', label: 'Account Profile', href: '/account', icon: User },
