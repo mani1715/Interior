@@ -49,7 +49,10 @@ public class JdbcSecurityRepository implements SecurityRepository {
             rs.getString("status"),
             rs.getTimestamp("created_at").toInstant(),
             rs.getTimestamp("updated_at").toInstant(),
-            rs.getLong("version")
+            rs.getLong("version"),
+            rs.getString("avatar_url"),
+            rs.getTimestamp("deactivated_at") != null ? rs.getTimestamp("deactivated_at").toInstant() : null,
+            rs.getTimestamp("deletion_requested_at") != null ? rs.getTimestamp("deletion_requested_at").toInstant() : null
     );
 
     private static UUID getUuid(ResultSet rs, String columnLabel) throws SQLException {
@@ -184,6 +187,43 @@ public class JdbcSecurityRepository implements SecurityRepository {
                 Timestamp.from(user.updatedAt()),
                 user.version()
         );
+    }
+
+    @Override
+    public void updateUserProfile(UUID userId, String displayName, String phone, String avatarUrl) {
+        String sql = "UPDATE users SET display_name = ?, phone = ?, avatar_url = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, displayName, phone, avatarUrl, userId);
+    }
+
+    @Override
+    public void deactivateUser(UUID userId, Instant deactivatedAt) {
+        String sql = "UPDATE users SET status = 'DEACTIVATED', deactivated_at = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, Timestamp.from(deactivatedAt), userId);
+    }
+
+    @Override
+    public void requestUserDeletion(UUID userId, Instant requestedAt) {
+        String sql = "UPDATE users SET deletion_requested_at = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, Timestamp.from(requestedAt), userId);
+    }
+
+    @Override
+    public List<SessionRecord> findActiveSessionsByUserId(UUID userId, Instant now) {
+        String sql = """
+            SELECT * FROM identity_sessions
+            WHERE user_id = ? AND revoked_at IS NULL AND idle_expires_at > ? AND absolute_expires_at > ?
+            ORDER BY last_seen_at DESC
+        """;
+        return jdbcTemplate.query(sql, sessionRowMapper, userId, Timestamp.from(now), Timestamp.from(now));
+    }
+
+    @Override
+    public void savePlatformFeedback(UUID id, UUID userId, String category, String message, String contactEmail, Instant createdAt) {
+        String sql = """
+            INSERT INTO platform_feedback (id, user_id, category, message, contact_email, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """;
+        jdbcTemplate.update(sql, id, userId, category, message, contactEmail, Timestamp.from(createdAt));
     }
 
     @Override

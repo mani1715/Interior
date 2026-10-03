@@ -553,9 +553,9 @@ public class WorkspaceService {
                         "notifications",
                         "Notifications",
                         "Platform updates, system notices, and client communication alerts.",
-                        "COMING_SOON",
+                        "READY",
                         "/workspace/notifications",
-                        "View Overview"
+                        "Manage Notifications"
                 ),
                 new WorkspaceSummaryResponse.ModuleReadinessDto(
                         "business",

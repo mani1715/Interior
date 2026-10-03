@@ -39,7 +39,9 @@ public class PublicLeadController {
             HttpServletRequest httpRequest
     ) {
         String clientIp = extractClientIp(httpRequest);
-        PublicLeadSubmissionResponse response = publicLeadService.submitInquiry(request, clientIp);
+        com.interior.platform.security.domain.ActorContext actor = (com.interior.platform.security.domain.ActorContext) httpRequest.getAttribute(com.interior.platform.security.interceptor.SecurityInterceptor.ACTOR_ATTRIBUTE);
+        java.util.UUID customerUserId = (actor != null && actor.isAuthenticated()) ? actor.userId() : null;
+        PublicLeadSubmissionResponse response = publicLeadService.submitInquiry(request, clientIp, customerUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0, must-revalidate")

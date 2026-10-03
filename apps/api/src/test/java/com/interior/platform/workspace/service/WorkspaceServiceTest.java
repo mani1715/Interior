@@ -159,7 +159,7 @@ class WorkspaceServiceTest {
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("ai") && m.status().equals("NOT_CONFIGURED")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("leads") && m.status().equals("COMING_SOON")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("analytics") && m.status().equals("COMING_SOON")));
-        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("READY")));
 
         // Activity feed check: derived from studio timestamps, NOT raw audit records, with user-friendly copy
         assertFalse(summary.activityFeed().isEmpty());
@@ -408,6 +408,6 @@ class WorkspaceServiceTest {
         assertEquals("COMING_SOON", moduleMap.get("leads"), "Leads/CRM is not yet built");
         assertEquals("READY", moduleMap.get("seo"), "SEO center is now implemented in Phase 20");
         assertEquals("COMING_SOON", moduleMap.get("analytics"), "Analytics engine is not yet built");
-        assertEquals("COMING_SOON", moduleMap.get("notifications"), "Notification product model is not yet built");
+        assertEquals("READY", moduleMap.get("notifications"), "Notification center is ready");
     }
 }

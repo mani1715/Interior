@@ -67,8 +67,22 @@ public interface LeadRepository {
 
     List<LeadWhatsAppMessageRecord> listWhatsAppMessages(UUID studioId, UUID leadId);
 
+    record CustomerInquiryRecord(
+        UUID id,
+        UUID studioId,
+        String studioName,
+        String studioSlug,
+        String projectCategory,
+        String budgetRange,
+        String message,
+        LeadStatus status,
+        Instant createdAt
+    ) {}
+
+    List<CustomerInquiryRecord> findCustomerInquiries(UUID customerUserId, int limit, int offset);
+
     // Target validation helpers
-    record PublicStudioTarget(UUID id, String name, String slug) {}
+    record PublicStudioTarget(UUID id, String name, String slug, UUID ownerId) {}
     record PublicProjectTarget(UUID id, UUID studioId, String title, String slug) {}
     record PublicWhatsAppContact(UUID id, UUID studioId, String contactValue) {}
 

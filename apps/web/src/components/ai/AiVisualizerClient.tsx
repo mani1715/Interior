@@ -50,14 +50,26 @@ const PROMPT_PRESETS = [
   'Scandinavian Japandi with pale timber cabinetry, wabi-sabi ceramic decor, and sheer linen drapery',
   'Industrial Loft with exposed concrete ceiling, raw brick accents, and matte black steel-framed glazing',
   'Neo-Classical Luxury with subtle wall mouldings, herringbone timber floor, and warm alabaster chandeliers',
+  'Change Colours: Warm alabaster walls, muted sage accents, and warm oak flooring',
+  'Change Material: Fluted Italian Calacatta marble surfaces with natural walnut wood veneer',
+  'Change Wardrobe Finish: Fluted oak shutters with vertical grain and sleek recessed J-pull profiles',
+  'Change Kitchen Cabinets: Soft-touch ultra-matte cashmere cabinetry with brushed champagne gold hardware',
+  'Change Handles / Hardware: Minimalist knurled brushed brass pull handles and concealed hinges',
+  'Change Wall Finish: Lime-washed warm terracotta textured plaster feature wall',
+  'Change TV Unit Design: Backlit charcoal slatted acoustic timber panels with floating quartz shelf',
+  'Change Pooja Unit Finish: Rich teakwood carved jaali pattern with warm ambient cove illumination',
+  'Try Another Style: Scandinavian Japandi with wabi-sabi ceramic decor and raw linen drapery',
+  'Preserve Layout: Maintain structural boundaries and window positions with refined contemporary joinery',
 ];
 
 const PRECISION_PRESETS = [
-  { label: 'Wardrobe Shutters', prompt: 'Change only these wardrobe shutters to fluted oak finish with sleek black recessed profiles' },
-  { label: 'Countertop & Backsplash', prompt: 'Apply Italian Calacatta Gold marble only to this countertop and backsplash' },
-  { label: 'Accent Wall Color', prompt: 'Repaint this accent wall in warm terracotta matte finish with subtle lime-wash texture' },
-  { label: 'Cabinet Doors & Handles', prompt: 'Replace cabinet doors with fluted glass and brushed brass minimal handles' },
-  { label: 'TV Feature Wall', prompt: 'Upgrade this TV feature wall with dark charcoal slatted acoustic panels' },
+  { label: 'Wardrobe Shutters', prompt: 'Change only these wardrobe shutters to walnut wood veneer with vertical grain and integrated black J-pulls' },
+  { label: 'Kitchen Cabinets', prompt: 'Update kitchen cabinet frontages to ultra-matte sage finish with brushed champagne brass handles' },
+  { label: 'Countertop & Backsplash', prompt: 'Apply honed Italian Calacatta marble slab to this countertop and seamless backsplash' },
+  { label: 'TV Unit Design', prompt: 'Transform this TV wall unit with fluted oak panelling and floating low-height console' },
+  { label: 'Pooja Unit Finish', prompt: 'Finish this pooja niche in warm teakwood with CNC-cut brass jaali screen accents' },
+  { label: 'Wall Paint / Plaster', prompt: 'Repaint this wall in warm earthy terracotta matte lime-wash texture' },
+  { label: 'Handles & Hardware', prompt: 'Replace all handles in this section with minimal knurled cylinder pulls in satin brass' },
 ];
 
 export function AiVisualizerClient() {

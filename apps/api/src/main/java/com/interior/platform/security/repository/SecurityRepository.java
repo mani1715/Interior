@@ -24,6 +24,11 @@ public interface SecurityRepository {
     Optional<UserRecord> findUserByExternalIdentity(String issuer, String subject);
     void linkExternalIdentity(UUID id, UUID userId, String issuer, String subject, Instant linkedAt);
     void createUser(UserRecord user);
+    void updateUserProfile(UUID userId, String displayName, String phone, String avatarUrl);
+    void deactivateUser(UUID userId, Instant deactivatedAt);
+    void requestUserDeletion(UUID userId, Instant requestedAt);
+    List<SessionRecord> findActiveSessionsByUserId(UUID userId, Instant now);
+    void savePlatformFeedback(UUID id, UUID userId, String category, String message, String contactEmail, Instant createdAt);
 
     Set<String> getUserRoles(UUID userId);
     void assignUserRole(UUID id, UUID userId, String roleCode, Instant grantedAt);

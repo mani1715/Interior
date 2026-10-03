@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { NotificationBell } from './NotificationBell';
 import styles from './PublicHeader.module.css';
 export interface NavLinkItem { label: string; href: string }
 export interface PublicHeaderProps { navLinks?: NavLinkItem[]; currentPath?: string; onSignInClick?: () => void; onGetStartedClick?: () => void }
@@ -37,6 +38,7 @@ export function PublicHeader({ navLinks = defaultNavLinks, currentPath = '/', on
   const close = () => { setOpen(false); toggle.current?.focus(); };
   const actions = <>
     {isAuthenticated && user ? <>
+      <NotificationBell />
       {user.roles.includes('PLATFORM_ADMIN') ? <Link href="/admin" onClick={close}>Admin</Link> : null}
       {professional ? <Link href="/workspace" onClick={close}>Workspace</Link> : user.studios.length === 0 ? <Link href="/onboarding/professional" onClick={close}>Register as Professional</Link> : null}
       <Link href="/account/collections" onClick={close}>Collections</Link>

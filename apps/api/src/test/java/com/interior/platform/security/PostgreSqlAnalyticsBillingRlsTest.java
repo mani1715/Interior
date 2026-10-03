@@ -44,14 +44,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
                 """);
                 stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON analytics_events, studio_daily_metrics, studio_subscriptions, billing_transactions, billing_events TO test_phase28_user;");
 
-                stmt.execute("DELETE FROM billing_events;");
-                stmt.execute("DELETE FROM billing_transactions;");
-                stmt.execute("DELETE FROM studio_subscriptions;");
-                stmt.execute("DELETE FROM studio_daily_metrics;");
-                stmt.execute("DELETE FROM analytics_events;");
-                stmt.execute("DELETE FROM studio_projects;");
-                stmt.execute("DELETE FROM designer_studios;");
-                stmt.execute("DELETE FROM users;");
+                stmt.execute("TRUNCATE TABLE billing_events, billing_transactions, studio_subscriptions, studio_daily_metrics, analytics_events, studio_projects, studio_members, designer_studios, users CASCADE;");
 
                 userAId = UuidV7.randomUuid();
                 userBId = UuidV7.randomUuid();
@@ -120,6 +113,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
                 ));
             }
         } catch (SQLException e) {
+            e.printStackTrace();
             postgresAvailable = false;
         }
     }

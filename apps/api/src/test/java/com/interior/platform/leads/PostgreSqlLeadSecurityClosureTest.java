@@ -31,14 +31,7 @@ class PostgreSqlLeadSecurityClosureTest {
         try (Connection adminConn = getAdminConnection()) {
             postgresAvailable = true;
             try (Statement stmt = adminConn.createStatement()) {
-                stmt.execute("REVOKE ALL ON studio_leads, lead_activities, lead_notes, lead_whatsapp_messages FROM test_rls_public_user;");
-                stmt.execute("DELETE FROM lead_activities;");
-                stmt.execute("DELETE FROM lead_notes;");
-                stmt.execute("DELETE FROM lead_whatsapp_messages;");
-                stmt.execute("DELETE FROM studio_leads;");
-                stmt.execute("DELETE FROM studio_projects;");
-                stmt.execute("DELETE FROM designer_studios;");
-                stmt.execute("DELETE FROM users;");
+                stmt.execute("TRUNCATE TABLE lead_activities, lead_notes, lead_whatsapp_messages, studio_leads, studio_projects, studio_members, designer_studios, users CASCADE;");
 
                 UUID ownerId = UuidV7.randomUuid();
                 stmt.execute(String.format(

@@ -32,8 +32,8 @@ public class JdbcLeadRepository implements LeadRepository {
                 "budget_range, message, preferred_contact_channel, " +
                 "contact_consent_at, whatsapp_consent_at, assigned_user_id, " +
                 "next_follow_up_at, lost_reason, possible_duplicate, idempotency_key, " +
-                "created_at, updated_at, version, archived_at" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "created_at, updated_at, version, archived_at, customer_user_id" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 lead.id(),
@@ -59,7 +59,8 @@ public class JdbcLeadRepository implements LeadRepository {
                 lead.createdAt() != null ? Timestamp.from(lead.createdAt()) : Timestamp.from(Instant.now()),
                 lead.updatedAt() != null ? Timestamp.from(lead.updatedAt()) : Timestamp.from(Instant.now()),
                 lead.version(),
-                lead.archivedAt() != null ? Timestamp.from(lead.archivedAt()) : null
+                lead.archivedAt() != null ? Timestamp.from(lead.archivedAt()) : null,
+                lead.customerUserId()
         );
 
         return lead;
@@ -333,25 +334,51 @@ public class JdbcLeadRepository implements LeadRepository {
     }
 
     @Override
+    public List<CustomerInquiryRecord> findCustomerInquiries(UUID customerUserId, int limit, int offset) {
+        String sql = """
+            SELECT l.id, l.studio_id, s.name as studio_name, s.slug as studio_slug,
+                   l.project_category, l.budget_range, l.message, l.status, l.created_at
+            FROM studio_leads l
+            JOIN designer_studios s ON s.id = l.studio_id
+            WHERE l.customer_user_id = ?
+            ORDER BY l.created_at DESC
+            LIMIT ? OFFSET ?
+        """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new CustomerInquiryRecord(
+                getUuid(rs, "id"),
+                getUuid(rs, "studio_id"),
+                rs.getString("studio_name"),
+                rs.getString("studio_slug"),
+                rs.getString("project_category"),
+                rs.getString("budget_range"),
+                rs.getString("message"),
+                LeadStatus.valueOf(rs.getString("status")),
+                getInstant(rs, "created_at")
+        ), customerUserId, Math.max(1, Math.min(100, limit)), Math.max(0, offset));
+    }
+
+    @Override
     public Optional<PublicStudioTarget> findPublicStudioBySlug(String slug) {
-        String sql = "SELECT id, name, slug FROM designer_studios " +
+        String sql = "SELECT id, name, slug, owner_id FROM designer_studios " +
                 "WHERE slug = ? AND publication_status = 'PUBLISHED' AND status = 'ACTIVE'";
         List<PublicStudioTarget> results = jdbcTemplate.query(sql, (rs, rowNum) -> new PublicStudioTarget(
                 getUuid(rs, "id"),
                 rs.getString("name"),
-                rs.getString("slug")
+                rs.getString("slug"),
+                getUuid(rs, "owner_id")
         ), slug);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     @Override
     public Optional<PublicStudioTarget> findPublicStudioById(UUID studioId) {
-        String sql = "SELECT id, name, slug FROM designer_studios " +
+        String sql = "SELECT id, name, slug, owner_id FROM designer_studios " +
                 "WHERE id = ? AND publication_status = 'PUBLISHED' AND status = 'ACTIVE'";
         List<PublicStudioTarget> results = jdbcTemplate.query(sql, (rs, rowNum) -> new PublicStudioTarget(
                 getUuid(rs, "id"),
                 rs.getString("name"),
-                rs.getString("slug")
+                rs.getString("slug"),
+                getUuid(rs, "owner_id")
         ), studioId);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
@@ -447,7 +474,8 @@ public class JdbcLeadRepository implements LeadRepository {
                 getInstant(rs, "created_at"),
                 getInstant(rs, "updated_at"),
                 rs.getLong("version"),
-                getInstant(rs, "archived_at")
+                getInstant(rs, "archived_at"),
+                getUuid(rs, "customer_user_id")
         );
     }
 

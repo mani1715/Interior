@@ -48,19 +48,7 @@ class PostgreSqlReviewsVerificationCollectionsTest {
                 stmt.execute("REVOKE ALL ON studio_leads, lead_activities, lead_notes, lead_whatsapp_messages FROM test_phase27_user;");
                 stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON user_collections, collection_items, studio_verifications, studio_verification_documents, studio_verification_events TO test_phase27_user;");
 
-                stmt.execute("DELETE FROM collection_items;");
-                stmt.execute("DELETE FROM user_collections;");
-                stmt.execute("DELETE FROM studio_verification_events;");
-                stmt.execute("DELETE FROM studio_verification_documents;");
-                stmt.execute("DELETE FROM studio_verifications;");
-                stmt.execute("DELETE FROM review_reports;");
-                stmt.execute("DELETE FROM studio_reviews;");
-                stmt.execute("DELETE FROM review_invitation_sessions;");
-                stmt.execute("DELETE FROM review_invitations;");
-                stmt.execute("DELETE FROM studio_leads;");
-                stmt.execute("DELETE FROM studio_projects;");
-                stmt.execute("DELETE FROM designer_studios;");
-                stmt.execute("DELETE FROM users;");
+                stmt.execute("TRUNCATE TABLE collection_items, user_collections, studio_verification_events, studio_verification_documents, studio_verifications, review_reports, studio_reviews, review_invitation_sessions, review_invitations, studio_leads, studio_projects, studio_members, designer_studios, users CASCADE;");
 
                 userAId = UuidV7.randomUuid();
                 userBId = UuidV7.randomUuid();

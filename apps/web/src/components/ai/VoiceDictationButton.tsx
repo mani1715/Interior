@@ -137,17 +137,22 @@ export function VoiceDictationButton({
           <span>Processing audio...</span>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={handleStart}
-          disabled={disabled}
-          aria-label="Start voice dictation"
-          title="Describe your design transformation using your microphone"
-          className={`min-h-[44px] min-w-[44px] p-2.5 rounded-xl border border-sand-300 bg-white hover:bg-sand-50 hover:border-bronze-600 active:bg-sand-100 text-charcoal-700 hover:text-bronze-800 transition-all shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-        >
-          <Mic className="w-4 h-4 text-bronze-700" />
-          <span className="text-xs font-medium hidden sm:inline">Voice Dictate</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={disabled}
+            aria-label="Start voice dictation"
+            title="Describe your design transformation using your microphone"
+            className={`min-h-[44px] min-w-[44px] p-2.5 rounded-xl border border-sand-300 bg-white hover:bg-sand-50 hover:border-bronze-600 active:bg-sand-100 text-charcoal-700 hover:text-bronze-800 transition-all shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+          >
+            <Mic className="w-4 h-4 text-bronze-700" />
+            <span className="text-xs font-medium hidden sm:inline">Voice Dictate</span>
+          </button>
+          <span className="text-[11px] text-charcoal-500 hidden md:inline">
+            Speak your design idea <span className="text-charcoal-400">(e.g. &ldquo;Change wardrobe shutters to walnut...&rdquo;)</span>
+          </span>
+        </div>
       )}
 
       {/* Screen reader polite live region */}

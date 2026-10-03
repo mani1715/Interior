@@ -19,6 +19,8 @@ import java.time.Duration;
 import java.time.Instant;
 import com.interior.platform.analytics.domain.AnalyticsEventType;
 import com.interior.platform.analytics.service.AnalyticsService;
+import com.interior.platform.notifications.domain.NotificationType;
+import com.interior.platform.notifications.service.NotificationService;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,21 +32,28 @@ public class PublicLeadService {
     private final PhoneNormalizationService phoneNormalizationService;
     private final RateLimiterService rateLimiterService;
     private final AnalyticsService analyticsService;
+    private final NotificationService notificationService;
 
     public PublicLeadService(
             LeadRepository leadRepository,
             PhoneNormalizationService phoneNormalizationService,
             RateLimiterService rateLimiterService,
-            AnalyticsService analyticsService
+            AnalyticsService analyticsService,
+            NotificationService notificationService
     ) {
         this.leadRepository = leadRepository;
         this.phoneNormalizationService = phoneNormalizationService;
         this.rateLimiterService = rateLimiterService;
         this.analyticsService = analyticsService;
+        this.notificationService = notificationService;
+    }
+
+    public PublicLeadSubmissionResponse submitInquiry(PublicLeadSubmissionRequest req, String clientIp) {
+        return submitInquiry(req, clientIp, null);
     }
 
     @Transactional
-    public PublicLeadSubmissionResponse submitInquiry(PublicLeadSubmissionRequest req, String clientIp) {
+    public PublicLeadSubmissionResponse submitInquiry(PublicLeadSubmissionRequest req, String clientIp, UUID customerUserId) {
         // 1. Abuse Protection: Honeypot check
         if (req.website_hp() != null && !req.website_hp().isBlank()) {
             // Silently discard bot submission
@@ -139,7 +148,8 @@ public class PublicLeadService {
                 now,
                 now,
                 1L,
-                null
+                null,
+                customerUserId
         );
 
         leadRepository.save(leadRecord);
@@ -169,6 +179,20 @@ public class PublicLeadService {
                 projectTitle != null ? Map.of("projectTitle", projectTitle, "source", source.name()) : Map.of("source", source.name()),
                 "lead_created:" + leadId
         );
+
+        // 12. Dispatch Persistent In-App Notification to Studio Owner
+        if (studio.ownerId() != null) {
+            String notifMsg = "New inquiry from " + sanitizedName + (category != null ? " for " + category : "");
+            notificationService.dispatchNotification(
+                    studio.ownerId(),
+                    studio.id(),
+                    NotificationType.NEW_LEAD,
+                    "New Client Inquiry",
+                    notifMsg,
+                    "/workspace/leads/" + leadId,
+                    "{\"leadId\":\"" + leadId + "\"}"
+            );
+        }
 
         String referenceNumber = "INQ-" + leadId.toString().substring(0, 8).toUpperCase();
         return new PublicLeadSubmissionResponse(referenceNumber, "Inquiry received successfully.", studio.name());

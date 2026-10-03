@@ -176,7 +176,7 @@ class WorkspaceIntegrationTest {
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("leads") && m.status().equals("COMING_SOON")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("seo") && m.status().equals("READY")));
         assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("analytics") && m.status().equals("COMING_SOON")));
-        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("COMING_SOON")));
+        assertTrue(summary.modules().stream().anyMatch(m -> m.id().equals("notifications") && m.status().equals("READY")));
 
         // 2. Fetch Business Profile
         ResponseEntity<WorkspaceBusinessProfileResponse> profileResp = workspaceController.getBusinessProfile(request, null, null);
