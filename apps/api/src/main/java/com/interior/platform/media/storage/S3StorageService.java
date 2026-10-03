@@ -30,6 +30,7 @@ public class S3StorageService implements StorageService {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public S3StorageService(S3StorageProperties properties) {
         this.properties = properties;
 

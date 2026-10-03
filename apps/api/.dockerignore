@@ -1,0 +1,21 @@
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+# Environment & secrets
+.env*
+*.pem
+*.key
+*.crt
+*.pfx
+*.keystore
+
+# Build & runtime artifacts
+target
+.mvn
+mvnw
+mvnw.cmd
+*.log
