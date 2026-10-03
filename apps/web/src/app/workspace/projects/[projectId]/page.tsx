@@ -123,6 +123,17 @@ export default function ProjectEditPage() {
     loadProject();
   }, [loadProject]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
   const handleStyleToggle = (style: ProjectStyle) => {
     setIsDirty(true);
     setStyleCodes((prev) =>

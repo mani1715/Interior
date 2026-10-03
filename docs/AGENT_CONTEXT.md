@@ -706,3 +706,22 @@ All Phase 29 requirements implemented, tested, and verified across backend, fron
    - Production Build: **PASS** (`next build` clean across all static and dynamic routes).
    - Database Migrations: 23 migrations (`V000` through `V023`) validated and applied.
 
+## 2026-10-03 — End-to-End Product Workflows & AI Prompt Experience COMPLETE
+
+Comprehensive functional product gap audit and implementation pass completed locally across backend, frontend, and tests:
+1. **AI Voice-to-Text & Prompt Composer / Enhancement Engine**:
+   - Backend `PromptEnhancementService` (`/api/v1/ai/prompt/enhance`): deterministic architectural vocabulary expansion supporting room types, styles, finishes/materials, lighting, and spatial constraints. Inpainting precision constraints automatically applied for mask mode.
+   - Frontend `voice-service.ts`: Web Speech API (`webkitSpeechRecognition` / `SpeechRecognition`) progressive enhancement with mobile-friendly state machine, listening timeouts, and error handling.
+   - `VoiceDictationButton.tsx`: Accessible 44px+ touch-target microphone with pulse animation, timer, ARIA live region status, and manual stop/cancel.
+   - `AiPromptComposer.tsx`: Full interactive prompt drafting studio integrating voice transcription, quick architectural context pills (mode, structure, room type, references), "Improve Prompt" action with diff visualization and optimization explanation, "Use Original" revert, and character count counters.
+   - Integrated into `AiVisualizerClient.tsx` replacing bare textarea.
+2. **First-Time UX & Unsaved Changes Protection**:
+   - Added `beforeunload` warning listeners in Portfolio Builder (`/workspace/portfolio/page.tsx`) and Project CMS Editor (`/workspace/projects/[projectId]/page.tsx`).
+   - Fixed stale `'Coming Soon'` badge for `Project Workspace` in `/workspace/page.tsx` to `'Active'`.
+3. **Verification Baseline**:
+   - Backend Tests: **346 / 346 PASS** (`PromptEnhancementServiceTest` added, 0 failures, 0 errors).
+   - Frontend Tests: **284 / 284 PASS** across 40 test files (`AiPromptComposer.test.tsx` added, 0 failures, 0 errors).
+   - Typecheck: **PASS** (`npm run typecheck`, 0 errors).
+   - Lint: **PASS** (`npm run lint`, 0 warnings, 0 errors).
+   - Production Build: **PASS** (`npm run build`, Turbopack compilation clean across all 35+ routes).
+

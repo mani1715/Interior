@@ -176,10 +176,10 @@ export default function WorkspaceHomePage() {
             },
             {
               title: 'Project Workspace',
-              description: 'Explore project case studies and showcase preparation.',
+              description: 'Manage completed case studies, room media, and portfolio projects.',
               icon: FolderKanban,
               href: '/workspace/projects',
-              badge: 'Coming Soon',
+              badge: 'Active',
             },
             {
               title: 'Explore AI Studio',

@@ -25,9 +25,14 @@ import java.util.UUID;
 public class AiController {
 
     private final AiVisualizerService aiVisualizerService;
+    private final com.interior.platform.ai.service.PromptEnhancementService promptEnhancementService;
 
-    public AiController(AiVisualizerService aiVisualizerService) {
+    public AiController(
+            AiVisualizerService aiVisualizerService,
+            com.interior.platform.ai.service.PromptEnhancementService promptEnhancementService
+    ) {
         this.aiVisualizerService = aiVisualizerService;
+        this.promptEnhancementService = promptEnhancementService;
     }
 
     @GetMapping("/status")
@@ -377,6 +382,15 @@ public class AiController {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
         CreateClientReviewResponse res = aiVisualizerService.rotateReviewToken(actor, studioId, reviewId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @PostMapping("/prompt/enhance")
+    @Operation(summary = "Enhance informal interior prompt", description = "Transforms natural language descriptions into structured architectural generation instructions incorporating spatial context.")
+    public ResponseEntity<PromptEnhanceResponse> enhancePrompt(
+            @Valid @RequestBody PromptEnhanceRequest req
+    ) {
+        PromptEnhanceResponse res = promptEnhancementService.enhancePrompt(req);
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 

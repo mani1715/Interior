@@ -42,6 +42,7 @@ import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
 import { PrecisionMaskEditor } from './PrecisionMaskEditor';
 import { AiHistoryView } from './AiHistoryView';
 import { AiReviewsView } from './AiReviewsView';
+import { AiPromptComposer } from './AiPromptComposer';
 
 const PROMPT_PRESETS = [
   'Modern Minimalist with warm oak flooring, flush baseboards, and indirect recessed ceiling cove lighting',
@@ -644,64 +645,27 @@ export function AiVisualizerClient() {
                 />
               )}
 
-              {/* 4. Prompt Input */}
+              {/* 4. Prompt Composer with Voice Dictation & Architectural Prompt Enhancement */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                    {editingMode === 'PRECISION_MASK' ? '4. Target Edit Instruction' : '4. Desired Transformation'}
-                  </label>
-                  <span
-                    className={`text-[11px] font-mono ${
-                      prompt.length > 500 ? 'text-red-600 font-bold' : 'text-charcoal-400'
-                    }`}
-                  >
-                    {prompt.length} / 500
-                  </span>
-                </div>
-                <textarea
-                  rows={3}
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider mb-2">
+                  {editingMode === 'PRECISION_MASK' ? '4. Target Edit Instruction' : '4. Desired Transformation'}
+                </label>
+                <AiPromptComposer
+                  prompt={prompt}
+                  onPromptChange={setPrompt}
+                  editingMode={editingMode}
+                  preserveStructure={preserveStructure}
+                  roomType={projects.find((p) => p.id === selectedProjectId)?.categoryCode?.replace(/_/g, ' ')}
+                  referenceCount={selectedReferences.length}
+                  referencePurposes={selectedReferences.map((r: SelectedReferenceItem) => r.purpose)}
                   disabled={submitting || !isConfigured}
-                  placeholder={
+                  maxLength={500}
+                  presets={
                     editingMode === 'PRECISION_MASK'
-                      ? "Describe changes to the selected area (e.g., 'Change only these wardrobe shutters to fluted oak with sleek black recessed handles; keep surrounding walls untouched')..."
-                      : "e.g. Transform to warm minimalist aesthetic with herringbone oak floors, concealed indirect lighting, and linen upholstery..."
+                      ? PRECISION_PRESETS
+                      : PROMPT_PRESETS.map((p) => ({ label: p.split(' with ')[0], prompt: p }))
                   }
-                  className="w-full rounded-xl border border-sand-300 text-xs focus:border-bronze-700 focus:ring-bronze-700 bg-[#FAF8F5] p-3 leading-relaxed disabled:opacity-60"
                 />
-
-                {/* Prompt Presets */}
-                <div className="mt-2 space-y-1">
-                  <span className="text-[10px] text-charcoal-400 uppercase tracking-wider block">
-                    {editingMode === 'PRECISION_MASK' ? 'Targeted Edit Starters:' : 'Design Starters:'}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {editingMode === 'PRECISION_MASK'
-                      ? PRECISION_PRESETS.map((p, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setPrompt(p.prompt)}
-                            disabled={submitting || !isConfigured}
-                            className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
-                          >
-                            {p.label}
-                          </button>
-                        ))
-                      : PROMPT_PRESETS.map((preset, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setPrompt(preset)}
-                            disabled={submitting || !isConfigured}
-                            className="text-[11px] px-2.5 py-1 rounded-lg bg-sand-100/70 hover:bg-sand-200/80 text-charcoal-700 text-left transition-colors border border-sand-200/50"
-                          >
-                            {preset.split(' with ')[0]}
-                          </button>
-                        ))}
-                  </div>
-                </div>
               </div>
 
               {/* Submit & Cancel Actions */}

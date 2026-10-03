@@ -690,6 +690,17 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
+## 44.1. END-TO-END PRODUCT WORKFLOWS & AI PROMPT EXPERIENCE (OCTOBER 2026)
+
+- Backend `PromptEnhancementService` (`/api/v1/ai/prompt/enhance`): deterministic architectural vocabulary expansion supporting room types, styles, materials, and lighting.
+- Frontend `voice-service.ts`: Web Speech API (`webkitSpeechRecognition` / `SpeechRecognition`) progressive enhancement with mobile-friendly state machine.
+- `VoiceDictationButton.tsx`: Accessible 44px+ touch-target microphone with pulse animation and ARIA status.
+- `AiPromptComposer.tsx`: Full interactive prompt drafting studio integrating voice transcription, quick architectural context pills, "Improve Prompt" action with diff visualization, and "Use Original" revert.
+- Workspace Unsaved Changes: `beforeunload` warning listeners added to Portfolio Builder and Project CMS Editor.
+- Verification: 346/346 backend tests PASS, 284/284 frontend tests PASS, typecheck PASS, lint PASS, build PASS.
+
+---
+
 ## 45. FINAL GIT & HANDOFF STATE
 
 - **Commit Message:** `docs: prepare astra project handoff`
