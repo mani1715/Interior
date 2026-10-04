@@ -30,6 +30,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class StudioTeamService {
@@ -37,6 +38,27 @@ public class StudioTeamService {
     private static final Logger log = LoggerFactory.getLogger(StudioTeamService.class);
     private static final Duration INVITATION_EXPIRY = Duration.ofDays(7);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    public record InvitationSession(
+            String sessionToken,
+            UUID invitationId,
+            byte[] tokenHash,
+            UUID studioId,
+            String invitedEmail,
+            String role,
+            Instant expiresAt
+    ) {
+        public boolean isExpired() {
+            return Instant.now().isAfter(expiresAt);
+        }
+    }
+
+    public record ExchangeResult(
+            String sessionToken,
+            ExchangeInvitationResponse response
+    ) {}
+
+    private final ConcurrentHashMap<String, InvitationSession> invitationSessions = new ConcurrentHashMap<>();
 
     private final StudioTeamRepository teamRepository;
     private final AuthorizationService authorizationService;
@@ -438,20 +460,111 @@ public class StudioTeamService {
         StudioMemberInvitationRecord inv = opt.get();
         String studioName = teamRepository.findStudioName(inv.studioId());
         String displayRole = normalizeRoleDisplay(inv.role());
+        String masked = maskEmail(inv.invitedEmail());
 
         if ("REVOKED".equalsIgnoreCase(inv.status())) {
-            return new ValidateInvitationResponse(false, studioName, inv.invitedEmail(), displayRole, "REVOKED", "This invitation has been revoked by the studio administrator.");
+            return new ValidateInvitationResponse(false, studioName, masked, displayRole, "REVOKED", "This invitation has been revoked by the studio administrator.");
         }
 
         if ("ACCEPTED".equalsIgnoreCase(inv.status())) {
-            return new ValidateInvitationResponse(false, studioName, inv.invitedEmail(), displayRole, "ALREADY_ACCEPTED", "This invitation has already been accepted.");
+            return new ValidateInvitationResponse(false, studioName, masked, displayRole, "ALREADY_ACCEPTED", "This invitation has already been accepted.");
         }
 
         if (inv.expiresAt().isBefore(Instant.now())) {
-            return new ValidateInvitationResponse(false, studioName, inv.invitedEmail(), displayRole, "EXPIRED", "This invitation has expired.");
+            return new ValidateInvitationResponse(false, studioName, masked, displayRole, "EXPIRED", "This invitation has expired.");
         }
 
-        return new ValidateInvitationResponse(true, studioName, inv.invitedEmail(), displayRole, "PENDING", null);
+        return new ValidateInvitationResponse(true, studioName, masked, displayRole, "PENDING", null);
+    }
+
+    /**
+     * Exchanges raw invitation token for an ephemeral session token, scrubbing the token from browser URL.
+     */
+    @Transactional(readOnly = true)
+    public ExchangeResult exchangeInvitation(String rawToken, String clientIp) {
+        rateLimiterService.acquire("inv-exch:" + (clientIp != null ? clientIp : "local"), 60, Duration.ofMinutes(1));
+
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new BadRequestException("Invitation token is required");
+        }
+
+        byte[] tokenHash = computeSha256(rawToken.trim());
+        StudioMemberInvitationRecord inv = teamRepository.findInvitationByTokenHash(tokenHash)
+                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found or invalid"));
+
+        Instant now = Instant.now();
+        if ("REVOKED".equalsIgnoreCase(inv.status())) {
+            throw new BadRequestException("This invitation has been revoked");
+        }
+        if ("ACCEPTED".equalsIgnoreCase(inv.status())) {
+            throw new BadRequestException("This invitation has already been accepted");
+        }
+        if (inv.expiresAt().isBefore(now)) {
+            throw new BadRequestException("This invitation has expired");
+        }
+
+        String sessionToken = generateSecureToken();
+        Instant sessionExpiresAt = inv.expiresAt().isBefore(now.plus(Duration.ofHours(1)))
+                ? inv.expiresAt()
+                : now.plus(Duration.ofHours(1));
+
+        invitationSessions.put(sessionToken, new InvitationSession(
+                sessionToken,
+                inv.id(),
+                tokenHash,
+                inv.studioId(),
+                inv.invitedEmail(),
+                inv.role(),
+                sessionExpiresAt
+        ));
+
+        String studioName = teamRepository.findStudioName(inv.studioId());
+        String displayRole = normalizeRoleDisplay(inv.role());
+
+        ExchangeInvitationResponse response = new ExchangeInvitationResponse(
+                true,
+                studioName,
+                maskEmail(inv.invitedEmail()),
+                displayRole,
+                null
+        );
+
+        return new ExchangeResult(sessionToken, response);
+    }
+
+    /**
+     * Retrieves invitation session info by ephemeral session token.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ExchangeInvitationResponse> getInvitationSession(String sessionToken) {
+        if (sessionToken == null || sessionToken.isBlank()) {
+            return Optional.empty();
+        }
+
+        InvitationSession session = invitationSessions.get(sessionToken.trim());
+        if (session == null || session.isExpired()) {
+            if (session != null) {
+                invitationSessions.remove(sessionToken.trim());
+            }
+            return Optional.empty();
+        }
+
+        StudioMemberInvitationRecord inv = teamRepository.findInvitationById(session.invitationId())
+                .orElse(null);
+
+        if (inv == null || !"PENDING".equalsIgnoreCase(inv.status()) || inv.expiresAt().isBefore(Instant.now())) {
+            invitationSessions.remove(sessionToken.trim());
+            return Optional.empty();
+        }
+
+        String studioName = teamRepository.findStudioName(inv.studioId());
+        return Optional.of(new ExchangeInvitationResponse(
+                true,
+                studioName,
+                maskEmail(inv.invitedEmail()),
+                normalizeRoleDisplay(inv.role()),
+                null
+        ));
     }
 
     /**
@@ -459,15 +572,42 @@ public class StudioTeamService {
      */
     @Transactional
     public void acceptInvitation(ActorContext actor, AcceptInvitationRequest request) {
+        acceptInvitation(actor, request, null);
+    }
+
+    @Transactional
+    public void acceptInvitation(ActorContext actor, AcceptInvitationRequest request, String cookieSessionToken) {
         authorizationService.requireAuthenticated(actor);
 
         rateLimiterService.acquire("inv-acc:" + actor.userId(), 10, Duration.ofMinutes(5));
 
-        if (request.token() == null || request.token().isBlank()) {
-            throw new BadRequestException("Invitation token is required");
+        byte[] tokenHash = null;
+
+        String providedToken = request != null && request.token() != null ? request.token().trim() : null;
+
+        if (providedToken != null && !providedToken.isBlank()) {
+            InvitationSession session = invitationSessions.get(providedToken);
+            if (session != null && !session.isExpired()) {
+                tokenHash = session.tokenHash();
+                invitationSessions.remove(providedToken);
+            }
         }
 
-        byte[] tokenHash = computeSha256(request.token().trim());
+        if (tokenHash == null && cookieSessionToken != null && !cookieSessionToken.isBlank()) {
+            InvitationSession session = invitationSessions.get(cookieSessionToken.trim());
+            if (session != null && !session.isExpired()) {
+                tokenHash = session.tokenHash();
+                invitationSessions.remove(cookieSessionToken.trim());
+            }
+        }
+
+        if (tokenHash == null) {
+            if (providedToken == null || providedToken.isBlank()) {
+                throw new BadRequestException("Invitation session or token is required");
+            }
+            tokenHash = computeSha256(providedToken);
+        }
+
         StudioMemberInvitationRecord inv = teamRepository.findInvitationByTokenHash(tokenHash)
                 .orElseThrow(() -> new ResourceNotFoundException("Invitation not found or invalid"));
 
@@ -489,7 +629,7 @@ public class StudioTeamService {
         String actorEmail = actor.email() != null ? actor.email().trim().toLowerCase() : "";
         String invitedEmail = inv.invitedEmail() != null ? inv.invitedEmail().trim().toLowerCase() : "";
         if (!actorEmail.equalsIgnoreCase(invitedEmail)) {
-            throw new AccessDeniedException("This invitation was sent to " + inv.invitedEmail() + ". You are currently signed in as " + actor.email() + ". Please sign in with the invited email address to accept.");
+            throw new AccessDeniedException("This invitation was sent to " + maskEmail(inv.invitedEmail()) + ". You are currently signed in as " + actor.email() + ". Please sign in with the invited email address to accept.");
         }
 
         // DUPLICATE MEMBERSHIP GUARD
@@ -500,17 +640,10 @@ public class StudioTeamService {
             return;
         }
 
-        // Add studio membership
+        // Add studio membership with canonical role
+        String canonicalRole = canonicalizeRole(inv.role());
         UUID membershipId = UuidV7.randomUuid();
-        teamRepository.addStudioMember(membershipId, inv.studioId(), actor.userId(), inv.role());
-
-        // Ensure user has at least DESIGNER_TEAM platform role if currently only CUSTOMER
-        if (!teamRepository.hasPlatformRole(actor.userId(), "DESIGNER")
-                && !teamRepository.hasPlatformRole(actor.userId(), "DESIGNER_TEAM")
-                && !teamRepository.hasPlatformRole(actor.userId(), "ADMIN")
-                && !teamRepository.hasPlatformRole(actor.userId(), "SUPER_ADMIN")) {
-            teamRepository.assignPlatformRole(actor.userId(), "DESIGNER_TEAM");
-        }
+        teamRepository.addStudioMember(membershipId, inv.studioId(), actor.userId(), canonicalRole);
 
         // Update invitation record
         teamRepository.updateInvitationStatus(inv.id(), "ACCEPTED", now, actor.userId());
@@ -522,7 +655,7 @@ public class StudioTeamService {
                 "STUDIO_INVITATION_ACCEPTED",
                 "INVITATION",
                 inv.id().toString(),
-                Map.of("role", inv.role(), "acceptedByUserId", actor.userId().toString()),
+                Map.of("role", canonicalRole, "acceptedByUserId", actor.userId().toString()),
                 null,
                 null
         );
@@ -546,7 +679,7 @@ public class StudioTeamService {
                 inv.studioId(),
                 NotificationType.STUDIO_MEMBER_ADDED,
                 "Joined Studio Team",
-                "You have joined " + studioName + " as " + normalizeRoleDisplay(inv.role()) + ".",
+                "You have joined " + studioName + " as " + normalizeRoleDisplay(canonicalRole) + ".",
                 "/workspace",
                 null
         );
@@ -580,21 +713,39 @@ public class StudioTeamService {
 
     private String canonicalizeRole(String role) {
         if (role == null || role.isBlank()) {
-            return "MEMBER";
+            return "DESIGNER_MEMBER";
         }
         String r = role.trim().toUpperCase();
         if (r.contains("ADMIN") || "OWNER".equals(r)) {
-            return "ADMIN";
+            return "DESIGNER_ADMIN";
         }
-        return "MEMBER";
+        return "DESIGNER_MEMBER";
     }
 
     private String normalizeRoleDisplay(String role) {
-        if (role == null) return "Member";
+        if (role == null) return "Team Member";
         String r = role.toUpperCase();
-        if ("OWNER".equals(r)) return "Owner";
-        if (r.contains("ADMIN")) return "Admin";
-        return "Member";
+        if (r.contains("ADMIN") || "OWNER".equals(r)) return "Studio Admin";
+        return "Team Member";
+    }
+
+    public static String maskEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return "***";
+        }
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 0) {
+            return "***";
+        }
+        String local = email.substring(0, atIndex);
+        String domain = email.substring(atIndex + 1);
+        if (local.length() <= 1) {
+            return local + "***@" + domain;
+        } else if (local.length() == 2) {
+            return local.charAt(0) + "***" + local.charAt(1) + "@" + domain;
+        } else {
+            return local.charAt(0) + "***" + local.charAt(local.length() - 1) + "@" + domain;
+        }
     }
 
     private String generateSecureToken() {

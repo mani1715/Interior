@@ -194,8 +194,8 @@ public class WorkspaceService {
                 )).toList()
                 : List.of();
 
-        // GSTIN is sensitive commercial data: exposed only to authenticated studio owner
-        String gstNumber = "OWNER".equalsIgnoreCase(studioContext.role()) ? studio.gstNumber() : null;
+        // GSTIN is sensitive commercial data: exposed only to authenticated studio admin / owner
+        String gstNumber = ("DESIGNER_ADMIN".equalsIgnoreCase(studioContext.role()) || "OWNER".equalsIgnoreCase(studioContext.role())) ? studio.gstNumber() : null;
 
         return new WorkspaceBusinessProfileResponse(
                 studio.id(),
@@ -237,10 +237,14 @@ public class WorkspaceService {
     }
 
     private void validateProfessionalRole(ActorContext actor) {
-        if (!actor.hasRole("DESIGNER") && !actor.hasRole("DESIGNER_TEAM") &&
-            !actor.hasRole("SUPER_ADMIN") && !actor.hasRole("ADMIN")) {
-            throw new AccessDeniedException("Professional onboarding required to access workspace");
+        if (actor.activeStudioId() != null && actor.activeStudioRole() != null) {
+            return;
         }
+        if (actor.hasRole("DESIGNER") || actor.hasRole("DESIGNER_TEAM") ||
+            actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
+            return;
+        }
+        throw new AccessDeniedException("Professional onboarding required to access workspace");
     }
 
     /**

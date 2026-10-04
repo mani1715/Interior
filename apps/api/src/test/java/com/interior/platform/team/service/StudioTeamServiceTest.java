@@ -129,7 +129,7 @@ class StudioTeamServiceTest {
 
         assertNotNull(response);
         assertEquals("new@example.com", response.invitedEmail());
-        assertEquals("Member", response.role());
+        assertEquals("Team Member", response.role());
         assertNotNull(response.rawToken());
         assertTrue(response.rawToken().length() >= 64, "Raw token must be at least 256 bits hex");
         assertTrue(response.invitationUrl().contains(response.rawToken()));
@@ -139,7 +139,7 @@ class StudioTeamServiceTest {
         StudioMemberInvitationRecord saved = captor.getValue();
         assertEquals(studioId, saved.studioId());
         assertEquals("new@example.com", saved.invitedEmail());
-        assertEquals("MEMBER", saved.role());
+        assertEquals("DESIGNER_MEMBER", saved.role());
         assertEquals("PENDING", saved.status());
         assertNotNull(saved.tokenHash());
     }
@@ -172,7 +172,7 @@ class StudioTeamServiceTest {
 
         teamService.updateMemberRole(adminActor, studioId, membershipId, new UpdateMemberRoleRequest("ADMIN"));
 
-        verify(teamRepository).updateMemberRole(membershipId, "ADMIN");
+        verify(teamRepository).updateMemberRole(membershipId, "DESIGNER_ADMIN");
         verify(notificationService).dispatchNotification(eq(memberUserId), eq(studioId), any(), any(), any(), any(), any());
     }
 
@@ -216,7 +216,7 @@ class StudioTeamServiceTest {
     }
 
     @Test
-    @DisplayName("acceptInvitation enforces email matching and creates membership")
+    @DisplayName("acceptInvitation enforces email matching and creates membership without platform role escalation")
     void testAcceptInvitation_Success() {
         UUID inviteId = UuidV7.randomUuid();
         ActorContext inviteeActor = new ActorContext(
@@ -224,7 +224,7 @@ class StudioTeamServiceTest {
         );
 
         StudioMemberInvitationRecord inv = new StudioMemberInvitationRecord(
-                inviteId, studioId, "invited@example.com", "MEMBER", new byte[32],
+                inviteId, studioId, "invited@example.com", "DESIGNER_MEMBER", new byte[32],
                 adminUserId, "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), null, null, null, Instant.now(), Instant.now()
         );
 
@@ -234,9 +234,27 @@ class StudioTeamServiceTest {
 
         teamService.acceptInvitation(inviteeActor, new AcceptInvitationRequest("raw-test-token-12345678901234567890"));
 
-        verify(teamRepository).addStudioMember(any(), eq(studioId), eq(inviteeActor.userId()), eq("MEMBER"));
+        verify(teamRepository).addStudioMember(any(), eq(studioId), eq(inviteeActor.userId()), eq("DESIGNER_MEMBER"));
         verify(teamRepository).updateInvitationStatus(eq(inviteId), eq("ACCEPTED"), any(), eq(inviteeActor.userId()));
-        verify(teamRepository).assignPlatformRole(eq(inviteeActor.userId()), eq("DESIGNER_TEAM"));
+        // Invariant: no global role escalation to DESIGNER_TEAM
+        verify(teamRepository, never()).assignPlatformRole(any(), any());
+    }
+
+    @Test
+    @DisplayName("validateInvitation masks email for privacy")
+    void testValidateInvitation_MasksEmail() {
+        UUID inviteId = UuidV7.randomUuid();
+        StudioMemberInvitationRecord inv = new StudioMemberInvitationRecord(
+                inviteId, studioId, "natalie@studio.com", "DESIGNER_MEMBER", new byte[32],
+                adminUserId, "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), null, null, null, Instant.now(), Instant.now()
+        );
+        when(teamRepository.findInvitationByTokenHash(any())).thenReturn(Optional.of(inv));
+        when(teamRepository.findStudioName(studioId)).thenReturn("Design Co");
+
+        ValidateInvitationResponse res = teamService.validateInvitation("raw-token-123", "127.0.0.1");
+        assertTrue(res.valid());
+        assertEquals("n***e@studio.com", res.maskedEmail());
+        assertEquals("Team Member", res.role());
     }
 
     @Test
@@ -248,7 +266,7 @@ class StudioTeamServiceTest {
         );
 
         StudioMemberInvitationRecord inv = new StudioMemberInvitationRecord(
-                inviteId, studioId, "invited@example.com", "MEMBER", new byte[32],
+                inviteId, studioId, "invited@example.com", "DESIGNER_MEMBER", new byte[32],
                 adminUserId, "PENDING", Instant.now().plus(7, ChronoUnit.DAYS), null, null, null, Instant.now(), Instant.now()
         );
 

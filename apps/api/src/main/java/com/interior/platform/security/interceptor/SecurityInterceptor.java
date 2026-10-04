@@ -46,10 +46,20 @@ public class SecurityInterceptor implements HandlerInterceptor {
                 var user = vs.user();
                 var roles = vs.roles().isEmpty() ? Set.of("CUSTOMER") : vs.roles();
                 var memberships = vs.studioMemberships();
-                java.util.UUID studioId = memberships.isEmpty() ? null : memberships.get(0).studioId();
-                String studioRole = memberships.isEmpty() ? null : memberships.get(0).role();
+                java.util.UUID requestedStudioId = resolveRequestedStudioId(request);
+                var activeMembership = memberships.isEmpty() ? null : memberships.get(0);
+                if (requestedStudioId != null && !memberships.isEmpty()) {
+                    for (var m : memberships) {
+                        if (m.studioId().equals(requestedStudioId)) {
+                            activeMembership = m;
+                            break;
+                        }
+                    }
+                }
+                java.util.UUID studioId = activeMembership != null ? activeMembership.studioId() : null;
+                String studioRole = activeMembership != null ? activeMembership.role() : null;
 
-                Set<String> permissions = derivePermissions(roles);
+                Set<String> permissions = derivePermissions(roles, studioRole);
 
                 actor = new ActorContext(
                         user.id(),
@@ -89,7 +99,7 @@ public class SecurityInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    private Set<String> derivePermissions(Set<String> roles) {
+    private Set<String> derivePermissions(Set<String> roles, String studioRole) {
         java.util.HashSet<String> perms = new java.util.HashSet<>();
         for (String role : roles) {
             switch (role.toUpperCase()) {
@@ -101,7 +111,31 @@ public class SecurityInterceptor implements HandlerInterceptor {
                 case "CUSTOMER" -> perms.addAll(Set.of("project:read", "moodboard:read", "moodboard:write", "inquiry:create"));
             }
         }
+        if (studioRole != null) {
+            switch (studioRole.toUpperCase()) {
+                case "DESIGNER_ADMIN", "OWNER", "ADMIN" ->
+                        perms.addAll(Set.of("project:read", "project:write", "studio:read", "studio:write", "lead:read", "lead:write", "team:manage"));
+                case "DESIGNER_MEMBER", "MEMBER" ->
+                        perms.addAll(Set.of("project:read", "project:write", "studio:read"));
+            }
+        }
         return perms;
+    }
+
+    private java.util.UUID resolveRequestedStudioId(HttpServletRequest request) {
+        String param = request.getParameter("studioId");
+        if (param != null && !param.isBlank()) {
+            try {
+                return java.util.UUID.fromString(param.trim());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        String header = request.getHeader("X-Studio-Id");
+        if (header != null && !header.isBlank()) {
+            try {
+                return java.util.UUID.fromString(header.trim());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return null;
     }
 
     private String extractSessionToken(HttpServletRequest request) {

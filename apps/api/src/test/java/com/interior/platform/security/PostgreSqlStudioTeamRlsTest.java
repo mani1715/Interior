@@ -83,11 +83,11 @@ class PostgreSqlStudioTeamRlsTest {
 
                 // Studio members
                 stmt.execute(String.format(
-                        "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES ('%s', '%s', '%s', 'OWNER', now());",
+                        "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES ('%s', '%s', '%s', 'DESIGNER_ADMIN', now());",
                         UuidV7.randomUuid(), studioAId, userAId
                 ));
                 stmt.execute(String.format(
-                        "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES ('%s', '%s', '%s', 'OWNER', now());",
+                        "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES ('%s', '%s', '%s', 'DESIGNER_ADMIN', now());",
                         UuidV7.randomUuid(), studioBId, userBId
                 ));
 
@@ -97,12 +97,12 @@ class PostgreSqlStudioTeamRlsTest {
 
                 stmt.execute(String.format(
                         "INSERT INTO studio_member_invitations (id, studio_id, invited_email, role, token_hash, invited_by_user_id, status, expires_at) " +
-                        "VALUES ('%s', '%s', 'inviteeA@example.com', 'MEMBER', '\\x01020304', '%s', 'PENDING', now() + interval '7 days');",
+                        "VALUES ('%s', '%s', 'inviteeA@example.com', 'DESIGNER_MEMBER', '\\x01020304', '%s', 'PENDING', now() + interval '7 days');",
                         inviteAId, studioAId, userAId
                 ));
                 stmt.execute(String.format(
                         "INSERT INTO studio_member_invitations (id, studio_id, invited_email, role, token_hash, invited_by_user_id, status, expires_at) " +
-                        "VALUES ('%s', '%s', 'inviteeB@example.com', 'MEMBER', '\\x05060708', '%s', 'PENDING', now() + interval '7 days');",
+                        "VALUES ('%s', '%s', 'inviteeB@example.com', 'DESIGNER_MEMBER', '\\x05060708', '%s', 'PENDING', now() + interval '7 days');",
                         inviteBId, studioBId, userBId
                 ));
             }

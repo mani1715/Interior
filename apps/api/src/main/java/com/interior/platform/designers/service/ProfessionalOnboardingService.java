@@ -90,7 +90,7 @@ public class ProfessionalOnboardingService {
             if (sOpt.isPresent()) {
                 StudioDetailRecord s = sOpt.get();
                 return OnboardingStatusResponse.completed(new OnboardingStatusResponse.StudioSummary(
-                        s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "OWNER"
+                        s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "DESIGNER_ADMIN"
                 ));
             }
         }
@@ -172,7 +172,7 @@ public class ProfessionalOnboardingService {
                     .orElseThrow(() -> new IllegalStateException("Initial onboarding studio record missing"));
             return new CompletionResult(
                     new OnboardingStatusResponse.StudioSummary(
-                            s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "OWNER"
+                            s.id(), s.name(), s.slug(), s.professionalType(), s.status(), s.publicationStatus(), "DESIGNER_ADMIN"
                     ),
                     null,
                     "Initial onboarding was already completed. Canonical initial studio retrieved."
@@ -299,8 +299,8 @@ public class ProfessionalOnboardingService {
             }
         }
 
-        // 7. Create Studio Membership (role: OWNER)
-        securityRepository.addStudioMember(UuidV7.randomUuid(), studioId, actor.userId(), "OWNER");
+        // 7. Create Studio Membership (role: DESIGNER_ADMIN)
+        securityRepository.addStudioMember(UuidV7.randomUuid(), studioId, actor.userId(), "DESIGNER_ADMIN");
 
         // 8. Promote Role: Grant DESIGNER Role in identity_user_roles
         Set<String> existingRoles = securityRepository.getUserRoles(actor.userId());
@@ -335,7 +335,7 @@ public class ProfessionalOnboardingService {
         }
 
         OnboardingStatusResponse.StudioSummary summary = new OnboardingStatusResponse.StudioSummary(
-                studioId, studioName, normalizedSlug, request.professionalType(), "ACTIVE", "UNPUBLISHED", "OWNER"
+                studioId, studioName, normalizedSlug, request.professionalType(), "ACTIVE", "UNPUBLISHED", "DESIGNER_ADMIN"
         );
 
         return new CompletionResult(summary, newCsrfToken, "Professional onboarding completed successfully.");

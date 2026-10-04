@@ -84,12 +84,12 @@ class BillingIntegrationTest {
 
         jdbcTemplate.update("""
             INSERT INTO studio_members (id, studio_id, user_id, role, granted_at)
-            VALUES (?, ?, ?, 'OWNER', now())
+            VALUES (?, ?, ?, 'DESIGNER_ADMIN', now())
         """, UuidV7.randomUuid(), studioAId, userAId);
 
         jdbcTemplate.update("""
             INSERT INTO studio_members (id, studio_id, user_id, role, granted_at)
-            VALUES (?, ?, ?, 'OWNER', now())
+            VALUES (?, ?, ?, 'DESIGNER_ADMIN', now())
         """, UuidV7.randomUuid(), studioBId, userBId);
     }
 

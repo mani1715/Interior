@@ -68,7 +68,7 @@ CREATE TABLE studio_members (
     id uuid NOT NULL DEFAULT uuidv7() PRIMARY KEY,
     studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE RESTRICT,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    role text NOT NULL CHECK (role IN ('OWNER','ADMIN','MEMBER')),
+    role text NOT NULL CONSTRAINT studio_members_role_check CHECK (role IN ('OWNER','ADMIN','MEMBER')),
     granted_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT uq_studio_member UNIQUE (studio_id, user_id)
 );

@@ -1,4 +1,4 @@
-export type StudioRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'DESIGNER_ADMIN' | 'DESIGNER_MEMBER';
+export type StudioRole = 'DESIGNER_ADMIN' | 'DESIGNER_MEMBER' | 'OWNER' | 'ADMIN' | 'MEMBER';
 
 export interface TeamMember {
   id: string;
@@ -44,13 +44,27 @@ export interface ValidateInvitationResponse {
   valid: boolean;
   studioName?: string;
   invitedEmail?: string;
+  maskedEmail?: string;
+  role?: string;
+  expiresAt?: string;
+  error?: string;
+}
+
+export interface ExchangeInvitationRequest {
+  token: string;
+}
+
+export interface ExchangeInvitationResponse {
+  valid: boolean;
+  studioName?: string;
+  maskedEmail?: string;
   role?: string;
   expiresAt?: string;
   error?: string;
 }
 
 export interface AcceptInvitationRequest {
-  token: string;
+  token?: string;
 }
 
 export interface UpdateRoleRequest {

@@ -148,7 +148,7 @@ class WorkspaceIntegrationTest {
         assertEquals("maneesh-interiors", summary.studio().slug());
         assertEquals("ACTIVE", summary.studio().operationalStatus());
         assertEquals("UNPUBLISHED", summary.studio().publicationStatus());
-        assertEquals("OWNER", summary.studio().role());
+        assertEquals("DESIGNER_ADMIN", summary.studio().role());
         assertEquals(2, summary.studio().serviceCount());
         assertEquals(2, summary.studio().specialtyCount());
         assertEquals(2, summary.studio().serviceAreaCount());
@@ -226,14 +226,14 @@ class WorkspaceIntegrationTest {
         var onboardResult = onboardingService.completeOnboarding(ownerActor, createValidRequest("Team Studio", "team-studio"), null, null);
         UUID studioId = onboardResult.studio().id();
 
-        // Add teamMember as MEMBER (non-owner)
+        // Add teamMember as DESIGNER_MEMBER (non-admin)
         jdbcTemplate.update(
                 "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES (?, ?, ?, ?, ?)",
-                UuidV7.randomUuid(), studioId, teamMember.id(), "MEMBER", Instant.now()
+                UuidV7.randomUuid(), studioId, teamMember.id(), "DESIGNER_MEMBER", Instant.now()
         );
 
         ActorContext teamActor = new ActorContext(
-                teamMember.id(), teamMember.displayName(), teamMember.email(), Set.of("DESIGNER_TEAM"), studioId, "MEMBER", true
+                teamMember.id(), teamMember.displayName(), teamMember.email(), Set.of("CUSTOMER"), studioId, "DESIGNER_MEMBER", true
         );
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -245,6 +245,6 @@ class WorkspaceIntegrationTest {
         WorkspaceBusinessProfileResponse profile = profileResp.getBody();
         assertNotNull(profile);
         assertNull(profile.gstNumber(), "GSTIN must be null for non-owner members");
-        assertEquals("MEMBER", profile.roleInStudio());
+        assertEquals("DESIGNER_MEMBER", profile.roleInStudio());
     }
 }

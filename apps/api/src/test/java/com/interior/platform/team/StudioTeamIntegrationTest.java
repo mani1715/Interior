@@ -81,26 +81,26 @@ class StudioTeamIntegrationTest {
         securityRepository.createStudio(studioBId, "Studio Beta", "studio-beta", adminBId, "ACTIVE");
 
         // Seed memberships
-        securityRepository.addStudioMember(UuidV7.randomUuid(), studioAId, adminAId, "OWNER");
-        securityRepository.addStudioMember(UuidV7.randomUuid(), studioAId, memberAId, "MEMBER");
-        securityRepository.addStudioMember(UuidV7.randomUuid(), studioBId, adminBId, "OWNER");
+        securityRepository.addStudioMember(UuidV7.randomUuid(), studioAId, adminAId, "DESIGNER_ADMIN");
+        securityRepository.addStudioMember(UuidV7.randomUuid(), studioAId, memberAId, "DESIGNER_MEMBER");
+        securityRepository.addStudioMember(UuidV7.randomUuid(), studioBId, adminBId, "DESIGNER_ADMIN");
 
         adminAActor = new ActorContext(
                 adminAId, "Admin A", "adminA@test-team.com",
                 Set.of("DESIGNER"), Set.of("studio:read", "studio:write"),
-                studioAId, "OWNER", "PASSKEY", true
+                studioAId, "DESIGNER_ADMIN", "PASSKEY", true
         );
 
         memberAActor = new ActorContext(
                 memberAId, "Member A", "memberA@test-team.com",
                 Set.of("DESIGNER_TEAM"), Set.of("project:read"),
-                studioAId, "MEMBER", "PASSKEY", true
+                studioAId, "DESIGNER_MEMBER", "PASSKEY", true
         );
 
         adminBActor = new ActorContext(
                 adminBId, "Admin B", "adminB@test-team.com",
                 Set.of("DESIGNER"), Set.of("studio:read", "studio:write"),
-                studioBId, "OWNER", "PASSKEY", true
+                studioBId, "DESIGNER_ADMIN", "PASSKEY", true
         );
 
         candidateActor = new ActorContext(
@@ -135,7 +135,16 @@ class StudioTeamIntegrationTest {
         assertEquals(HttpStatus.OK, valRes.getStatusCode());
         assertTrue(valRes.getBody().valid());
         assertEquals("Studio Alpha", valRes.getBody().studioName());
-        assertEquals("candidate@test-team.com", valRes.getBody().invitedEmail());
+        assertEquals("c***e@test-team.com", valRes.getBody().invitedEmail());
+        assertEquals("c***e@test-team.com", valRes.getBody().maskedEmail());
+
+        // 2b. Token exchange flow (scrub raw token to ephemeral cookie session)
+        ResponseEntity<ExchangeInvitationResponse> exchRes = teamController.exchangeInvitation(
+                pubReq, new ExchangeInvitationRequest(rawToken)
+        );
+        assertEquals(HttpStatus.OK, exchRes.getStatusCode());
+        assertTrue(exchRes.getBody().valid());
+        assertEquals("c***e@test-team.com", exchRes.getBody().maskedEmail());
 
         // 3. Candidate accepts invitation
         MockHttpServletRequest candReq = createMockRequest(candidateActor);
@@ -150,7 +159,7 @@ class StudioTeamIntegrationTest {
                 .findFirst()
                 .orElse(null);
         assertNotNull(candMember);
-        assertEquals("Member", candMember.role());
+        assertEquals("Team Member", candMember.role());
 
         // 5. Admin promotes candidate to Admin
         ResponseEntity<Void> roleRes = teamController.updateMemberRole(
@@ -164,7 +173,7 @@ class StudioTeamIntegrationTest {
                 .filter(m -> m.userId().equals(userCandidateId))
                 .findFirst()
                 .orElseThrow();
-        assertEquals("Admin", candUpdated.role());
+        assertEquals("Studio Admin", candUpdated.role());
     }
 
     @Test

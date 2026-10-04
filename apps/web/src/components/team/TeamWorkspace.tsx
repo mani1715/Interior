@@ -37,6 +37,7 @@ import {
 } from '@/lib/team/api';
 import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 import { useAuth } from '@/lib/auth/auth-context';
+import { isStudioAdmin, formatStudioRoleLabel } from '@/lib/team/permissions';
 
 export function TeamWorkspace() {
   const { user } = useAuth();
@@ -104,16 +105,12 @@ export function TeamWorkspace() {
   // Helpers to inspect roles
   const isAdminOrOwner = useMemo(() => {
     if (!teamData) return false;
-    const r = teamData.currentUserRole?.toUpperCase();
-    return r === 'OWNER' || r === 'ADMIN' || r === 'DESIGNER_ADMIN';
+    return isStudioAdmin(teamData.currentUserRole);
   }, [teamData]);
 
   const adminCount = useMemo(() => {
     if (!teamData) return 0;
-    return teamData.members.filter((m) => {
-      const r = m.role?.toUpperCase();
-      return r === 'OWNER' || r === 'ADMIN' || r === 'DESIGNER_ADMIN';
-    }).length;
+    return teamData.members.filter((m) => isStudioAdmin(m.role)).length;
   }, [teamData]);
 
   const isSoleAdmin = useMemo(() => {
@@ -179,10 +176,7 @@ export function TeamWorkspace() {
     if (!roleChangeTarget) return;
 
     // Check last-admin safeguard
-    const isTargetAdmin =
-      roleChangeTarget.role === 'OWNER' ||
-      roleChangeTarget.role === 'ADMIN' ||
-      roleChangeTarget.role === 'DESIGNER_ADMIN';
+    const isTargetAdmin = isStudioAdmin(roleChangeTarget.role);
     const isDemoting = isTargetAdmin && newSelectedRole === 'DESIGNER_MEMBER';
     if (isDemoting && adminCount <= 1) {
       showNotification(
@@ -208,10 +202,7 @@ export function TeamWorkspace() {
   const handleConfirmRemoveMember = async () => {
     if (!memberToRemove) return;
 
-    const isTargetAdmin =
-      memberToRemove.role === 'OWNER' ||
-      memberToRemove.role === 'ADMIN' ||
-      memberToRemove.role === 'DESIGNER_ADMIN';
+    const isTargetAdmin = isStudioAdmin(memberToRemove.role);
     if (isTargetAdmin && adminCount <= 1) {
       showNotification(
         'Cannot remove member: You cannot remove the only administrator of this studio.',
@@ -497,10 +488,7 @@ export function TeamWorkspace() {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
               {teamData.members.map((member) => {
                 const isTargetSelf = user?.email?.toLowerCase() === member.email?.toLowerCase();
-                const isTargetAdmin =
-                  member.role === 'OWNER' ||
-                  member.role === 'ADMIN' ||
-                  member.role === 'DESIGNER_ADMIN';
+                const isTargetAdmin = isStudioAdmin(member.role);
                 const isSoleAdminTarget = isTargetAdmin && adminCount <= 1;
 
                 return (
@@ -587,10 +575,7 @@ export function TeamWorkspace() {
         <div className="block md:hidden divide-y divide-zinc-100 dark:divide-zinc-800">
           {teamData.members.map((member) => {
             const isTargetSelf = user?.email?.toLowerCase() === member.email?.toLowerCase();
-            const isTargetAdmin =
-              member.role === 'OWNER' ||
-              member.role === 'ADMIN' ||
-              member.role === 'DESIGNER_ADMIN';
+            const isTargetAdmin = isStudioAdmin(member.role);
             const isSoleAdminTarget = isTargetAdmin && adminCount <= 1;
 
             return (
@@ -851,9 +836,7 @@ export function TeamWorkspace() {
 
               {/* Sole admin warning if demoting */}
               {adminCount <= 1 &&
-                (roleChangeTarget.role === 'OWNER' ||
-                  roleChangeTarget.role === 'ADMIN' ||
-                  roleChangeTarget.role === 'DESIGNER_ADMIN') &&
+                isStudioAdmin(roleChangeTarget.role) &&
                 newSelectedRole === 'DESIGNER_MEMBER' && (
                   <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
                     <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -879,9 +862,7 @@ export function TeamWorkspace() {
                 disabled={
                   isChangingRole ||
                   (adminCount <= 1 &&
-                    (roleChangeTarget.role === 'OWNER' ||
-                      roleChangeTarget.role === 'ADMIN' ||
-                      roleChangeTarget.role === 'DESIGNER_ADMIN') &&
+                    isStudioAdmin(roleChangeTarget.role) &&
                     newSelectedRole === 'DESIGNER_MEMBER')
                 }
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"

@@ -6,6 +6,7 @@ import {
   UpdateRoleRequest,
   TeamMember,
   ValidateInvitationResponse,
+  ExchangeInvitationResponse,
   AcceptInvitationRequest,
 } from './types';
 
@@ -64,9 +65,20 @@ export async function validateInvitation(token: string): Promise<ValidateInvitat
   );
 }
 
-export async function acceptInvitation(request: AcceptInvitationRequest): Promise<void> {
+export async function exchangeInvitationToken(token: string): Promise<ExchangeInvitationResponse> {
+  return apiFetch<ExchangeInvitationResponse>('/workspace/invitations/exchange', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function getInvitationSession(): Promise<ValidateInvitationResponse> {
+  return apiFetch<ValidateInvitationResponse>('/workspace/invitations/session');
+}
+
+export async function acceptInvitation(request?: AcceptInvitationRequest): Promise<void> {
   return apiFetch<void>('/workspace/invitations/accept', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(request || {}),
   });
 }

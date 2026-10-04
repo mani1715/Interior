@@ -382,7 +382,7 @@ class OnboardingClosureIntegrationTest {
         assertNotEquals(injectedStudioId, result.studio().id(), "Studio ID must be server-generated, not client-injected");
         assertEquals("ACTIVE", result.studio().status(), "Operational status must be ACTIVE");
         assertEquals("UNPUBLISHED", result.studio().publicationStatus(), "Publication status must be UNPUBLISHED");
-        assertEquals("OWNER", result.studio().role(), "Studio role must be OWNER");
+        assertEquals("DESIGNER_ADMIN", result.studio().role(), "Studio role must be DESIGNER_ADMIN");
 
         // Verify DB records
         var studio = studioRepository.findStudioById(result.studio().id()).orElseThrow();
@@ -433,12 +433,12 @@ class OnboardingClosureIntegrationTest {
         assertTrue(setCookieHeader.contains("__Host-session="));
         String newRawToken = setCookieHeader.split("__Host-session=")[1].split(";")[0];
 
-        // 3. Validate new session: MUST reflect DESIGNER role and studio OWNER membership
+        // 3. Validate new session: MUST reflect DESIGNER role and studio DESIGNER_ADMIN membership
         var validNewSession = sessionSecurityService.validateSession(newRawToken);
         assertTrue(validNewSession.isPresent(), "New session MUST be valid");
         assertTrue(validNewSession.get().roles().contains("DESIGNER"), "New session must contain DESIGNER role");
         assertEquals(1, validNewSession.get().studioMemberships().size(), "New session must contain studio membership");
-        assertEquals("OWNER", validNewSession.get().studioMemberships().get(0).role(), "Studio membership role must be OWNER");
+        assertEquals("DESIGNER_ADMIN", validNewSession.get().studioMemberships().get(0).role(), "Studio membership role must be DESIGNER_ADMIN");
         assertEquals(result.studio().id(), validNewSession.get().studioMemberships().get(0).studioId());
     }
 

@@ -92,8 +92,13 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     }
 
     if (!authLoading && user) {
-      const isDesigner = user.roles.includes('DESIGNER') || user.roles.includes('DESIGNER_TEAM') || user.roles.includes('SUPER_ADMIN');
-      if (!isDesigner) {
+      const isProfessional =
+        user.activeStudioId != null ||
+        (user.studios && user.studios.length > 0) ||
+        user.roles.includes('DESIGNER') ||
+        user.roles.includes('DESIGNER_TEAM') ||
+        user.roles.includes('SUPER_ADMIN');
+      if (!isProfessional) {
         setLoading(false);
         return;
       }
@@ -157,8 +162,14 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   }
 
   // Customer without onboarding guidance screen
-  const isDesigner = user && (user.roles.includes('DESIGNER') || user.roles.includes('DESIGNER_TEAM') || user.roles.includes('SUPER_ADMIN'));
-  if (user && !isDesigner) {
+  const isProfessional =
+    user &&
+    (user.activeStudioId != null ||
+      (user.studios && user.studios.length > 0) ||
+      user.roles.includes('DESIGNER') ||
+      user.roles.includes('DESIGNER_TEAM') ||
+      user.roles.includes('SUPER_ADMIN'));
+  if (user && !isProfessional) {
     return (
       <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex items-center justify-center p-6">
         <div className="max-w-lg w-full bg-white border border-sand-200 rounded-2xl p-8 text-center shadow-sm">

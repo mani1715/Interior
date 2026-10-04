@@ -528,7 +528,7 @@ class LeadSecurityClosureTest {
         // 2. Creating an inactive user in Studio A and attempting assignment throws BadRequestException
         UserRecord inactiveUser = createTestUser("Inactive Designer", "inactive@studio-a.com", "SUSPENDED");
         jdbcTemplate.update(
-                "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES (?, ?, ?, 'MEMBER', now())",
+                "INSERT INTO studio_members (id, studio_id, user_id, role, granted_at) VALUES (?, ?, ?, 'DESIGNER_MEMBER', now())",
                 UuidV7.randomUuid(), studioA.studioId(), inactiveUser.id()
         );
 

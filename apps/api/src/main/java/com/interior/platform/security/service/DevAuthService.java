@@ -79,7 +79,7 @@ public class DevAuthService {
                 studioId = com.interior.platform.common.util.UuidV7.randomUuid();
                 securityRepository.createStudio(studioId, "Studio Atelier", "dev-studio-atelier", userId, "ACTIVE");
             }
-            String studioRole = "DESIGNER".equals(persona.role()) ? "OWNER" : "MEMBER";
+            String studioRole = "DESIGNER".equals(persona.role()) ? "DESIGNER_ADMIN" : "DESIGNER_MEMBER";
             securityRepository.addStudioMember(com.interior.platform.common.util.UuidV7.randomUuid(), studioId, userId, studioRole);
         }
 

@@ -2509,10 +2509,14 @@ public class AiVisualizerService {
     }
 
     private void validateProfessionalRole(ActorContext actor) {
-        if (!actor.hasRole("DESIGNER") && !actor.hasRole("DESIGNER_TEAM") &&
-            !actor.hasRole("SUPER_ADMIN") && !actor.hasRole("ADMIN")) {
-            throw new AccessDeniedException("Professional onboarding required to access AI Visualizer");
+        if (actor.activeStudioId() != null && actor.activeStudioRole() != null) {
+            return;
         }
+        if (actor.hasRole("DESIGNER") || actor.hasRole("DESIGNER_TEAM") ||
+            actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
+            return;
+        }
+        throw new AccessDeniedException("Professional onboarding or studio membership required to access AI Visualizer");
     }
 
     private ResolvedStudioContext resolveStudioContext(ActorContext actor, UUID requestedStudioId) {

@@ -124,7 +124,7 @@ class ProfessionalOnboardingServiceTest {
     }
 
     @Test
-    @DisplayName("Successful onboarding creates studio, claims slug, assigns OWNER, and grants DESIGNER role")
+    @DisplayName("Successful onboarding creates studio, claims slug, assigns DESIGNER_ADMIN, and grants DESIGNER role")
     void testSuccessfulOnboarding() {
         when(studioRepository.findInitialOnboardingStudioId(userId)).thenReturn(Optional.empty());
         when(studioRepository.isSlugClaimed("srinivasa-interiors")).thenReturn(false);
@@ -141,7 +141,7 @@ class ProfessionalOnboardingServiceTest {
         assertEquals("srinivasa-interiors", result.studio().slug());
         assertEquals("ACTIVE", result.studio().status());
         assertEquals("UNPUBLISHED", result.studio().publicationStatus());
-        assertEquals("OWNER", result.studio().role());
+        assertEquals("DESIGNER_ADMIN", result.studio().role());
 
         // Verify studio created with operational status ACTIVE and publication status UNPUBLISHED
         ArgumentCaptor<StudioDetailRecord> studioCaptor = ArgumentCaptor.forClass(StudioDetailRecord.class);
@@ -160,8 +160,8 @@ class ProfessionalOnboardingServiceTest {
         verify(studioRepository, atLeast(1)).addStudioSpecialty(any(), eq("MODERN_MINIMALIST"), any());
         verify(studioRepository, atLeast(1)).addStudioServiceArea(any(), eq("Guntur"), isNull());
 
-        // Verify studio owner membership created
-        verify(securityRepository).addStudioMember(any(), any(), eq(userId), eq("OWNER"));
+        // Verify studio admin membership created
+        verify(securityRepository).addStudioMember(any(), any(), eq(userId), eq("DESIGNER_ADMIN"));
 
         // Verify DESIGNER platform role granted
         verify(securityRepository).assignUserRole(any(), eq(userId), eq("DESIGNER"), any());

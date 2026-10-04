@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS studio_member_invitations (
     id uuid NOT NULL DEFAULT uuidv7() PRIMARY KEY,
     studio_id uuid NOT NULL REFERENCES designer_studios(id) ON DELETE CASCADE,
     invited_email text NOT NULL,
-    role text NOT NULL CHECK (role IN ('ADMIN', 'MEMBER', 'DESIGNER_ADMIN', 'DESIGNER_MEMBER')),
+    role text NOT NULL CONSTRAINT studio_member_invitations_role_check CHECK (role IN ('ADMIN', 'MEMBER', 'DESIGNER_ADMIN', 'DESIGNER_MEMBER')),
     token_hash bytea NOT NULL UNIQUE,
     invited_by_user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'REVOKED', 'EXPIRED')),

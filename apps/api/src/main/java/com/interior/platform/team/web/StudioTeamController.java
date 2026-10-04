@@ -7,12 +7,15 @@ import com.interior.platform.team.service.StudioTeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -128,18 +131,83 @@ public class StudioTeamController {
         ValidateInvitationResponse response = teamService.validateInvitation(token, clientIp);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0")
+                .header("Referrer-Policy", "no-referrer")
                 .body(response);
+    }
+
+    @PostMapping("/invitations/exchange")
+    @Operation(summary = "Exchange raw invitation token for an ephemeral cookie session, scrubbing raw token from URL")
+    public ResponseEntity<ExchangeInvitationResponse> exchangeInvitation(
+            HttpServletRequest request,
+            @Valid @RequestBody ExchangeInvitationRequest body
+    ) {
+        String clientIp = request.getRemoteAddr();
+        StudioTeamService.ExchangeResult result = teamService.exchangeInvitation(body.token(), clientIp);
+
+        ResponseCookie cookie = ResponseCookie.from("invite_session", result.sessionToken())
+                .httpOnly(true)
+                .path("/")
+                .maxAge(3600)
+                .sameSite("Lax")
+                .secure(request.isSecure())
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header("Referrer-Policy", "no-referrer")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0")
+                .body(result.response());
+    }
+
+    @GetMapping("/invitations/session")
+    @Operation(summary = "Get invitation preview from ephemeral cookie session")
+    public ResponseEntity<ExchangeInvitationResponse> getInvitationSession(
+            HttpServletRequest request,
+            @CookieValue(value = "invite_session", required = false) String sessionCookie
+    ) {
+        if (sessionCookie == null || sessionCookie.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Optional<ExchangeInvitationResponse> opt = teamService.getInvitationSession(sessionCookie);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok()
+                .header("Referrer-Policy", "no-referrer")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0")
+                .body(opt.get());
     }
 
     @PostMapping("/invitations/accept")
     @Operation(summary = "Accept an invitation and join the studio")
     public ResponseEntity<Void> acceptInvitation(
             HttpServletRequest request,
-            @Valid @RequestBody AcceptInvitationRequest body
+            @CookieValue(value = "invite_session", required = false) String sessionCookie,
+            @RequestBody(required = false) AcceptInvitationRequest body
     ) {
         ActorContext actor = extractActor(request);
-        teamService.acceptInvitation(actor, body);
-        return ResponseEntity.ok().build();
+        teamService.acceptInvitation(actor, body, sessionCookie);
+
+        ResponseCookie clearCookie = ResponseCookie.from("invite_session", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .secure(request.isSecure())
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
+                .header("Referrer-Policy", "no-referrer")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0")
+                .build();
+    }
+
+    public ResponseEntity<Void> acceptInvitation(
+            HttpServletRequest request,
+            AcceptInvitationRequest body
+    ) {
+        return acceptInvitation(request, null, body);
     }
 
     private ActorContext extractActor(HttpServletRequest request) {

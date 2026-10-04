@@ -695,10 +695,14 @@ public class ProjectService {
     }
 
     private void validateProfessionalRole(ActorContext actor) {
-        if (!actor.hasRole("DESIGNER") && !actor.hasRole("DESIGNER_TEAM") &&
-            !actor.hasRole("SUPER_ADMIN") && !actor.hasRole("ADMIN")) {
-            throw new AccessDeniedException("Professional onboarding required to access project CMS");
+        if (actor.activeStudioId() != null && actor.activeStudioRole() != null) {
+            return;
         }
+        if (actor.hasRole("DESIGNER") || actor.hasRole("DESIGNER_TEAM") ||
+            actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
+            return;
+        }
+        throw new AccessDeniedException("Professional onboarding or studio membership required to access project CMS");
     }
 
     private ResolvedStudioContext resolveStudioContext(ActorContext actor, UUID requestedStudioId) {
@@ -734,8 +738,8 @@ public class ProjectService {
         if (actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
             return;
         }
-        if (!"OWNER".equalsIgnoreCase(context.role()) && !"ADMIN".equalsIgnoreCase(context.role())) {
-            throw new AccessDeniedException("Access denied: elevated studio role (OWNER or ADMIN) required for project management");
+        if (!"DESIGNER_ADMIN".equalsIgnoreCase(context.role()) && !"OWNER".equalsIgnoreCase(context.role()) && !"ADMIN".equalsIgnoreCase(context.role())) {
+            throw new AccessDeniedException("Access denied: elevated studio role (DESIGNER_ADMIN) required for project management");
         }
     }
 

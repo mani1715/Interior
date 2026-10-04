@@ -666,8 +666,8 @@ public class SeoService {
         if (actor.hasRole("SUPER_ADMIN") || actor.hasRole("ADMIN")) {
             return;
         }
-        if (!"OWNER".equalsIgnoreCase(context.role()) && !"ADMIN".equalsIgnoreCase(context.role())) {
-            throw new AccessDeniedException("Access denied: elevated studio role (OWNER or ADMIN) required for SEO management");
+        if (!"DESIGNER_ADMIN".equalsIgnoreCase(context.role()) && !"OWNER".equalsIgnoreCase(context.role()) && !"ADMIN".equalsIgnoreCase(context.role())) {
+            throw new AccessDeniedException("Access denied: elevated studio role (DESIGNER_ADMIN) required for SEO management");
         }
     }
 

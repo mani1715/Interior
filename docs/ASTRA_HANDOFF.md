@@ -714,6 +714,36 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
+## 44.3. IDENTITY + ROLE + INVITATION SECURITY CANONICALIZATION (OCTOBER 2026 - ROUND 6)
+
+- **Separation of Global Identity vs Studio Membership**:
+  - Global Platform Roles: Strictly `CUSTOMER` (baseline identity), `ADMIN`, and `SUPER_ADMIN` (platform governance).
+  - Studio-Scoped Roles: Strictly `DESIGNER_ADMIN` (administrative governance) and `DESIGNER_MEMBER` (collaborative member).
+  - Migration `V027__canonicalize_identity_and_studio_roles.sql`: Canonicalizes check constraints on `studio_members` and `studio_member_invitations`. Migrates legacy synonym roles (`OWNER`, `MEMBER`, `ADMIN`) cleanly.
+  - Eliminated global role mutation on invitation acceptance: Joining a studio does NOT grant global `DESIGNER_TEAM` privileges. Professional workspace access derives from validated studio membership.
+- **Invitation Privacy & Token Scrubbing**:
+  - `GET /api/v1/workspace/invitations/validate` returns `maskedEmail` (e.g. `n***e@studio.com`) to prevent unauthenticated address harvesting.
+  - `POST /api/v1/workspace/invitations/exchange`: Exchanges raw invitation token for an `HttpOnly` session cookie (`invite_session`), scrubs raw token from URLs and browser history, and transitions to clean `/invite/accept`.
+  - `GET /api/v1/workspace/invitations/session`: Authenticated or session-based invitation validation using cookie or `X-Invite-Session` header.
+  - Sensitive invitation routes enforce `Referrer-Policy: no-referrer` to prevent leakage in Referer headers.
+  - Sign-in redirect `returnUrl` preserved as clean `/invite/accept` without sensitive credentials in query parameters.
+- **Multi-Studio Tenant Isolation & Platform Admin Boundary**:
+  - `SecurityInterceptor`: Resolves active studio from `X-Studio-Id` header or `studioId` param against user's validated memberships; derives studio-scoped permissions from active `studioRole`.
+  - Platform Admin Boundary: Platform `ADMIN`/`SUPER_ADMIN` govern via `/admin/**` and do not automatically bypass studio tenant isolation in `/workspace/**`.
+- **Frontend Canonicalization**:
+  - Created `apps/web/src/lib/team/permissions.ts` with canonical helpers: `isStudioAdmin`, `isStudioMember`, `canManageTeam`, `canManageBusiness`, `canEditProjects`, `canUseAi`, `canViewLeads`, and `formatStudioRoleLabel`.
+  - Clean session acceptance page `/invite/accept`: validates via cookie session, displays masked recipient and role, seamlessly accepts without exposing token.
+  - `WorkspaceShell.tsx`: Allows workspace access for any user with active studio membership or studio list.
+- **Verification Baseline**:
+  - Backend Tests: **381 / 381 PASS** (100% pass, 0 failures, 0 skipped; real PostgreSQL 18.3 RLS tests PASS).
+  - Frontend Tests: **310 / 310 PASS** (46 test files, 100% pass, 0 failures).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+  - Working tree: clean.
+
+---
+
 ## 45. FINAL GIT & HANDOFF STATE
 
 - **Commit Message:** `docs: prepare astra project handoff`

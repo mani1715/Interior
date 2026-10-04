@@ -813,5 +813,34 @@ Completed the professional studio team experience and multi-member tenancy acces
    - Next.js Production Build: **PASS** (`next build`, 27 static/dynamic routes including `/workspace/team` and `/invite/[token]`).
    - Working tree: clean.
 
+### Completion Round 6: Identity + Role + Invitation Security Canonicalization (October 2026)
+
+1. **Canonical Role Separation (Global vs Studio-Scoped)**:
+   - **Global Platform Roles**: Strictly `CUSTOMER` (baseline identity), `ADMIN`, and `SUPER_ADMIN` (platform governance).
+   - **Studio-Scoped Roles**: Strictly `DESIGNER_ADMIN` and `DESIGNER_MEMBER`. Normalized in Flyway migration `V027__canonicalize_identity_and_studio_roles.sql`.
+   - Redundant legacy and synonym roles (`OWNER`, `MEMBER`, `ADMIN`) mapped to `DESIGNER_ADMIN` and `DESIGNER_MEMBER`.
+   - Removed global role escalation: Joining a studio does NOT mutate unrelated global platform roles (`DESIGNER_TEAM` assignment removed from `StudioTeamService`).
+   - Studio workspace access (`WorkspaceService`, `ProjectService`, `MediaService`, `PortfolioService`, `AiVisualizerService`, `SeoService`) strictly derives from valid studio membership (`actor.activeStudioId() != null && actor.activeStudioRole() != null`), decoupling professional capabilities from global roles.
+2. **Invitation Privacy & Token Scrubbing**:
+   - `GET /api/v1/workspace/invitations/validate` returns `maskedEmail` (e.g. `n***e@studio.com`) to prevent unauthenticated email harvesting.
+   - `POST /api/v1/workspace/invitations/exchange`: Exchanges raw invitation token for an `HttpOnly` session cookie (`invite_session`), scrubs raw token from URLs/browser history, and transitions to clean `/invite/accept`.
+   - `GET /api/v1/workspace/invitations/session`: Authenticated or session-based invitation validation using cookie or `X-Invite-Session` header.
+   - Sensitive invitation routes set `Referrer-Policy: no-referrer` to prevent leakage in Referer headers.
+   - Sign-in redirect `returnUrl` preserved as clean `/invite/accept` without sensitive credentials in query parameters.
+3. **Multi-Studio Tenant Isolation & Security Boundary**:
+   - `SecurityInterceptor`: Resolves active studio from `X-Studio-Id` header or `studioId` param against user's validated memberships; derives studio-scoped permissions from active `studioRole`.
+   - Platform Admin Boundary: Platform `ADMIN`/`SUPER_ADMIN` govern via `/admin/**` and do not automatically bypass studio tenant isolation in `/workspace/**`.
+4. **Frontend Canonicalization**:
+   - Created `apps/web/src/lib/team/permissions.ts` with canonical helpers: `isStudioAdmin`, `isStudioMember`, `canManageTeam`, `canManageBusiness`, `canEditProjects`, `canUseAi`, `canViewLeads`, and `formatStudioRoleLabel`.
+   - Clean session acceptance page `/invite/accept`: validates via cookie session, displays masked recipient and role, seamlessly accepts without exposing token.
+   - `WorkspaceShell.tsx`: Allows workspace access for any user with active studio membership or studio list.
+5. **Verification Baseline**:
+   - Backend Tests: **381 / 381 PASS** (100% pass, 0 failures, 0 skipped; real PostgreSQL 18.3 RLS tests PASS).
+   - Frontend Tests: **310 / 310 PASS** (46 test files, 100% pass, 0 failures).
+   - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+   - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+   - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+   - Working tree: clean.
+
 
 
