@@ -230,6 +230,25 @@ export interface CreateClientReviewResponse {
   createdAt: string;
 }
 
+export interface ClientReviewAnnotationDto {
+  id: string;
+  reviewId: string;
+  jobId: string;
+  mediaId: string;
+  pinNumber: number;
+  coordX: number;
+  coordY: number;
+  authorType: 'STUDIO' | 'CLIENT';
+  authorName: string;
+  commentText: string;
+  isChangeRequest: boolean;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  parentAnnotationId?: string | null;
+  revisionRound: number;
+  createdAt: string;
+}
+
 export interface ClientReviewDetailResponse {
   id: string;
   projectId: string;
@@ -240,9 +259,12 @@ export interface ClientReviewDetailResponse {
   includeOriginal: boolean;
   expiresAt: string;
   currentApprovedJobId?: string | null;
+  preferredJobId?: string | null;
+  revisionRound: number;
   items: ClientReviewItemDto[];
   decisions: ClientReviewDecisionDto[];
   comments: ClientReviewCommentDto[];
+  annotations: ClientReviewAnnotationDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -294,9 +316,12 @@ export interface PublicClientReviewResponse {
   expiresAt: string;
   isExpired: boolean;
   currentApprovedJobId?: string | null;
+  preferredJobId?: string | null;
+  revisionRound: number;
   items: PublicReviewItemDto[];
   decisions: PublicReviewDecisionDto[];
   comments: PublicReviewCommentDto[];
+  annotations: ClientReviewAnnotationDto[];
   createdAt: string;
 }
 
@@ -311,4 +336,23 @@ export interface SubmitClientCommentRequest {
   jobId?: string;
   authorName: string;
   commentText: string;
+}
+
+export interface CreateAnnotationPayload {
+  jobId: string;
+  coordX: number;
+  coordY: number;
+  authorName: string;
+  commentText: string;
+  isChangeRequest?: boolean;
+  parentAnnotationId?: string;
+}
+
+export interface SetPreferredJobPayload {
+  jobId: string;
+}
+
+export interface ShareRevisionPayload {
+  conceptJobIds: string[];
+  updateMessage?: string;
 }

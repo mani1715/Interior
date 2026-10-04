@@ -14,9 +14,12 @@ public record ClientReviewDetailResponse(
         boolean includeOriginal,
         Instant expiresAt,
         UUID currentApprovedJobId,
+        UUID preferredJobId,
+        int revisionRound,
         List<ClientReviewItemDto> items,
         List<ClientReviewDecisionDto> decisions,
         List<ClientReviewCommentDto> comments,
+        List<ClientReviewAnnotationDto> annotations,
         Instant createdAt,
         Instant updatedAt
 ) {}

@@ -20,6 +20,9 @@ describe('ClientReviewView Component', () => {
     expiresAt: '2026-10-01T00:00:00Z',
     isExpired: false,
     currentApprovedJobId: null,
+    preferredJobId: null,
+    revisionRound: 1,
+    annotations: [],
     items: [
       {
         id: 'item-1',

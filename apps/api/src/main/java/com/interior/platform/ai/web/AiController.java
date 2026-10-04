@@ -385,6 +385,73 @@ public class AiController {
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
+    @PostMapping("/client-reviews/{reviewId}/annotations/{annotationId}/reply")
+    @Operation(summary = "Reply to client annotation pin", description = "Allows professional designer to add a reply to a client image annotation.")
+    public ResponseEntity<ClientReviewAnnotationDto> replyToAnnotation(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @PathVariable("annotationId") UUID annotationId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @Valid @RequestBody com.interior.platform.ai.dto.AddCommentRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        ClientReviewAnnotationDto res = aiVisualizerService.addStudioAnnotationReply(actor, studioId, reviewId, annotationId, req.commentText());
+        return createPrivateNoCacheResponse(res, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/annotations/{annotationId}/resolve")
+    @Operation(summary = "Resolve client annotation pin", description = "Marks a client change request or pin annotation as resolved.")
+    public ResponseEntity<Void> resolveAnnotation(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @PathVariable("annotationId") UUID annotationId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        aiVisualizerService.resolveAnnotation(actor, studioId, reviewId, annotationId);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .build();
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/annotations/{annotationId}/reopen")
+    @Operation(summary = "Reopen client annotation pin", description = "Reopens a previously resolved client annotation pin.")
+    public ResponseEntity<Void> reopenAnnotation(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @PathVariable("annotationId") UUID annotationId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        aiVisualizerService.reopenAnnotation(actor, studioId, reviewId, annotationId);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .build();
+    }
+
+    @PostMapping("/client-reviews/{reviewId}/revisions")
+    @Operation(summary = "Share new revision round", description = "Publishes next revision round with updated concepts for client review.")
+    public ResponseEntity<ClientReviewDetailResponse> shareNewRevision(
+            HttpServletRequest request,
+            @PathVariable("reviewId") UUID reviewId,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @Valid @RequestBody com.interior.platform.ai.dto.ShareRevisionRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        ClientReviewDetailResponse res = aiVisualizerService.shareNewRevision(actor, studioId, reviewId, req);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
     @PostMapping("/prompt/enhance")
     @Operation(summary = "Enhance informal interior prompt", description = "Transforms natural language descriptions into structured architectural generation instructions incorporating spatial context.")
     public ResponseEntity<PromptEnhanceResponse> enhancePrompt(

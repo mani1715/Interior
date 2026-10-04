@@ -1501,6 +1501,8 @@ public class AiVisualizerService {
                 request.resolvedIncludeOriginal(),
                 expiresAt,
                 null,
+                null,
+                1,
                 actor.userId(),
                 now,
                 now,
@@ -1796,6 +1798,26 @@ public class AiVisualizerService {
                         c.createdAt()
                 )).toList();
 
+        List<ClientReviewAnnotationDto> annotations = aiClientReviewRepository.findAnnotationsByReviewId(review.id()).stream()
+                .map(a -> new ClientReviewAnnotationDto(
+                        a.id(),
+                        a.reviewId(),
+                        a.jobId(),
+                        a.mediaId(),
+                        a.pinNumber(),
+                        a.coordX(),
+                        a.coordY(),
+                        a.authorType().name(),
+                        a.authorName(),
+                        a.commentText(),
+                        a.isChangeRequest(),
+                        a.resolvedAt(),
+                        a.resolvedBy(),
+                        a.parentAnnotationId(),
+                        a.revisionRound(),
+                        a.createdAt()
+                )).toList();
+
         boolean isExpired = review.isExpired(Instant.now());
 
         return new PublicClientReviewResponse(
@@ -1810,9 +1832,12 @@ public class AiVisualizerService {
                 review.expiresAt(),
                 isExpired,
                 review.currentApprovedJobId(),
+                review.preferredJobId(),
+                review.revisionRound(),
                 publicItems,
                 publicDecisions,
                 publicComments,
+                annotations,
                 review.createdAt()
         );
     }
@@ -2001,6 +2026,352 @@ public class AiVisualizerService {
                 null,
                 null
         );
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_COMMENT_ADDED,
+                Instant.now(),
+                null,
+                review.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "authorName", comment.authorName(),
+                        "reviewId", review.id().toString()
+                )
+        ));
+    }
+
+    public ClientReviewAnnotationDto submitClientAnnotation(String rawSessionToken, String csrfToken, CreateAnnotationRequest request, String clientIp) {
+        rateLimiterService.acquire("review_annotation:" + clientIp, 30, Duration.ofMinutes(1));
+        AiClientReviewRecord review = verifySessionAndCsrf(rawSessionToken, csrfToken);
+
+        if (review.status() != ClientReviewStatus.OPEN || review.isExpired(Instant.now())) {
+            throw new BadRequestException("This review is closed or expired. Annotations cannot be added.");
+        }
+
+        AiClientReviewItemRecord item = aiClientReviewRepository.findItemByReviewAndJob(review.id(), request.jobId())
+                .orElseThrow(() -> new BadRequestException("Concept job is not part of this review"));
+
+        // Count existing annotations on this review to assign next pin number
+        List<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> existing =
+                aiClientReviewRepository.findAnnotationsByReviewId(review.id());
+        int nextPin = existing.size() + 1;
+
+        com.interior.platform.ai.domain.AiClientReviewAnnotationRecord annotation = new com.interior.platform.ai.domain.AiClientReviewAnnotationRecord(
+                UuidV7.randomUuid(),
+                review.id(),
+                review.studioId(),
+                request.jobId(),
+                item.mediaId(),
+                nextPin,
+                request.coordX(),
+                request.coordY(),
+                CommentAuthorType.CLIENT,
+                sanitize(request.authorName()),
+                sanitize(request.commentText()),
+                request.isChangeRequest(),
+                null,
+                null,
+                request.parentAnnotationId(),
+                review.revisionRound(),
+                Instant.now(),
+                Instant.now(),
+                0
+        );
+
+        aiClientReviewRepository.createAnnotation(annotation);
+
+        auditService.record(
+                null,
+                review.studioId(),
+                "CLIENT_ANNOTATION_ADDED",
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                Map.of(
+                        "pinNumber", String.valueOf(nextPin),
+                        "isChangeRequest", String.valueOf(request.isChangeRequest())
+                ),
+                null,
+                null
+        );
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_COMMENT_ADDED,
+                Instant.now(),
+                null,
+                review.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "authorName", annotation.authorName(),
+                        "pinNumber", String.valueOf(nextPin),
+                        "reviewId", review.id().toString(),
+                        "annotationId", annotation.id().toString()
+                )
+        ));
+
+        return new ClientReviewAnnotationDto(
+                annotation.id(),
+                annotation.reviewId(),
+                annotation.jobId(),
+                annotation.mediaId(),
+                annotation.pinNumber(),
+                annotation.coordX(),
+                annotation.coordY(),
+                annotation.authorType().name(),
+                annotation.authorName(),
+                annotation.commentText(),
+                annotation.isChangeRequest(),
+                annotation.resolvedAt(),
+                annotation.resolvedBy(),
+                annotation.parentAnnotationId(),
+                annotation.revisionRound(),
+                annotation.createdAt()
+        );
+    }
+
+    public void setPreferredConcept(String rawSessionToken, String csrfToken, SetPreferredJobRequest request, String clientIp) {
+        rateLimiterService.acquire("review_preferred:" + clientIp, 20, Duration.ofMinutes(1));
+        AiClientReviewRecord review = verifySessionAndCsrf(rawSessionToken, csrfToken);
+
+        if (review.status() != ClientReviewStatus.OPEN || review.isExpired(Instant.now())) {
+            throw new BadRequestException("This review is closed or expired. Preferred concept cannot be updated.");
+        }
+
+        aiClientReviewRepository.findItemByReviewAndJob(review.id(), request.jobId())
+                .orElseThrow(() -> new BadRequestException("Concept job is not part of this review"));
+
+        aiClientReviewRepository.updateReviewPreferredJob(review.id(), request.jobId());
+
+        auditService.record(
+                null,
+                review.studioId(),
+                "CLIENT_PREFERRED_CONCEPT_SET",
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                Map.of("jobId", request.jobId().toString()),
+                null,
+                null
+        );
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_COMMENT_ADDED,
+                Instant.now(),
+                null,
+                review.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "type", "PREFERRED_CONCEPT_SELECTED",
+                        "jobId", request.jobId().toString(),
+                        "reviewId", review.id().toString()
+                )
+        ));
+    }
+
+    public ClientReviewAnnotationDto addStudioAnnotationReply(ActorContext actor, UUID requestedStudioId, UUID reviewId, UUID parentAnnotationId, String replyText) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        com.interior.platform.ai.domain.AiClientReviewAnnotationRecord parent =
+                aiClientReviewRepository.findAnnotationById(parentAnnotationId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Parent annotation not found"));
+
+        if (!parent.reviewId().equals(review.id())) {
+            throw new BadRequestException("Annotation does not belong to this review");
+        }
+
+        com.interior.platform.ai.domain.AiClientReviewAnnotationRecord reply = new com.interior.platform.ai.domain.AiClientReviewAnnotationRecord(
+                UuidV7.randomUuid(),
+                review.id(),
+                context.studioId(),
+                parent.jobId(),
+                parent.mediaId(),
+                parent.pinNumber(),
+                parent.coordX(),
+                parent.coordY(),
+                CommentAuthorType.STUDIO,
+                actor.displayName() != null ? actor.displayName() : "Studio Designer",
+                sanitize(replyText),
+                false,
+                null,
+                null,
+                parent.id(),
+                review.revisionRound(),
+                Instant.now(),
+                Instant.now(),
+                0
+        );
+
+        aiClientReviewRepository.createAnnotation(reply);
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_COMMENT_ADDED,
+                Instant.now(),
+                null,
+                review.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "type", "STUDIO_REPLY",
+                        "parentAnnotationId", parent.id().toString(),
+                        "reviewId", review.id().toString()
+                )
+        ));
+
+        return new ClientReviewAnnotationDto(
+                reply.id(),
+                reply.reviewId(),
+                reply.jobId(),
+                reply.mediaId(),
+                reply.pinNumber(),
+                reply.coordX(),
+                reply.coordY(),
+                reply.authorType().name(),
+                reply.authorName(),
+                reply.commentText(),
+                reply.isChangeRequest(),
+                reply.resolvedAt(),
+                reply.resolvedBy(),
+                reply.parentAnnotationId(),
+                reply.revisionRound(),
+                reply.createdAt()
+        );
+    }
+
+    public void resolveAnnotation(ActorContext actor, UUID requestedStudioId, UUID reviewId, UUID annotationId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        com.interior.platform.ai.domain.AiClientReviewAnnotationRecord annotation =
+                aiClientReviewRepository.findAnnotationById(annotationId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Annotation not found"));
+
+        if (!annotation.reviewId().equals(reviewId)) {
+            throw new BadRequestException("Annotation does not belong to this review");
+        }
+
+        aiClientReviewRepository.resolveAnnotation(annotationId, actor.displayName() != null ? actor.displayName() : "Designer");
+    }
+
+    public void reopenAnnotation(ActorContext actor, UUID requestedStudioId, UUID reviewId, UUID annotationId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        com.interior.platform.ai.domain.AiClientReviewAnnotationRecord annotation =
+                aiClientReviewRepository.findAnnotationById(annotationId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Annotation not found"));
+
+        if (!annotation.reviewId().equals(reviewId)) {
+            throw new BadRequestException("Annotation does not belong to this review");
+        }
+
+        aiClientReviewRepository.reopenAnnotation(annotationId);
+    }
+
+    public ClientReviewDetailResponse shareNewRevision(ActorContext actor, UUID requestedStudioId, UUID reviewId, ShareRevisionRequest request) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        AiClientReviewRecord review = aiClientReviewRepository.findReviewById(context.studioId(), reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client review not found"));
+
+        int nextRound = review.revisionRound() + 1;
+        aiClientReviewRepository.updateReviewRevisionRound(review.id(), nextRound);
+
+        // Fetch concept jobs to verify studio ownership and SUCCEEDED status
+        List<AiJobRecord> newJobs = new ArrayList<>();
+        for (UUID jobId : request.conceptJobIds()) {
+            AiJobRecord job = aiJobRepository.findById(context.studioId(), jobId)
+                    .orElseThrow(() -> new BadRequestException("Job " + jobId + " not found or unauthorized"));
+            if (job.status() != AiJobStatus.SUCCEEDED || job.outputMediaId() == null) {
+                throw new BadRequestException("Job " + jobId + " is not SUCCEEDED with ready media");
+            }
+            newJobs.add(job);
+        }
+
+        // Add new revision items
+        Instant now = Instant.now();
+        List<AiClientReviewItemRecord> existingItems = aiClientReviewRepository.findItemsByReviewId(review.id());
+        int startOrder = existingItems.size();
+
+        List<AiClientReviewItemRecord> newItems = new ArrayList<>();
+        for (AiJobRecord job : newJobs) {
+            // Avoid duplicate items in review
+            boolean alreadyInReview = existingItems.stream().anyMatch(it -> it.jobId().equals(job.id()));
+            if (!alreadyInReview) {
+                String label = "Revision " + nextRound + " - Option " + (startOrder + 1);
+                AiClientReviewItemRecord item = new AiClientReviewItemRecord(
+                        UuidV7.randomUuid(),
+                        review.id(),
+                        context.studioId(),
+                        job.id(),
+                        job.outputMediaId(),
+                        label,
+                        startOrder,
+                        now
+                );
+                newItems.add(item);
+                startOrder++;
+            }
+        }
+
+        if (!newItems.isEmpty()) {
+            aiClientReviewRepository.createReviewItems(newItems);
+        }
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "CLIENT_REVIEW_REVISION_SHARED",
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                Map.of("revisionRound", String.valueOf(nextRound)),
+                null,
+                null
+        );
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_REVISION_SHARED,
+                Instant.now(),
+                null,
+                context.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "revisionRound", String.valueOf(nextRound),
+                        "reviewId", review.id().toString()
+                )
+        ));
+
+        return toStudioReviewDetail(aiClientReviewRepository.findReviewById(context.studioId(), review.id()).orElse(review), context.studioId());
     }
 
     private AiClientReviewRecord verifySessionAndCsrf(String rawSessionToken, String rawCsrfToken) {
@@ -2067,6 +2438,26 @@ public class AiVisualizerService {
                 c.createdAt()
         )).toList();
 
+        List<ClientReviewAnnotationDto> annotations = aiClientReviewRepository.findAnnotationsByReviewId(review.id()).stream()
+                .map(a -> new ClientReviewAnnotationDto(
+                        a.id(),
+                        a.reviewId(),
+                        a.jobId(),
+                        a.mediaId(),
+                        a.pinNumber(),
+                        a.coordX(),
+                        a.coordY(),
+                        a.authorType().name(),
+                        a.authorName(),
+                        a.commentText(),
+                        a.isChangeRequest(),
+                        a.resolvedAt(),
+                        a.resolvedBy(),
+                        a.parentAnnotationId(),
+                        a.revisionRound(),
+                        a.createdAt()
+                )).toList();
+
         return new ClientReviewDetailResponse(
                 review.id(),
                 review.projectId(),
@@ -2077,9 +2468,12 @@ public class AiVisualizerService {
                 review.includeOriginal(),
                 review.expiresAt(),
                 review.currentApprovedJobId(),
+                review.preferredJobId(),
+                review.revisionRound(),
                 itemDtos,
                 decisions,
                 comments,
+                annotations,
                 review.createdAt(),
                 review.updatedAt()
         );

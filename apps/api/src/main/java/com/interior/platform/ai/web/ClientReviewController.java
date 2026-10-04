@@ -125,6 +125,42 @@ public class ClientReviewController {
                 .build();
     }
 
+    @PostMapping("/annotations")
+    @Operation(summary = "Submit client pin-point image annotation", description = "Adds a normalized coordinate pin annotation to a concept image.")
+    public ResponseEntity<ClientReviewAnnotationDto> submitAnnotation(
+            HttpServletRequest request,
+            @Valid @RequestBody CreateAnnotationRequest req
+    ) {
+        String sessionToken = extractSessionToken(request);
+        String csrfToken = extractCsrfToken(request);
+        String clientIp = getClientIp(request);
+
+        ClientReviewAnnotationDto res = aiVisualizerService.submitClientAnnotation(sessionToken, csrfToken, req, clientIp);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(res);
+    }
+
+    @PostMapping("/preferred")
+    @Operation(summary = "Set preferred concept", description = "Marks a concept as the client's preferred design direction.")
+    public ResponseEntity<Void> setPreferredConcept(
+            HttpServletRequest request,
+            @Valid @RequestBody SetPreferredJobRequest req
+    ) {
+        String sessionToken = extractSessionToken(request);
+        String csrfToken = extractCsrfToken(request);
+        String clientIp = getClientIp(request);
+
+        aiVisualizerService.setPreferredConcept(sessionToken, csrfToken, req, clientIp);
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .build();
+    }
+
     private void attachReviewSessionCookie(HttpServletRequest request, HttpServletResponse response, String rawSessionToken, Instant expiresAt) {
         long maxAgeSeconds = Math.max(0, Duration.between(Instant.now(), expiresAt).getSeconds());
         boolean isSecure = request.isSecure() && authSecurityProperties.isSessionCookieSecure();

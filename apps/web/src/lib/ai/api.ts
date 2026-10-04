@@ -314,4 +314,90 @@ export async function submitClientComment(
   });
 }
 
+export async function submitClientAnnotation(
+  data: import('./types').CreateAnnotationPayload,
+  csrfToken: string
+): Promise<import('./types').ClientReviewAnnotationDto> {
+  return apiFetch<import('./types').ClientReviewAnnotationDto>('/client-review/annotations', {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function setPreferredConcept(
+  data: import('./types').SetPreferredJobPayload,
+  csrfToken: string
+): Promise<void> {
+  await apiFetch<void>('/client-review/preferred', {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function replyToAnnotation(
+  reviewId: string,
+  annotationId: string,
+  commentText: string,
+  studioId?: string
+): Promise<import('./types').ClientReviewAnnotationDto> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<import('./types').ClientReviewAnnotationDto>(
+    `/ai/client-reviews/${encodeURIComponent(reviewId)}/annotations/${encodeURIComponent(annotationId)}/reply${qs}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ commentText }),
+    }
+  );
+}
+
+export async function resolveAnnotation(
+  reviewId: string,
+  annotationId: string,
+  studioId?: string
+): Promise<void> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  await apiFetch<void>(
+    `/ai/client-reviews/${encodeURIComponent(reviewId)}/annotations/${encodeURIComponent(annotationId)}/resolve${qs}`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function reopenAnnotation(
+  reviewId: string,
+  annotationId: string,
+  studioId?: string
+): Promise<void> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  await apiFetch<void>(
+    `/ai/client-reviews/${encodeURIComponent(reviewId)}/annotations/${encodeURIComponent(annotationId)}/reopen${qs}`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function shareNewRevision(
+  reviewId: string,
+  data: import('./types').ShareRevisionPayload,
+  studioId?: string
+): Promise<import('./types').ClientReviewDetailResponse> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<import('./types').ClientReviewDetailResponse>(
+    `/ai/client-reviews/${encodeURIComponent(reviewId)}/revisions${qs}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+
 

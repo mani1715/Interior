@@ -40,6 +40,8 @@ public class JdbcAiClientReviewRepository implements AiClientReviewRepository {
             rs.getBoolean("include_original"),
             toInstant(rs.getTimestamp("expires_at")),
             getUuid(rs, "current_approved_job_id"),
+            getUuid(rs, "preferred_job_id"),
+            rs.getInt("revision_round") == 0 ? 1 : rs.getInt("revision_round"),
             getUuid(rs, "created_by"),
             toInstant(rs.getTimestamp("created_at")),
             toInstant(rs.getTimestamp("updated_at")),
@@ -90,12 +92,34 @@ public class JdbcAiClientReviewRepository implements AiClientReviewRepository {
             toInstant(rs.getTimestamp("created_at"))
     );
 
+    private final RowMapper<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> annotationMapper = (rs, rowNum) -> new com.interior.platform.ai.domain.AiClientReviewAnnotationRecord(
+            getUuid(rs, "id"),
+            getUuid(rs, "review_id"),
+            getUuid(rs, "studio_id"),
+            getUuid(rs, "job_id"),
+            getUuid(rs, "media_id"),
+            rs.getInt("pin_number"),
+            rs.getDouble("coord_x"),
+            rs.getDouble("coord_y"),
+            CommentAuthorType.valueOf(rs.getString("author_type")),
+            rs.getString("author_name"),
+            rs.getString("comment_text"),
+            rs.getBoolean("is_change_request"),
+            toInstant(rs.getTimestamp("resolved_at")),
+            rs.getString("resolved_by"),
+            getUuid(rs, "parent_annotation_id"),
+            rs.getInt("revision_round") == 0 ? 1 : rs.getInt("revision_round"),
+            toInstant(rs.getTimestamp("created_at")),
+            toInstant(rs.getTimestamp("updated_at")),
+            rs.getLong("version")
+    );
+
     @Override
     public void createReview(AiClientReviewRecord review) {
         String sql = "INSERT INTO ai_client_reviews (" +
                 "id, studio_id, project_id, title, custom_message, token_hash, status, " +
-                "include_original, expires_at, current_approved_job_id, created_by, created_at, updated_at, version" +
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "include_original, expires_at, current_approved_job_id, preferred_job_id, revision_round, created_by, created_at, updated_at, version" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 review.id(),
                 review.studioId(),
@@ -107,6 +131,8 @@ public class JdbcAiClientReviewRepository implements AiClientReviewRepository {
                 review.includeOriginal(),
                 Timestamp.from(review.expiresAt()),
                 review.currentApprovedJobId(),
+                review.preferredJobId(),
+                review.revisionRound() <= 0 ? 1 : review.revisionRound(),
                 review.createdBy(),
                 Timestamp.from(review.createdAt()),
                 Timestamp.from(review.updatedAt()),
@@ -173,6 +199,18 @@ public class JdbcAiClientReviewRepository implements AiClientReviewRepository {
     public void updateReviewCurrentApprovedJob(UUID reviewId, UUID jobId) {
         String sql = "UPDATE ai_client_reviews SET current_approved_job_id = ?, updated_at = now() WHERE id = ?";
         jdbcTemplate.update(sql, jobId, reviewId);
+    }
+
+    @Override
+    public void updateReviewPreferredJob(UUID reviewId, UUID jobId) {
+        String sql = "UPDATE ai_client_reviews SET preferred_job_id = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, jobId, reviewId);
+    }
+
+    @Override
+    public void updateReviewRevisionRound(UUID reviewId, int revisionRound) {
+        String sql = "UPDATE ai_client_reviews SET revision_round = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, revisionRound, reviewId);
     }
 
     @Override
@@ -307,6 +345,67 @@ public class JdbcAiClientReviewRepository implements AiClientReviewRepository {
                 comment.commentText(),
                 Timestamp.from(comment.createdAt())
         );
+    }
+
+    @Override
+    public void createAnnotation(com.interior.platform.ai.domain.AiClientReviewAnnotationRecord annotation) {
+        String sql = "INSERT INTO ai_client_review_annotations (" +
+                "id, review_id, studio_id, job_id, media_id, pin_number, coord_x, coord_y, " +
+                "author_type, author_name, comment_text, is_change_request, resolved_at, resolved_by, " +
+                "parent_annotation_id, revision_round, created_at, updated_at, version" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(sql,
+                annotation.id(),
+                annotation.reviewId(),
+                annotation.studioId(),
+                annotation.jobId(),
+                annotation.mediaId(),
+                annotation.pinNumber(),
+                annotation.coordX(),
+                annotation.coordY(),
+                annotation.authorType().name(),
+                annotation.authorName(),
+                annotation.commentText(),
+                annotation.isChangeRequest(),
+                annotation.resolvedAt() != null ? Timestamp.from(annotation.resolvedAt()) : null,
+                annotation.resolvedBy(),
+                annotation.parentAnnotationId(),
+                annotation.revisionRound() <= 0 ? 1 : annotation.revisionRound(),
+                Timestamp.from(annotation.createdAt()),
+                Timestamp.from(annotation.updatedAt()),
+                annotation.version()
+        );
+    }
+
+    @Override
+    public List<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> findAnnotationsByReviewId(UUID reviewId) {
+        String sql = "SELECT * FROM ai_client_review_annotations WHERE review_id = ? ORDER BY pin_number ASC, created_at ASC";
+        return jdbcTemplate.query(sql, annotationMapper, reviewId);
+    }
+
+    @Override
+    public Optional<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> findAnnotationById(UUID annotationId) {
+        String sql = "SELECT * FROM ai_client_review_annotations WHERE id = ?";
+        List<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> list = jdbcTemplate.query(sql, annotationMapper, annotationId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
+    @Override
+    public void resolveAnnotation(UUID annotationId, String resolvedBy) {
+        String sql = "UPDATE ai_client_review_annotations SET resolved_at = now(), resolved_by = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, resolvedBy, annotationId);
+    }
+
+    @Override
+    public void reopenAnnotation(UUID annotationId) {
+        String sql = "UPDATE ai_client_review_annotations SET resolved_at = NULL, resolved_by = NULL, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, annotationId);
+    }
+
+    @Override
+    public void deleteAnnotation(UUID annotationId) {
+        String sql = "DELETE FROM ai_client_review_annotations WHERE id = ?";
+        jdbcTemplate.update(sql, annotationId);
     }
 
     @Override

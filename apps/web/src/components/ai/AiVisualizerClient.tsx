@@ -466,6 +466,10 @@ export function AiVisualizerClient() {
         <AiReviewsView
           projectId={selectedProjectId || undefined}
           studioId={undefined}
+          onUseInNextRevision={(annotationText, jobId) => {
+            setPrompt((prev) => (prev ? `${prev}. Client Revision: ${annotationText}` : `Client Revision: ${annotationText}`));
+            setActiveTab('create');
+          }}
         />
       )}
 

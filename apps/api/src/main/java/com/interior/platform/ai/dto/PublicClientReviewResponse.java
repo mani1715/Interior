@@ -16,8 +16,11 @@ public record PublicClientReviewResponse(
         Instant expiresAt,
         boolean isExpired,
         UUID currentApprovedJobId,
+        UUID preferredJobId,
+        int revisionRound,
         List<PublicReviewItemDto> items,
         List<PublicReviewDecisionDto> recentDecisions,
         List<PublicReviewCommentDto> comments,
+        List<ClientReviewAnnotationDto> annotations,
         Instant createdAt
 ) {}

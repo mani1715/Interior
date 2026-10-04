@@ -55,6 +55,22 @@ public interface AiClientReviewRepository {
 
     boolean hasAnyClientInteraction(UUID reviewId);
 
+    void updateReviewPreferredJob(UUID reviewId, UUID jobId);
+
+    void updateReviewRevisionRound(UUID reviewId, int revisionRound);
+
+    void createAnnotation(com.interior.platform.ai.domain.AiClientReviewAnnotationRecord annotation);
+
+    List<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> findAnnotationsByReviewId(UUID reviewId);
+
+    Optional<com.interior.platform.ai.domain.AiClientReviewAnnotationRecord> findAnnotationById(UUID annotationId);
+
+    void resolveAnnotation(UUID annotationId, String resolvedBy);
+
+    void reopenAnnotation(UUID annotationId);
+
+    void deleteAnnotation(UUID annotationId);
+
     void createComment(AiClientReviewCommentRecord comment);
 
     List<AiClientReviewCommentRecord> findCommentsByReviewId(UUID reviewId);

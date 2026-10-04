@@ -7,28 +7,33 @@ import {
   closeClientReview,
   revokeClientReview,
   rotateClientReviewToken,
+  replyToAnnotation,
+  resolveAnnotation,
+  reopenAnnotation,
 } from '@/lib/ai/api';
 import {
   Share2,
   Copy,
-  ExternalLink,
   CheckCircle2,
   AlertCircle,
   Clock,
-  RotateCcw,
-  Ban,
-  Lock,
   MessageSquare,
   Loader2,
-  ChevronRight,
+  ThumbsUp,
+  MapPin,
+  Check,
+  RotateCcw,
+  Send,
+  Sparkles,
 } from 'lucide-react';
 
 interface AiReviewsViewProps {
   projectId?: string;
   studioId?: string;
+  onUseInNextRevision?: (annotationText: string, jobId: string) => void;
 }
 
-export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
+export function AiReviewsView({ projectId, studioId, onUseInNextRevision }: AiReviewsViewProps) {
   const [reviews, setReviews] = useState<ClientReviewDetailResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +41,10 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
   const [selectedReview, setSelectedReview] = useState<ClientReviewDetailResponse | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Reply state
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [replyingId, setReplyingId] = useState<string | null>(null);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -50,20 +59,22 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
         studioId
       );
       setReviews(data);
+      if (selectedReview) {
+        const updated = data.find((r) => r.id === selectedReview.id);
+        if (updated) setSelectedReview(updated);
+      }
     } catch (err: any) {
       setError(err?.envelope?.message || 'Failed to load client review links');
     } finally {
       setLoading(false);
     }
-  }, [projectId, studioId]);
+  }, [projectId, studioId, selectedReview?.id]);
 
   useEffect(() => {
     loadReviews();
-  }, [loadReviews]);
+  }, [projectId, studioId]);
 
   const handleCopy = (review: ClientReviewDetailResponse) => {
-    // Note: Studio can share the public review link pattern
-    // The initial exchange link is constructed by token; if review is open we can link to view or provide advice
     const url = `${window.location.origin}/review/view/${review.id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(review.id);
@@ -118,6 +129,35 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
     }
   };
 
+  const handleReply = async (reviewId: string, annotationId: string) => {
+    const text = replyTextMap[annotationId];
+    if (!text || !text.trim()) return;
+
+    try {
+      setReplyingId(annotationId);
+      await replyToAnnotation(reviewId, annotationId, text.trim(), studioId);
+      setReplyTextMap((prev) => ({ ...prev, [annotationId]: '' }));
+      await loadReviews();
+    } catch (err: any) {
+      alert(err?.envelope?.message || 'Failed to send reply');
+    } finally {
+      setReplyingId(null);
+    }
+  };
+
+  const handleToggleResolve = async (reviewId: string, annotationId: string, isResolved: boolean) => {
+    try {
+      if (isResolved) {
+        await reopenAnnotation(reviewId, annotationId, studioId);
+      } else {
+        await resolveAnnotation(reviewId, annotationId, studioId);
+      }
+      await loadReviews();
+    } catch (err: any) {
+      alert(err?.envelope?.message || 'Failed to update pin status');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -127,7 +167,7 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
             Client Review Presentations
           </h2>
           <p className="text-xs text-charcoal-500">
-            Shareable, private concept presentations for client approvals and structured feedback.
+            Shareable, private concept presentations for client approvals, pinpoint annotations, and revision rounds.
           </p>
         </div>
         <button
@@ -156,7 +196,7 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
           <Share2 className="w-8 h-8 text-sand-300 mx-auto" />
           <p className="font-serif text-lg text-charcoal-800">No client reviews created yet</p>
           <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
-            Select shortlisted concepts from the History tab and click "Create Client Review" to generate a private link for your client.
+            Select concepts from the History tab and create a private presentation link for your client.
           </p>
         </div>
       ) : (
@@ -166,6 +206,7 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
             const isOpen = review.status === 'OPEN' && !isExpired;
             const currentApproval = review.decisions.find((d) => d.isCurrent && d.decision === 'APPROVED');
             const hasChangesRequested = review.decisions.some((d) => d.isCurrent && d.decision === 'CHANGES_REQUESTED');
+            const annotationsCount = (review.annotations || []).filter((a) => !a.parentAnnotationId).length;
 
             return (
               <div
@@ -178,7 +219,11 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
                       <h3 className="font-serif text-base text-charcoal-900 font-semibold">
                         {review.title}
                       </h3>
-                      {/* Status Badge */}
+                      {review.revisionRound && review.revisionRound > 1 && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-bronze-50 text-bronze-800 border border-bronze-200">
+                          Round {review.revisionRound}
+                        </span>
+                      )}
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                           isOpen
@@ -200,8 +245,15 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
                     </div>
                   </div>
 
-                  {/* Decision Summary Pill */}
-                  <div>
+                  {/* Decision & Preference Summary Pill */}
+                  <div className="flex items-center gap-2">
+                    {review.preferredJobId && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-full text-[11px] font-semibold">
+                        <ThumbsUp className="w-3 h-3 text-amber-700" />
+                        <span>Preferred Option Picked</span>
+                      </span>
+                    )}
+
                     {currentApproval ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-xs font-semibold">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -222,20 +274,30 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
 
                 {/* Concept Thumbnails */}
                 <div className="flex items-center gap-3 overflow-x-auto py-1">
-                  {review.items.map((item) => (
-                    <div key={item.id} className="flex-shrink-0 text-center">
-                      <div className="w-20 h-16 rounded-lg overflow-hidden border border-sand-200 bg-sand-100">
-                        {item.previewUrl ? (
-                          <img src={item.previewUrl} alt={item.displayLabel} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-charcoal-400">Concept</div>
+                  {review.items.map((item) => {
+                    const isPreferred = review.preferredJobId === item.jobId;
+                    return (
+                      <div key={item.id} className="flex-shrink-0 text-center relative">
+                        <div className={`w-20 h-16 rounded-lg overflow-hidden border ${
+                          isPreferred ? 'border-amber-500 ring-2 ring-amber-300' : 'border-sand-200'
+                        } bg-sand-100`}>
+                          {item.previewUrl ? (
+                            <img src={item.previewUrl} alt={item.displayLabel} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-charcoal-400">Concept</div>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-charcoal-600 font-medium block mt-1">
+                          {item.displayLabel}
+                        </span>
+                        {isPreferred && (
+                          <span className="absolute top-1 right-1 bg-amber-500 text-white p-0.5 rounded-full text-[8px]" title="Client Preferred">
+                            ★
+                          </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-charcoal-600 font-medium block mt-1">
-                        {item.displayLabel}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Card Footer Actions */}
@@ -247,7 +309,9 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
                       className="px-3 py-1.5 bg-[#FAF8F5] hover:bg-sand-100 border border-sand-300 rounded-lg text-xs font-semibold text-charcoal-700 flex items-center gap-1.5 transition-colors"
                     >
                       <MessageSquare className="w-3.5 h-3.5 text-bronze-700" />
-                      <span>Review Details ({review.decisions.length} decisions, {review.comments.length} notes)</span>
+                      <span>
+                        Review Details & Pins ({annotationsCount} pins, {review.comments.length} notes)
+                      </span>
                     </button>
 
                     <button
@@ -298,15 +362,22 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* Collaboration Detail & Feedback Modal */}
       {selectedReview && (
         <div className="fixed inset-0 z-50 bg-charcoal-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-xl border border-sand-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-xl border border-sand-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-sand-100 pb-3">
               <div>
-                <h3 className="font-serif text-lg text-charcoal-900 font-medium">
-                  {selectedReview.title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif text-lg text-charcoal-900 font-semibold">
+                    {selectedReview.title}
+                  </h3>
+                  {selectedReview.revisionRound && selectedReview.revisionRound > 1 && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-bronze-50 text-bronze-800 border border-bronze-200">
+                      Round {selectedReview.revisionRound}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs text-bronze-800">{selectedReview.projectTitle}</span>
               </div>
               <button
@@ -318,8 +389,135 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
               </button>
             </div>
 
-            {/* Decision Log */}
+            {/* Pin Annotations Board Section */}
             <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-charcoal-700 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-bronze-700" />
+                <span>Client Image Annotations & Pin Notes</span>
+              </h4>
+
+              {(!selectedReview.annotations || selectedReview.annotations.filter((a) => !a.parentAnnotationId).length === 0) ? (
+                <p className="text-xs text-charcoal-500 italic bg-sand-50 p-3 rounded-xl">
+                  No image pin annotations dropped by the client yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {selectedReview.annotations
+                    .filter((a) => !a.parentAnnotationId)
+                    .map((pin) => {
+                      const isResolved = !!pin.resolvedAt;
+                      const replies = (selectedReview.annotations || []).filter(
+                        (a) => a.parentAnnotationId === pin.id
+                      );
+
+                      return (
+                        <div
+                          key={pin.id}
+                          className={`p-4 rounded-xl border text-xs space-y-3 ${
+                            isResolved
+                              ? 'bg-sand-50/70 border-sand-200'
+                              : pin.isChangeRequest
+                              ? 'bg-amber-50/50 border-amber-200'
+                              : 'bg-white border-sand-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-bronze-700 text-white font-bold text-[10px] flex items-center justify-center">
+                                {pin.pinNumber}
+                              </span>
+                              <span className="font-semibold text-charcoal-900">
+                                {pin.authorName}
+                              </span>
+                              {pin.isChangeRequest && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-900">
+                                  Revision Request
+                                </span>
+                              )}
+                              {isResolved && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                                  Resolved by {pin.resolvedBy}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Use in Next Revision context button */}
+                              {onUseInNextRevision && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onUseInNextRevision(pin.commentText, pin.jobId);
+                                    setSelectedReview(null);
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-bronze-50 hover:bg-bronze-100 border border-bronze-200 text-bronze-800 text-[11px] font-semibold flex items-center gap-1"
+                                >
+                                  <Sparkles className="w-3 h-3 text-bronze-700" />
+                                  <span>Use in Revision</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleResolve(selectedReview.id, pin.id, isResolved)}
+                                className={`px-2 py-1 rounded-lg border text-[11px] font-medium ${
+                                  isResolved
+                                    ? 'border-sand-300 text-charcoal-600 hover:bg-white'
+                                    : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50'
+                                }`}
+                              >
+                                {isResolved ? 'Reopen Pin' : 'Mark Resolved'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <p className="text-charcoal-700 leading-relaxed pl-7">
+                            {pin.commentText}
+                          </p>
+
+                          {/* Replies Thread */}
+                          {replies.length > 0 && (
+                            <div className="pl-7 space-y-2 pt-2 border-t border-sand-100">
+                              {replies.map((reply) => (
+                                <div key={reply.id} className="bg-sand-100/70 p-2.5 rounded-lg text-xs space-y-1">
+                                  <div className="flex items-center justify-between text-[10px] text-charcoal-500">
+                                    <span className="font-semibold text-bronze-800">{reply.authorName} ({reply.authorType})</span>
+                                    <span>{new Date(reply.createdAt).toLocaleTimeString()}</span>
+                                  </div>
+                                  <p className="text-charcoal-800">{reply.commentText}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Reply Box */}
+                          <div className="pl-7 pt-2 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={replyTextMap[pin.id] || ''}
+                              onChange={(e) => setReplyTextMap({ ...replyTextMap, [pin.id]: e.target.value })}
+                              placeholder="Reply to client pin..."
+                              className="flex-1 px-3 py-1.5 rounded-lg border border-sand-300 text-xs outline-none focus:border-bronze-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleReply(selectedReview.id, pin.id)}
+                              disabled={replyingId === pin.id || !replyTextMap[pin.id]?.trim()}
+                              className="px-3 py-1.5 rounded-lg bg-charcoal-900 text-white text-xs font-semibold hover:bg-black disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>Reply</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Client Decisions Log */}
+            <div className="space-y-3 pt-3 border-t border-sand-100">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">
                 Client Decisions & Approvals
               </h4>
@@ -345,30 +543,6 @@ export function AiReviewsView({ projectId, studioId }: AiReviewsViewProps) {
                         </span>
                       </div>
                       {d.feedback && <p className="text-charcoal-700 italic">"{d.feedback}"</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Comments Log */}
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-charcoal-700">
-                Feedback & Notes Log ({selectedReview.comments.length})
-              </h4>
-              {selectedReview.comments.length === 0 ? (
-                <p className="text-xs text-charcoal-500 italic bg-sand-50 p-3 rounded-xl">
-                  No comments logged yet.
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {selectedReview.comments.map((c) => (
-                    <div key={c.id} className="p-3 bg-[#FAF8F5] rounded-xl border border-sand-200 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-charcoal-800">{c.authorName} ({c.authorType})</span>
-                        <span className="text-[10px] text-charcoal-400">{new Date(c.createdAt).toLocaleString()}</span>
-                      </div>
-                      <p className="text-charcoal-700">{c.commentText}</p>
                     </div>
                   ))}
                 </div>

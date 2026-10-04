@@ -14,6 +14,8 @@ public record AiClientReviewRecord(
         boolean includeOriginal,
         Instant expiresAt,
         UUID currentApprovedJobId,
+        UUID preferredJobId,
+        int revisionRound,
         UUID createdBy,
         Instant createdAt,
         Instant updatedAt,

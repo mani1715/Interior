@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-10-01, PHASE 29 (Admin + Production Hardening) COMPLETE & PASS. Full regression, backend test suite (337/337), frontend vitest (276/276), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 ARE COMPLETE.
+Last updated: 2026-10-04, ROUND 4 (Client Collaboration & Revision Workflow) COMPLETE & PASS. Full regression: backend (363/363 PASS), frontend vitest (291/291 PASS), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 AND COMPLETION ROUNDS 1-4 ARE COMPLETE.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -724,4 +724,54 @@ Comprehensive functional product gap audit and implementation pass completed loc
    - Typecheck: **PASS** (`npm run typecheck`, 0 errors).
    - Lint: **PASS** (`npm run lint`, 0 warnings, 0 errors).
    - Production Build: **PASS** (`npm run build`, Turbopack compilation clean across all 35+ routes).
+
+## 2026-10-04 — Product Completion Round 3: Real-Time Experience (SSE) COMPLETE
+
+Implemented authenticated, user-scoped Server-Sent Events (SSE) infrastructure with zero external message broker dependencies:
+1. **Canonical SSE Endpoint**: `GET /api/v1/events/stream`
+   - Opaque HttpOnly session cookie authentication via Spring Security context (`CurrentUser`). Public anonymous access strictly rejected (401).
+   - In-memory thread-safe `SseEmitterRegistry` with automatic heartbeats every 25 seconds (`type: HEARTBEAT`), error/timeout unregistration, and clean disconnection cleanup.
+2. **Transaction-Safe Domain Event Bridge**:
+   - `DomainEventPublisher` with `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` preventing ghost events before commit.
+   - User-scoped routing: professional/studio events delivered to target user sessions, administrative events delivered to platform admins, client review updates delivered to review sessions.
+3. **Frontend Real-Time Subscriptions**:
+   - `useRealtimeSubscription` hook with automatic reconnect and exponential backoff, resynchronizing on reconnect.
+   - Live updates across notifications, AI jobs, leads CRM, reviews, verification, and client reviews without full page reloads.
+4. **Verification Baseline**:
+   - Backend Tests: **356 / 356 PASS** (`RealtimeIntegrationTest` added, 0 failures, 0 errors).
+   - Frontend Tests: **288 / 288 PASS** (`useRealtimeSubscription.test.ts` added, 0 failures, 0 errors).
+   - Production Build & Typecheck: **PASS**.
+
+## 2026-10-04 — Product Completion Round 4: Client Collaboration & Revision Workflow COMPLETE
+
+Transformed client concept reviews into an interactive collaboration workspace with pin-point annotations and revision cycles:
+1. **Database Schema (V025)**:
+   - `ai_client_review_annotations` table in PostgreSQL & H2 test environments (`V025__client_collaboration.sql`).
+   - Normalized coordinates `coord_x, coord_y BETWEEN 0.0 AND 1.0` ensuring responsive pin positioning across all device aspect ratios.
+   - Fields: `pin_number`, `comment`, `is_change_request`, `status` (`OPEN`, `RESOLVED`), `designer_reply`, `designer_replied_at`, `resolved_at`.
+   - Tenant isolation via PostgreSQL Row Level Security (`tenant_isolation_ai_client_review_annotations`).
+   - Extended `ai_client_reviews` with `preferred_job_id` and `revision_round`.
+2. **Backend Domain & API Layer**:
+   - Public Client Review Endpoints (`/api/v1/public/reviews/*`):
+     - `POST /api/v1/public/reviews/{publicId}/annotations`: Drop pin annotation with normalized coordinates, comment, and optional change request flag.
+     - `POST /api/v1/public/reviews/{publicId}/preferred-job`: Select preferred concept.
+     - Public endpoints strictly protected via HttpOnly `review_session` cookie + double-submit CSRF token header (`X-CSRF-Token`).
+   - Studio Collaboration Endpoints (`/api/v1/ai/client-reviews/*`):
+     - `POST /api/v1/ai/client-reviews/{reviewId}/annotations/{annotationId}/reply`: Designer threaded reply.
+     - `POST /api/v1/ai/client-reviews/{reviewId}/annotations/{annotationId}/resolve`: Mark pin resolved.
+     - `POST /api/v1/ai/client-reviews/{reviewId}/annotations/{annotationId}/reopen`: Reopen resolved pin.
+     - `POST /api/v1/ai/client-reviews/{reviewId}/revisions`: Share next revision round with updated concepts.
+   - Realtime SSE Events: `CLIENT_COMMENT_ADDED`, `CLIENT_REVISION_SHARED`, `CLIENT_CONCEPT_APPROVED`, `CLIENT_CONCEPT_CHANGES_REQUESTED`.
+3. **Frontend Collaboration Workspace**:
+   - `ClientReviewView.tsx`: Interactive board supporting responsive click-to-pin, pin badges overlay, filter by change requests, designer replies thread, resolve/reopen status, split slider comparison with original room, preferred concept selection, and live SSE event subscription (`CLIENT_COMMENT_ADDED`, `CLIENT_REVISION_SHARED`).
+   - `AiReviewsView.tsx`: Studio review manager with pin badges, annotation inspection modal, designer reply form, resolve/reopen actions, and "Use in Next Revision" bridging into the AI Prompt Composer (`AiVisualizerClient.tsx`).
+4. **Verification Baseline**:
+   - Backend Tests: **363 / 363 PASS** (`AiClientCollaborationTest` 7/7, `AiClientReviewTest` 9/9, RLS tests 26/26).
+   - Frontend Tests: **291 / 291 PASS** (42 test files, including `ClientReviewView.test.tsx` and `ClientCollaboration.test.tsx`).
+   - TypeScript Typecheck: **PASS** (`npm run typecheck`, 0 errors).
+   - ESLint: **PASS** (`npm run lint`, 0 warnings, 0 errors).
+   - Next.js Production Build: **PASS** (`npm run build`, clean output across all 27 routes).
+   - PostgreSQL RLS Closure: **26 / 26 PASS**.
+   - Working tree: clean, zero skipped tests.
+
 
