@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   MessageSquare,
   ArrowRight,
+  Users2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { WorkspaceSummary } from '@/lib/workspace/types';
@@ -55,6 +56,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { id: 'team', label: 'Team', href: '/workspace/team', icon: Users2 },
   { id: 'verification', label: 'Studio Verification', href: '/workspace/verification', icon: ShieldCheck },
   { id: 'business', label: 'Business Profile', href: '/workspace/business', icon: Building2 },
   { id: 'billing', label: 'Billing & Plans', href: '/workspace/billing', icon: CreditCard },

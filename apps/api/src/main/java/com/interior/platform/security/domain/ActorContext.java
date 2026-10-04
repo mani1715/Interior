@@ -42,7 +42,9 @@ public record ActorContext(
         if (studioId == null || !studioId.equals(activeStudioId)) {
             return false;
         }
-        return "OWNER".equalsIgnoreCase(activeStudioRole) || "ADMIN".equalsIgnoreCase(activeStudioRole);
+        return "OWNER".equalsIgnoreCase(activeStudioRole)
+                || "ADMIN".equalsIgnoreCase(activeStudioRole)
+                || "DESIGNER_ADMIN".equalsIgnoreCase(activeStudioRole);
     }
 
     public boolean isStudioMember(UUID studioId) {

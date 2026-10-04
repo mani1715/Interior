@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-10-04, ROUND 4 (Client Collaboration & Revision Workflow) COMPLETE & PASS. Full regression: backend (363/363 PASS), frontend vitest (291/291 PASS), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 AND COMPLETION ROUNDS 1-4 ARE COMPLETE.
+Last updated: 2026-10-04, ROUND 5 (Studio Team Management + Membership Security) COMPLETE & PASS. Full regression: backend (380/380 PASS), frontend vitest (302/302 PASS), PostgreSQL 18 RLS (28/28 PASS), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 AND COMPLETION ROUNDS 1-5 ARE COMPLETE.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -773,5 +773,45 @@ Transformed client concept reviews into an interactive collaboration workspace w
    - Next.js Production Build: **PASS** (`npm run build`, clean output across all 27 routes).
    - PostgreSQL RLS Closure: **26 / 26 PASS**.
    - Working tree: clean, zero skipped tests.
+
+## 2026-10-04 — Product Completion Round 5: Studio Team Management & Membership Security COMPLETE
+
+Completed the professional studio team experience and multi-member tenancy access control:
+1. **Database Schema (V026)**:
+   - `studio_member_invitations` table (`V026__studio_team_membership.sql`) in PostgreSQL and H2 test environments.
+   - Fields: `id UUIDv7`, `studio_id`, `invited_email`, `role`, `token_hash bytea`, `invited_by_user_id`, `status` (`PENDING`, `ACCEPTED`, `REVOKED`, `EXPIRED`), `expires_at`, `accepted_at`, `created_at`.
+   - Token hashing: Raw 256-bit cryptographically secure token generated, SHA-256 hash stored in database.
+   - Constraint updates on `studio_members`: supports canonical roles `OWNER`, `ADMIN`, `MEMBER`, `DESIGNER_ADMIN`, `DESIGNER_MEMBER`.
+   - Row Level Security: `tenant_isolation_studio_member_invitations` policy enforces strict studio tenant isolation.
+2. **Backend Architecture & Security Enforcement**:
+   - Package: `com.interior.platform.team` (`domain`, `dto`, `repository`, `service`, `web`).
+   - Invariant: **LAST-ADMIN LOCKOUT PROTECTION**. Demoting, removing, or voluntary leave by the sole studio administrator is strictly rejected with HTTP 400 (`Cannot demote/remove/leave sole administrator`).
+   - Endpoints:
+     - `GET /api/v1/workspace/team`: Studio team overview with members, roles, and pending invitations.
+     - `POST /api/v1/workspace/team/invitations`: Generate single-use invitation link (7-day expiry).
+     - `DELETE /api/v1/workspace/team/invitations/{id}`: Revoke pending invitation.
+     - `PATCH /api/v1/workspace/team/members/{id}/role`: Update member role with lockout protection.
+     - `DELETE /api/v1/workspace/team/members/{id}`: Remove member with lockout protection.
+     - `POST /api/v1/workspace/team/leave`: Voluntary member departure with sole admin guard.
+     - `GET /api/v1/workspace/invitations/validate`: Public/unauthenticated validation of invitation token.
+     - `POST /api/v1/workspace/invitations/accept`: Authenticated acceptance with email-match enforcement and automatic `DESIGNER_TEAM` platform role grant.
+   - Realtime Events: `STUDIO_INVITATION_CREATED`, `STUDIO_INVITATION_ACCEPTED`, `STUDIO_MEMBER_ADDED`, `STUDIO_MEMBER_ROLE_CHANGED`, `STUDIO_MEMBER_REMOVED`.
+   - Notifications: `STUDIO_INVITATION_ACCEPTED`, `STUDIO_MEMBER_ADDED`, `STUDIO_ROLE_CHANGED`, `STUDIO_MEMBER_REMOVED`.
+3. **Frontend Implementation**:
+   - `TeamWorkspace.tsx`: Professional team management view with studio stats, active member counter, desktop table, and mobile card layouts (minimum 44px touch targets, verified for 360px, 390px, 430px).
+   - "Invite Member" dialog with copyable link generator, 7-day expiration notice, and honest environment notice ("Email delivery is not configured in this environment. A secure invite link will be generated for you to copy and share directly").
+   - Pending invitations list with Copy Link and Revoke action.
+   - Solo member guidance banner for single-member studios.
+   - Public Invitation Acceptance Page (`/invite/[token]`): Token validation, sign-in CTA for unauthenticated users, email mismatch warning with switch-account action, and one-click acceptance.
+   - Navigation: Team module added to `SECONDARY_NAV_ITEMS` in `WorkspaceShell.tsx`.
+4. **Verification Baseline**:
+   - Backend Tests: **380 / 380 PASS** (17 new tests: `StudioTeamServiceTest` 10/10, `StudioTeamIntegrationTest` 5/5, `PostgreSqlStudioTeamRlsTest` 2/2).
+   - Frontend Tests: **302 / 302 PASS** (44 test files: `TeamWorkspace.test.tsx` 7/7, `InviteAcceptance.test.tsx` 4/4).
+   - PostgreSQL 18 RLS Isolation: **28 / 28 PASS** on port 5433.
+   - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+   - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+   - Next.js Production Build: **PASS** (`next build`, 27 static/dynamic routes including `/workspace/team` and `/invite/[token]`).
+   - Working tree: clean.
+
 
 

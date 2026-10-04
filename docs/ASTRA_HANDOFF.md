@@ -702,6 +702,18 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
+## 44.2. STUDIO TEAM MANAGEMENT & MEMBERSHIP SECURITY (OCTOBER 2026 - ROUND 5)
+
+- Migration `V026__studio_team_membership.sql`: `studio_member_invitations` table with UUIDv7, token hash (`bytea`), expiration, status checks, and PostgreSQL RLS policy `tenant_isolation_studio_member_invitations`.
+- Invariant **Last-Admin Lockout Protection**: Demoting, removing, or voluntary leave by the sole studio administrator is strictly rejected with HTTP 400.
+- Studio Team Endpoints (`/api/v1/workspace/team/*`): Overview, invite generation, invite revocation, role management, member removal, and voluntary leave.
+- Public Invitation Acceptance (`/invite/[token]` & `/api/v1/workspace/invitations/*`): Cryptographically secure 256-bit token exchange, single-use SHA-256 token verification, matching email validation, automatic `DESIGNER_TEAM` platform role grant.
+- Realtime SSE: `STUDIO_INVITATION_CREATED`, `STUDIO_INVITATION_ACCEPTED`, `STUDIO_MEMBER_ADDED`, `STUDIO_MEMBER_ROLE_CHANGED`, `STUDIO_MEMBER_REMOVED`.
+- Frontend: Responsive `TeamWorkspace.tsx` (desktop table + mobile card layout with 44px+ touch targets), solo member guidance, and copyable invite links with honest local disclaimer.
+- Verification Baseline: 380/380 backend tests PASS, 302/302 frontend vitest tests PASS, PostgreSQL 18 RLS 28/28 PASS, TypeScript typecheck PASS, ESLint PASS, Next.js build PASS.
+
+---
+
 ## 45. FINAL GIT & HANDOFF STATE
 
 - **Commit Message:** `docs: prepare astra project handoff`
