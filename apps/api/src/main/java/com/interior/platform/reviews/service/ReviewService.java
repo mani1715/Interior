@@ -35,6 +35,12 @@ public class ReviewService {
     private final StudioRepository studioRepository;
     private final AnalyticsService analyticsService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.notifications.service.NotificationService notificationService;
+
     public ReviewService(
             ReviewRepository reviewRepository,
             ReviewInvitationService invitationService,
@@ -47,6 +53,14 @@ public class ReviewService {
         this.leadRepository = leadRepository;
         this.studioRepository = studioRepository;
         this.analyticsService = analyticsService;
+    }
+
+    public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
+        this.realtimeEventPublisher = publisher;
+    }
+
+    public void setNotificationService(com.interior.platform.notifications.service.NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -125,6 +139,32 @@ public class ReviewService {
                 "review_sub:" + review.id()
         );
 
+        studioRepository.findStudioById(invitation.studioId()).ifPresent(st -> {
+            if (st.ownerId() != null) {
+                if (notificationService != null) {
+                    notificationService.dispatchNotification(
+                            st.ownerId(),
+                            invitation.studioId(),
+                            com.interior.platform.notifications.domain.NotificationType.NEW_REVIEW,
+                            "New Client Review Received",
+                            "A client submitted a " + req.rating() + "-star review.",
+                            "/workspace/reviews",
+                            "{\"reviewId\":\"" + review.id() + "\"}"
+                    );
+                }
+                if (realtimeEventPublisher != null) {
+                    realtimeEventPublisher.publish(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                            com.interior.platform.realtime.domain.RealtimeEventType.REVIEW_RECEIVED,
+                            st.ownerId(),
+                            invitation.studioId(),
+                            "REVIEW",
+                            review.id().toString(),
+                            java.util.Map.of("rating", req.rating(), "reviewId", review.id().toString())
+                    ));
+                }
+            }
+        });
+
         return toDto(review, null);
     }
 
@@ -172,6 +212,17 @@ public class ReviewService {
         }
 
         reviewRepository.updateStudioResponse(studioId, reviewId, cleanResponse, Instant.now());
+
+        if (realtimeEventPublisher != null) {
+            realtimeEventPublisher.publish(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                    com.interior.platform.realtime.domain.RealtimeEventType.REVIEW_RESPONSE_UPDATED,
+                    actor.userId(),
+                    studioId,
+                    "REVIEW",
+                    reviewId.toString(),
+                    java.util.Map.of("reviewId", reviewId.toString())
+            ));
+        }
     }
 
     @Transactional

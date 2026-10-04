@@ -43,6 +43,7 @@ import { PrecisionMaskEditor } from './PrecisionMaskEditor';
 import { AiHistoryView } from './AiHistoryView';
 import { AiReviewsView } from './AiReviewsView';
 import { AiPromptComposer } from './AiPromptComposer';
+import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 
 const PROMPT_PRESETS = [
   'Modern Minimalist with warm oak flooring, flush baseboards, and indirect recessed ceiling cove lighting',
@@ -178,7 +179,35 @@ export function AiVisualizerClient() {
     loadMedia();
   }, [selectedProjectId, initialMediaId]);
 
-  // 3. Polling for Active Job
+  // Real-time AI Job Progression via SSE (Instant transition without waiting for polling tick)
+  useRealtimeSubscription(
+    ['AI_JOB_PROCESSING', 'AI_JOB_COMPLETED', 'AI_JOB_FAILED', 'CLIENT_CONCEPT_APPROVED', 'CLIENT_CONCEPT_CHANGES_REQUESTED', 'RESYNC'],
+    async (event) => {
+      if (!activeJob) return;
+
+      const isCurrentJob = event.resourceId === activeJob.id || (event.metadata && event.metadata.jobId === activeJob.id);
+      if (isCurrentJob || event.type === 'RESYNC') {
+        try {
+          const detail = await fetchAiJobDetail(activeJob.id);
+          setActiveJob(detail);
+
+          if (detail.status === 'SUCCEEDED') {
+            setSelectedComparisonJob(detail);
+            setSubmitting(false);
+            listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
+            fetchAiStudioStatus().then(setStudioStatus).catch(() => {});
+          } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED') {
+            setSubmitting(false);
+            listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
+          }
+        } catch (err) {
+          console.error('Error fetching AI job on realtime event:', err);
+        }
+      }
+    }
+  );
+
+  // 3. Low-frequency safety poll (10s fallback) in case SSE connection drops
   useEffect(() => {
     if (!activeJob || activeJob.status === 'SUCCEEDED' || activeJob.status === 'FAILED' || activeJob.status === 'CANCELLED') {
       if (pollingRef.current) {
@@ -196,9 +225,7 @@ export function AiVisualizerClient() {
         if (detail.status === 'SUCCEEDED') {
           setSelectedComparisonJob(detail);
           setSubmitting(false);
-          // Refresh recent jobs
           listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
-          // Refresh status/quota
           fetchAiStudioStatus().then(setStudioStatus).catch(() => {});
         } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED') {
           setSubmitting(false);
@@ -207,7 +234,7 @@ export function AiVisualizerClient() {
       } catch (err) {
         console.error('Error polling AI job:', err);
       }
-    }, 2000);
+    }, 10000);
 
     return () => {
       if (pollingRef.current) {

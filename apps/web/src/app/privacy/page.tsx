@@ -58,6 +58,9 @@ export default function PrivacyPolicyPage() {
           <p className="text-xs leading-relaxed">
             You may review, update, or revoke active sessions at any time under your <Link href="/account" className="text-bronze-700 underline font-medium">Account Settings</Link>. You may also submit a formal account erasure request directly through the privacy management interface.
           </p>
+          <p className="text-[11px] text-charcoal-500 italic">
+            Privacy and account-deletion controls designed to support data-rights workflows. (Policies require qualified legal review prior to public production launch).
+          </p>
         </section>
       </div>
     </div>

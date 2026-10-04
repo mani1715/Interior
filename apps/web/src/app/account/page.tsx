@@ -812,6 +812,9 @@ export default function AccountPage() {
             <h3 className="font-serif text-base text-charcoal-900">
               Account Deactivation & Erasure Requests
             </h3>
+            <p className="text-xs text-charcoal-500">
+              Privacy and account-deletion controls designed to support data-rights workflows. (Policies require qualified legal review prior to public production launch).
+            </p>
 
             {deletionSuccess ? (
               <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-800 text-xs">

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Bell, Check, ExternalLink, Filter } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 
+import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
+
 export interface NotificationItem {
   id: string;
   type: string;
@@ -23,29 +25,59 @@ export function NotificationBell() {
   const [loading, setLoading] = useState<boolean>(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const fetchCount = async () => {
     if (!isAuthenticated) return;
-
-    let mounted = true;
-    const fetchCount = async () => {
-      try {
-        const res = await fetch('/api/v1/notifications/unread-count', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) setUnreadCount(data.unreadCount || 0);
-        }
-      } catch {
-        // Silently fail if offline or unauthenticated
+    try {
+      const res = await fetch('/api/v1/notifications/unread-count', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unreadCount || 0);
       }
-    };
+    } catch {
+      // Silently fail if offline or unauthenticated
+    }
+  };
 
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000); // 30s polling
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
+  // Initial fetch on auth
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCount();
+    }
   }, [isAuthenticated]);
+
+  // Real-time event handling: update badge & list without polling
+  useRealtimeSubscription(
+    ['NOTIFICATION_CREATED', 'NOTIFICATION_READ', 'NOTIFICATIONS_READ_ALL', 'RESYNC'],
+    (event) => {
+      if (event.type === 'NOTIFICATION_CREATED') {
+        setUnreadCount((prev) => prev + 1);
+        if (isOpen) {
+          loadNotifications();
+        }
+      } else if (event.type === 'NOTIFICATIONS_READ_ALL') {
+        setUnreadCount(0);
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() }))
+        );
+      } else if (event.type === 'NOTIFICATION_READ') {
+        if (event.notificationId) {
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.id === event.notificationId
+                ? { ...n, readAt: n.readAt || new Date().toISOString() }
+                : n
+            )
+          );
+        }
+        fetchCount();
+      } else if (event.type === 'RESYNC') {
+        fetchCount();
+        if (isOpen) {
+          loadNotifications();
+        }
+      }
+    }
+  );
 
   const loadNotifications = async () => {
     setLoading(true);

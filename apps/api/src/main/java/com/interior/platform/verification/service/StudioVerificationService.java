@@ -35,6 +35,12 @@ public class StudioVerificationService {
     private final StudioRepository studioRepository;
     private final ObjectMapper objectMapper;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.notifications.service.NotificationService notificationService;
+
     public StudioVerificationService(
             VerificationRepository verificationRepository,
             StudioRepository studioRepository,
@@ -43,6 +49,14 @@ public class StudioVerificationService {
         this.verificationRepository = verificationRepository;
         this.studioRepository = studioRepository;
         this.objectMapper = objectMapper;
+    }
+
+    public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
+        this.realtimeEventPublisher = publisher;
+    }
+
+    public void setNotificationService(com.interior.platform.notifications.service.NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     public StudioVerificationDto getStudioVerification(ActorContext actor, UUID studioId) {
@@ -239,6 +253,32 @@ public class StudioVerificationService {
                 now
         );
         verificationRepository.saveEvent(event);
+
+        studioRepository.findStudioById(studioId).ifPresent(st -> {
+            if (st.ownerId() != null) {
+                if (notificationService != null) {
+                    notificationService.dispatchNotification(
+                            st.ownerId(),
+                            studioId,
+                            com.interior.platform.notifications.domain.NotificationType.VERIFICATION_UPDATE,
+                            "Verification Status: " + req.status().name(),
+                            req.reason() != null ? req.reason() : "Your studio verification status was updated.",
+                            "/workspace/verification",
+                            "{\"status\":\"" + req.status().name() + "\"}"
+                    );
+                }
+                if (realtimeEventPublisher != null) {
+                    realtimeEventPublisher.publish(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                            com.interior.platform.realtime.domain.RealtimeEventType.VERIFICATION_STATUS_CHANGED,
+                            st.ownerId(),
+                            studioId,
+                            "VERIFICATION",
+                            studioId.toString(),
+                            java.util.Map.of("status", req.status().name(), "reason", req.reason() != null ? req.reason() : "")
+                    ));
+                }
+            }
+        });
 
         return getStudioVerification(actor, studioId);
     }

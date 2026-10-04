@@ -18,6 +18,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 
 interface NotificationItem {
   id: string;
@@ -57,6 +58,24 @@ export default function NotificationsWorkspacePage() {
       loadNotifications();
     }
   }, [isAuthenticated]);
+
+  // Reactive updates via SSE
+  useRealtimeSubscription(
+    ['NOTIFICATION_CREATED', 'NOTIFICATION_READ', 'NOTIFICATIONS_READ_ALL', 'RESYNC'],
+    (event) => {
+      if (event.type === 'NOTIFICATION_CREATED' || event.type === 'RESYNC') {
+        loadNotifications();
+      } else if (event.type === 'NOTIFICATIONS_READ_ALL') {
+        setNotifications((prev) => prev.map((n) => ({ ...n, readAt: new Date().toISOString() })));
+        setUnreadCount(0);
+      } else if (event.type === 'NOTIFICATION_READ' && event.notificationId) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === event.notificationId ? { ...n, readAt: new Date().toISOString() } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    }
+  );
 
   const handleMarkAsRead = async (id: string) => {
     try {

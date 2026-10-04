@@ -11,6 +11,7 @@ import {
   registerVerificationDocument,
   submitVerification,
 } from '@/lib/verification/api';
+import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 
 export default function WorkspaceVerificationPage() {
   const { user } = useAuth();
@@ -55,6 +56,11 @@ export default function WorkspaceVerificationPage() {
   useEffect(() => {
     fetchVerification();
   }, []);
+
+  // Real-time verification status update
+  useRealtimeSubscription(['VERIFICATION_STATUS_CHANGED', 'RESYNC'], () => {
+    fetchVerification();
+  });
 
   const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -197,7 +197,7 @@ public class JdbcSecurityRepository implements SecurityRepository {
 
     @Override
     public void deactivateUser(UUID userId, Instant deactivatedAt) {
-        String sql = "UPDATE users SET status = 'DEACTIVATED', deactivated_at = ?, updated_at = now() WHERE id = ?";
+        String sql = "UPDATE users SET status = 'SUSPENDED', deactivated_at = ?, updated_at = now() WHERE id = ?";
         jdbcTemplate.update(sql, Timestamp.from(deactivatedAt), userId);
     }
 

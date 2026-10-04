@@ -75,7 +75,24 @@ public class AiVisualizerService {
     private final StorageService storageService;
     private final ImageProcessingService imageProcessingService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
+
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
+    public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
+        this.realtimeEventPublisher = publisher;
+    }
+
+    private void emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent event) {
+        if (realtimeEventPublisher != null && event != null) {
+            try {
+                realtimeEventPublisher.publish(event);
+            } catch (Exception e) {
+                log.debug("Could not emit AI realtime event: {}", e.getMessage());
+            }
+        }
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     public AiVisualizerService(
@@ -348,6 +365,15 @@ public class AiVisualizerService {
 
         // 11. Dispatch async job execution
         executor.submit(() -> executeJobInternal(jobId));
+
+        emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_QUEUED,
+                actor.userId(),
+                studioId,
+                "AI_JOB",
+                jobId.toString(),
+                java.util.Map.of("status", "QUEUED", "projectId", project.id().toString())
+        ));
 
         return toJobDetail(job, studioId);
     }
@@ -658,6 +684,15 @@ public class AiVisualizerService {
         aiJobRepository.updateStatus(jobId, AiJobStatus.PROCESSING, startedAt, null, null, null, null, null, null, currentVersion);
         currentVersion++;
 
+        emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_PROCESSING,
+                job.createdBy(),
+                job.studioId(),
+                "AI_JOB",
+                jobId.toString(),
+                java.util.Map.of("status", "PROCESSING", "projectId", job.projectId().toString())
+        ));
+
         // Load input media asset
         Optional<MediaAssetRecord> inputMediaOpt = mediaRepository.findMediaAsset(job.inputMediaId(), job.studioId());
         if (inputMediaOpt.isEmpty()) {
@@ -754,6 +789,14 @@ public class AiVisualizerService {
             aiJobRepository.updateStatus(jobId, AiJobStatus.FAILED, null, null, Instant.now(), errCode, errMsg, null, null, currentVersion);
             aiJobRepository.recordUsageEvent(new AiUsageEventRecord(UuidV7.randomUuid(), job.studioId(), jobId, "GENERATION_FAILED", aiImageProvider.getProviderKey(), 0, Instant.now()));
             auditService.record(job.createdBy(), job.studioId(), "AI_GENERATION_FAILED", "AI_JOB", jobId.toString(), Map.of("errorCode", errCode), null, null);
+            emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                    com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_FAILED,
+                    job.createdBy(),
+                    job.studioId(),
+                    "AI_JOB",
+                    jobId.toString(),
+                    java.util.Map.of("status", "FAILED", "projectId", job.projectId().toString(), "errorCode", errCode)
+            ));
             return;
         }
 
@@ -869,11 +912,28 @@ public class AiVisualizerService {
                     null
             );
 
+            emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                    com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_COMPLETED,
+                    job.createdBy(),
+                    job.studioId(),
+                    "AI_JOB",
+                    jobId.toString(),
+                    java.util.Map.of("status", "SUCCEEDED", "projectId", job.projectId().toString(), "outputMediaId", outputMediaId.toString())
+            ));
+
         } catch (Exception e) {
             log.error("Failed to ingest generated AI image for job {}: {}", jobId, e.getMessage(), e);
             aiJobRepository.updateStatus(jobId, AiJobStatus.FAILED, null, null, Instant.now(), "INGESTION_ERROR", "Failed to store generated visualization.", null, null, currentVersion);
             aiJobRepository.recordUsageEvent(new AiUsageEventRecord(UuidV7.randomUuid(), job.studioId(), jobId, "GENERATION_FAILED", aiImageProvider.getProviderKey(), 0, Instant.now()));
             auditService.record(job.createdBy(), job.studioId(), "AI_GENERATION_FAILED", "AI_JOB", jobId.toString(), Map.of("error", e.getMessage()), null, null);
+            emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                    com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_FAILED,
+                    job.createdBy(),
+                    job.studioId(),
+                    "AI_JOB",
+                    jobId.toString(),
+                    java.util.Map.of("status", "FAILED", "projectId", job.projectId().toString(), "errorCode", "INGESTION_ERROR")
+            ));
         }
     }
 
@@ -1299,6 +1359,15 @@ public class AiVisualizerService {
         );
 
         executor.submit(() -> executeJobInternal(job.id()));
+
+        emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_QUEUED,
+                actor.userId(),
+                studioId,
+                "AI_JOB",
+                job.id().toString(),
+                java.util.Map.of("status", "QUEUED", "projectId", parent.projectId().toString())
+        ));
 
         return toJobDetail(job, studioId);
     }
@@ -1874,6 +1943,27 @@ public class AiVisualizerService {
                 null,
                 null
         );
+
+        com.interior.platform.realtime.domain.RealtimeEventType decType =
+                request.decision() == ClientReviewDecisionType.APPROVED
+                        ? com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_CONCEPT_APPROVED
+                        : com.interior.platform.realtime.domain.RealtimeEventType.CLIENT_CONCEPT_CHANGES_REQUESTED;
+
+        emitRealtime(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                decType,
+                Instant.now(),
+                null,
+                review.studioId(),
+                "CLIENT_REVIEW",
+                review.id().toString(),
+                null,
+                Map.of(
+                        "decision", request.decision().name(),
+                        "jobId", request.jobId().toString(),
+                        "clientName", request.clientName() != null ? sanitize(request.clientName()) : "Client"
+                )
+        ));
     }
 
     public void submitClientComment(String rawSessionToken, String csrfToken, SubmitClientCommentRequest request, String clientIp) {

@@ -34,6 +34,9 @@ public class PublicLeadService {
     private final AnalyticsService analyticsService;
     private final NotificationService notificationService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
+
     public PublicLeadService(
             LeadRepository leadRepository,
             PhoneNormalizationService phoneNormalizationService,
@@ -46,6 +49,10 @@ public class PublicLeadService {
         this.rateLimiterService = rateLimiterService;
         this.analyticsService = analyticsService;
         this.notificationService = notificationService;
+    }
+
+    public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
+        this.realtimeEventPublisher = publisher;
     }
 
     public PublicLeadSubmissionResponse submitInquiry(PublicLeadSubmissionRequest req, String clientIp) {
@@ -195,6 +202,22 @@ public class PublicLeadService {
         }
 
         String referenceNumber = "INQ-" + leadId.toString().substring(0, 8).toUpperCase();
+
+        if (realtimeEventPublisher != null && studio.ownerId() != null) {
+            realtimeEventPublisher.publish(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
+                    com.interior.platform.realtime.domain.RealtimeEventType.LEAD_CREATED,
+                    studio.ownerId(),
+                    studio.id(),
+                    "LEAD",
+                    leadId.toString(),
+                    java.util.Map.of(
+                            "clientName", sanitizedName,
+                            "category", category != null ? category : "Interior Project",
+                            "referenceNumber", referenceNumber
+                    )
+            ));
+        }
+
         return new PublicLeadSubmissionResponse(referenceNumber, "Inquiry received successfully.", studio.name());
     }
 

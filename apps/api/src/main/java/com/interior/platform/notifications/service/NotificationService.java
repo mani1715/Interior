@@ -28,13 +28,16 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final AuthorizationService authorizationService;
+    private final com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
 
     public NotificationService(
             NotificationRepository notificationRepository,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher
     ) {
         this.notificationRepository = notificationRepository;
         this.authorizationService = authorizationService;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     /**
@@ -93,6 +96,23 @@ public class NotificationService {
 
             notificationRepository.createNotification(record);
             log.info("Dispatched notification {} to user {}", type, targetUserId);
+
+            realtimeEventPublisher.publish(new com.interior.platform.realtime.domain.RealtimeEvent(
+                    com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                    com.interior.platform.realtime.domain.RealtimeEventType.NOTIFICATION_CREATED,
+                    Instant.now(),
+                    targetUserId,
+                    studioId,
+                    "NOTIFICATION",
+                    record.id().toString(),
+                    record.id().toString(),
+                    java.util.Map.of(
+                            "type", type.name(),
+                            "title", title,
+                            "actionUrl", actionUrl != null ? actionUrl : "",
+                            "unreadCount", notificationRepository.countUnreadByUserId(targetUserId)
+                    )
+            ));
         } catch (Exception e) {
             log.error("Failed to persist notification for user {}: {}", targetUserId, e.getMessage());
         }
@@ -134,6 +154,18 @@ public class NotificationService {
 
         if (notif.readAt() == null) {
             notificationRepository.markAsRead(notificationId, actor.userId(), Instant.now());
+            long unread = notificationRepository.countUnreadByUserId(actor.userId());
+            realtimeEventPublisher.publish(new com.interior.platform.realtime.domain.RealtimeEvent(
+                    com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                    com.interior.platform.realtime.domain.RealtimeEventType.NOTIFICATION_READ,
+                    Instant.now(),
+                    actor.userId(),
+                    notif.studioId(),
+                    "NOTIFICATION",
+                    notificationId.toString(),
+                    notificationId.toString(),
+                    java.util.Map.of("unreadCount", unread)
+            ));
         }
     }
 
@@ -144,6 +176,17 @@ public class NotificationService {
     public void markAllAsRead(ActorContext actor) {
         authorizationService.requireAuthenticated(actor);
         notificationRepository.markAllAsRead(actor.userId(), Instant.now());
+        realtimeEventPublisher.publish(new com.interior.platform.realtime.domain.RealtimeEvent(
+                com.interior.platform.common.util.UuidV7.randomUuid().toString(),
+                com.interior.platform.realtime.domain.RealtimeEventType.NOTIFICATIONS_READ_ALL,
+                Instant.now(),
+                actor.userId(),
+                null,
+                "NOTIFICATION",
+                null,
+                null,
+                java.util.Map.of("unreadCount", 0L)
+        ));
     }
 
     /**

@@ -45,6 +45,7 @@ import {
 } from '@/lib/leads/types';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/overlay/Dialog';
+import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 
 export default function LeadsWorkspacePage() {
   const [counts, setCounts] = useState<LeadCounts>({
@@ -119,6 +120,12 @@ export default function LeadsWorkspacePage() {
   useEffect(() => {
     loadLeads();
   }, [loadLeads]);
+
+  // Real-time leads updates
+  useRealtimeSubscription(['LEAD_CREATED', 'LEAD_UPDATED', 'RESYNC'], () => {
+    loadCounts();
+    loadLeads();
+  });
 
   const openLeadDetail = async (leadId: string) => {
     setSelectedLeadId(leadId);
