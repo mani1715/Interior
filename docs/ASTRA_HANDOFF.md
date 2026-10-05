@@ -776,9 +776,45 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
+## 44.5. MULTI-STUDIO COMPLETION & FIRST-CLASS ADDITIONAL STUDIO CREATION (OCTOBER 2026 - ROUND 8)
+
+- **Closed Tenant-Switching Gaps**:
+  - **Storage Rule Enforcement**: Enforced strict `sessionStorage` per-tab preference with memory-only fallback in `apps/web/src/lib/api-client.ts`; eliminated `localStorage` reads/writes entirely to prevent cross-tab active tenant bleed.
+  - **Accessible Switcher**: Added `aria-hidden="true"` to fallback native `<select id="studio-select">` in `WorkspaceShell.tsx` to eliminate duplicate accessibility announcements while retaining standard automated test compatibility.
+  - **Billing & Notifications Model Classification**: Formally audited and classified:
+    - Billing Model: `STUDIO_SCOPED` (plans and subscriptions bound to `studio_id`).
+    - Notifications Model: `MIXED` (`recipient_user_id` is user-scoped; optional `studio_id` tags studio context).
+- **First-Class "Create Another Studio" Workflow**:
+  - **Backend Studio Creation API**: Implemented `POST /api/v1/workspace/studios` in `WorkspaceController` backed by `StudioCreationService`.
+  - **Atomic Transaction Lifecycle**:
+    1. Caller authentication and active account status validation.
+    2. Payload validation: Name (2–100 chars), canonical professional type, city (2–50 chars), state (2–50 chars).
+    3. Slug resolution and uniqueness enforcement via `SlugValidationService` (auto-resolution with suffix collision defense, or rejection with 409 Conflict if custom taken).
+    4. Studio insertion in `designer_studios` (`ACTIVE` operational status, `UNPUBLISHED` publication status, caller set as `owner_id`).
+    5. Slug claim in `slug_registry`.
+    6. Studio membership granted to creator in `studio_members` with role `DESIGNER_ADMIN`.
+    7. **Crucial Security Invariant**: NO global platform role mutation (`CUSTOMER` stays `CUSTOMER`, gains `DESIGNER_ADMIN` studio membership).
+    8. Audit event recorded: `STUDIO_CREATED`.
+- **Frontend Switcher Integration & Modal**:
+  - `CreateStudioModal.tsx`: Accessible dialog component (`role="dialog"`, `aria-modal="true"`, focus trap, escape key dismiss) with validation, double-submit protection (`isSubmitting` state), error alerts, and canonical professional type choices.
+  - `WorkspaceShell.tsx`:
+    - Switcher dropdown (desktop and mobile) contains "+ Create Another Studio" button.
+    - Single-studio identity card renders dedicated "+ Create Another Studio" button.
+    - On studio creation: automatically switches active studio to new studio ID via `switchStudio(newId)`, refreshes workspace summary and user context, announces via live region, and updates workspace view.
+- **Full Verification Baseline**:
+  - Backend Tests: **393 / 393 PASS** (0 failures, 0 skipped; 9 new tests added across `StudioCreationServiceTest` and `WorkspaceIntegrationTest`).
+  - Frontend Tests: **316 / 316 PASS** (47 test files, 100% pass, added `CreateStudio.test.tsx`).
+  - PostgreSQL 18 RLS Isolation: **15 / 15 PASS** (`PostgreSql*` test suite on port 5433).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+  - Working tree: clean.
+
+---
+
 ## 45. FINAL GIT & HANDOFF STATE
 
-- **Commit Message:** `feat: complete multi-studio workspace switching`
+- **Commit Message:** `feat: complete multi-studio creation and tenant lifecycle`
 - **Branch:** `main`
 - **Synchronization:** Local HEAD == origin/main. Working tree clean.
 

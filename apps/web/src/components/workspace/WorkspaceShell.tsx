@@ -28,11 +28,13 @@ import {
   ChevronsUpDown,
   Check,
   AlertTriangle,
+  Plus,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { WorkspaceSummary } from '@/lib/workspace/types';
 import { fetchWorkspaceSummary } from '@/lib/workspace/api';
 import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
+import { CreateStudioModal } from './CreateStudioModal';
 
 export function formatStudioRole(role?: string | null): string {
   if (!role) return 'Team Member';
@@ -95,6 +97,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const [moreMenuOpen, setMoreMenuOpen] = useState<boolean>(false);
   const [desktopSwitcherOpen, setDesktopSwitcherOpen] = useState<boolean>(false);
   const [mobileSwitcherOpen, setMobileSwitcherOpen] = useState<boolean>(false);
+  const [createStudioModalOpen, setCreateStudioModalOpen] = useState<boolean>(false);
   const [announcement, setAnnouncement] = useState<string>('');
   const [selectedStudioId, setSelectedStudioId] = useState<string | undefined>(undefined);
 
@@ -192,6 +195,24 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
         console.error('Failed to switch studio:', err);
       }
     });
+  };
+
+  const handleStudioCreated = async (newStudioId: string, newStudioName: string) => {
+    setCreateStudioModalOpen(false);
+    setSelectedStudioId(newStudioId);
+    setAnnouncement(`Studio ${newStudioName} created successfully. Switched to workspace.`);
+    try {
+      if (switchStudio) {
+        await switchStudio(newStudioId);
+      }
+      setLoading(true);
+      const updated = await fetchWorkspaceSummary(newStudioId);
+      setSummary(updated);
+    } catch (err: any) {
+      console.error('Failed to load updated workspace after studio creation:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (authLoading || (loading && !summary && !error)) {
@@ -319,8 +340,8 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
             </span>
           </div>
 
-          {/* Multiple studio selector if available */}
-          {summary && summary.availableStudios && summary.availableStudios.length > 1 && (
+          {/* Studio selector with Create Another Studio action */}
+          {summary && summary.availableStudios && summary.availableStudios.length > 1 ? (
             <div className="mt-3 pt-2.5 border-t border-sand-200">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider">
@@ -353,6 +374,9 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                   aria-label="Available studios"
                   className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-sand-200 rounded-xl shadow-lg p-1.5 space-y-1 animate-fade-in"
                 >
+                  <div className="px-2 py-1 text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider border-b border-sand-200 mb-1">
+                    Your Studios
+                  </div>
                   {summary.availableStudios.map((s) => {
                     const isCurrent = s.studioId === (selectedStudioId || studio?.id || user?.activeStudioId);
                     return (
@@ -376,6 +400,19 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                       </button>
                     );
                   })}
+
+                  {/* Create Another Studio Action */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDesktopSwitcherOpen(false);
+                      setCreateStudioModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 mt-1 border-t border-sand-200 rounded-lg text-left text-xs font-medium text-bronze-800 hover:bg-sand-50 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-bronze-700 flex-shrink-0" />
+                    <span>Create Another Studio</span>
+                  </button>
                 </div>
               )}
 
@@ -383,6 +420,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
               <select
                 id="studio-select"
                 aria-label="Switch Studio Native"
+                aria-hidden="true"
                 value={selectedStudioId || studio?.id || ''}
                 onChange={(e) => {
                   const target = summary.availableStudios.find((s) => s.studioId === e.target.value);
@@ -397,6 +435,17 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                   </option>
                 ))}
               </select>
+            </div>
+          ) : (
+            <div className="mt-3 pt-2.5 border-t border-sand-200">
+              <button
+                type="button"
+                onClick={() => setCreateStudioModalOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-1 px-2 text-[11px] font-medium text-bronze-800 hover:text-bronze-900 hover:bg-sand-100 rounded-lg transition-colors border border-dashed border-sand-300"
+              >
+                <Plus className="w-3.5 h-3.5 text-bronze-700" />
+                <span>Create Another Studio</span>
+              </button>
             </div>
           )}
         </div>
@@ -533,6 +582,19 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                     </button>
                   );
                 })}
+
+                {/* Create Another Studio Action */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileSwitcherOpen(false);
+                    setCreateStudioModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 mt-1 border-t border-sand-200 rounded-lg text-left text-xs font-medium text-bronze-800 hover:bg-sand-50 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-bronze-700 flex-shrink-0" />
+                  <span>Create Another Studio</span>
+                </button>
               </div>
             )}
           </div>
@@ -715,6 +777,15 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* CREATE ANOTHER STUDIO MODAL                                  */}
+      {/* ============================================================ */}
+      <CreateStudioModal
+        isOpen={createStudioModalOpen}
+        onClose={() => setCreateStudioModalOpen(false)}
+        onSuccess={handleStudioCreated}
+      />
     </div>
   );
 }

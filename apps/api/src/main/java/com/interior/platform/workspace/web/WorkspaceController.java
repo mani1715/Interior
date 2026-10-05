@@ -2,17 +2,24 @@ package com.interior.platform.workspace.web;
 
 import com.interior.platform.security.domain.ActorContext;
 import com.interior.platform.security.interceptor.SecurityInterceptor;
+import com.interior.platform.workspace.dto.CreateStudioRequest;
+import com.interior.platform.workspace.dto.CreateStudioResponse;
 import com.interior.platform.workspace.dto.WorkspaceBusinessProfileResponse;
 import com.interior.platform.workspace.dto.WorkspaceSummaryResponse;
+import com.interior.platform.workspace.service.StudioCreationService;
 import com.interior.platform.workspace.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,13 +29,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/workspace")
-@Tag(name = "Professional Workspace", description = "Endpoints for the authenticated interior professional workspace, readiness metrics, and business profile inspection")
+@Tag(name = "Professional Workspace", description = "Endpoints for the authenticated interior professional workspace, readiness metrics, studio creation, and business profile inspection")
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
+    private final StudioCreationService studioCreationService;
 
-    public WorkspaceController(WorkspaceService workspaceService) {
+    public WorkspaceController(WorkspaceService workspaceService, StudioCreationService studioCreationService) {
         this.workspaceService = workspaceService;
+        this.studioCreationService = studioCreationService;
     }
 
     @GetMapping("/summary")
@@ -77,6 +86,27 @@ public class WorkspaceController {
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0, must-revalidate")
                 .header(HttpHeaders.PRAGMA, "no-cache")
                 .body(profile);
+    }
+
+    @PostMapping("/studios")
+    @Operation(summary = "Create an additional professional studio", description = "Atomically creates a new designer studio, claims slug, and grants creator DESIGNER_ADMIN membership without mutating global platform roles.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Studio created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Account inactive or CSRF token invalid"),
+            @ApiResponse(responseCode = "409", description = "Slug collision or reserved keyword")
+    })
+    public ResponseEntity<CreateStudioResponse> createStudio(
+            @Valid @RequestBody CreateStudioRequest createRequest,
+            HttpServletRequest request
+    ) {
+        ActorContext actor = extractActor(request);
+        if (studioCreationService == null) {
+            throw new IllegalStateException("StudioCreationService is not configured");
+        }
+        CreateStudioResponse response = studioCreationService.createStudio(actor, createRequest, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     private ActorContext extractActor(HttpServletRequest request) {

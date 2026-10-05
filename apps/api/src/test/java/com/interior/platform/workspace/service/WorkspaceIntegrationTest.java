@@ -9,6 +9,8 @@ import com.interior.platform.security.domain.ActorContext;
 import com.interior.platform.security.domain.UserRecord;
 import com.interior.platform.security.interceptor.SecurityInterceptor;
 import com.interior.platform.security.repository.SecurityRepository;
+import com.interior.platform.workspace.dto.CreateStudioRequest;
+import com.interior.platform.workspace.dto.CreateStudioResponse;
 import com.interior.platform.workspace.dto.WorkspaceBusinessProfileResponse;
 import com.interior.platform.workspace.dto.WorkspaceSummaryResponse;
 import com.interior.platform.workspace.web.WorkspaceController;
@@ -246,5 +248,92 @@ class WorkspaceIntegrationTest {
         assertNotNull(profile);
         assertNull(profile.gstNumber(), "GSTIN must be null for non-owner members");
         assertEquals("DESIGNER_MEMBER", profile.roleInStudio());
+    }
+
+    @Test
+    @DisplayName("Create Another Studio: Authenticated user creates second studio and can switch between both contexts")
+    void testCreateAdditionalStudio_SuccessAndTenantIsolation() {
+        UserRecord owner = createTestUser("Multi-Studio User", "multistudio@example.com");
+        ActorContext initialActor = new ActorContext(owner.id(), owner.displayName(), owner.email(), Set.of("CUSTOMER"), null, null, true);
+
+        // 1. Initial studio via onboarding
+        var onboardResult = onboardingService.completeOnboarding(initialActor, createValidRequest("First Studio", "first-studio"), null, null);
+        UUID firstStudioId = onboardResult.studio().id();
+
+        // 2. Create second studio via WorkspaceController
+        MockHttpServletRequest createReq = new MockHttpServletRequest();
+        createReq.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, initialActor);
+
+        CreateStudioRequest studio2Req = new CreateStudioRequest(
+                "Second Studio Atelier",
+                "ARCHITECTURE_STUDIO",
+                "Hyderabad",
+                "Telangana",
+                null
+        );
+
+        ResponseEntity<CreateStudioResponse> createdResp = workspaceController.createStudio(studio2Req, createReq);
+        assertEquals(201, createdResp.getStatusCode().value());
+        assertNotNull(createdResp.getBody());
+        UUID secondStudioId = createdResp.getBody().studioId();
+        assertNotNull(secondStudioId);
+        assertNotEquals(firstStudioId, secondStudioId);
+        assertEquals("Second Studio Atelier", createdResp.getBody().name());
+        assertEquals("ARCHITECTURE_STUDIO", createdResp.getBody().professionalType());
+        assertEquals("DESIGNER_ADMIN", createdResp.getBody().role());
+
+        // 3. User now has memberships in both studios
+        var memberships = securityRepository.getStudioMemberships(owner.id());
+        assertEquals(2, memberships.size());
+        assertTrue(memberships.stream().anyMatch(m -> m.studioId().equals(firstStudioId)));
+        assertTrue(memberships.stream().anyMatch(m -> m.studioId().equals(secondStudioId)));
+
+        // 4. Global platform roles were NOT mutated (only contains CUSTOMER and DESIGNER from onboarding, no escalation)
+        var globalRoles = securityRepository.getUserRoles(owner.id());
+        assertFalse(globalRoles.contains("ADMIN"));
+        assertFalse(globalRoles.contains("SUPER_ADMIN"));
+
+        // 5. Query workspace for Studio 2
+        ActorContext studio2Actor = new ActorContext(owner.id(), owner.displayName(), owner.email(), globalRoles, secondStudioId, "DESIGNER_ADMIN", true);
+        MockHttpServletRequest wsReq2 = new MockHttpServletRequest();
+        wsReq2.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, studio2Actor);
+
+        ResponseEntity<WorkspaceSummaryResponse> summary2 = workspaceController.getWorkspaceSummary(wsReq2, secondStudioId.toString(), null);
+        assertEquals(200, summary2.getStatusCode().value());
+        assertEquals("Second Studio Atelier", summary2.getBody().studio().name());
+        assertEquals(secondStudioId, summary2.getBody().studio().id());
+        assertEquals(2, summary2.getBody().availableStudios().size());
+
+        // 6. Query workspace for Studio 1
+        ActorContext studio1Actor = new ActorContext(owner.id(), owner.displayName(), owner.email(), globalRoles, firstStudioId, "DESIGNER_ADMIN", true);
+        MockHttpServletRequest wsReq1 = new MockHttpServletRequest();
+        wsReq1.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, studio1Actor);
+
+        ResponseEntity<WorkspaceSummaryResponse> summary1 = workspaceController.getWorkspaceSummary(wsReq1, firstStudioId.toString(), null);
+        assertEquals(200, summary1.getStatusCode().value());
+        assertEquals("First Studio", summary1.getBody().studio().name());
+        assertEquals(firstStudioId, summary1.getBody().studio().id());
+    }
+
+    @Test
+    @DisplayName("Create Another Studio: Validation fails on invalid input")
+    void testCreateAdditionalStudio_ValidationFailure() {
+        UserRecord owner = createTestUser("Invalid Payload User", "invalid@example.com");
+        ActorContext actor = new ActorContext(owner.id(), owner.displayName(), owner.email(), Set.of("CUSTOMER"), null, null, true);
+
+        MockHttpServletRequest createReq = new MockHttpServletRequest();
+        createReq.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, actor);
+
+        CreateStudioRequest invalidReq = new CreateStudioRequest(
+                "",
+                "INTERIOR_STUDIO",
+                "Mumbai",
+                "Maharashtra",
+                null
+        );
+
+        assertThrows(Exception.class, () ->
+                workspaceController.createStudio(invalidReq, createReq)
+        );
     }
 }

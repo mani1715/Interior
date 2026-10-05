@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-10-04, ROUND 5 (Studio Team Management + Membership Security) COMPLETE & PASS. Full regression: backend (380/380 PASS), frontend vitest (302/302 PASS), PostgreSQL 18 RLS (28/28 PASS), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 AND COMPLETION ROUNDS 1-5 ARE COMPLETE.
+Last updated: 2026-10-05, ROUND 8 (Multi-Studio Completion + Additional Studio Creation) COMPLETE & PASS. Full regression: backend (393/393 PASS), frontend vitest (316/316 PASS), PostgreSQL 18 RLS (15/15 PASS), typecheck, lint, and production build verified. ALL CANONICAL ROADMAP PHASES 00-29 AND COMPLETION ROUNDS 1-8 ARE COMPLETE.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
@@ -852,16 +852,44 @@ Completed the professional studio team experience and multi-member tenancy acces
 5. **Cross-Studio Mutation & Leakage Protection**:
    - `UnsavedChangesContext` & `useUnsavedChanges`: Guards studio switching when unsaved changes exist in forms (Project CMS, Portfolio Builder). Prompts accessible confirmation dialog ("Discard & Switch Studio").
    - Module Reset: Project editor redirects to `/workspace/projects` on studio switch; Portfolio Builder, Projects List, and Workspace Home reload active studio data cleanly upon `'studio-switched'`.
-6. **Multi-Studio Creation Status**:
-   - Documented as **PARTIAL**: First studio created during onboarding; additional memberships joined via invitations. A dedicated multi-studio creation UI is planned for a subsequent enhancement.
-7. **Verification Baseline**:
-   - Backend Tests: **384 / 384 PASS** (0 failures, 0 skipped).
-   - Frontend Tests: **312 / 312 PASS** (46 test files, 0 failures).
-   - PostgreSQL 18 RLS Isolation: **28 / 28 PASS**.
+8. **Multi-Studio Creation Status**:
+   - Upgraded to **COMPLETE**: First-class "Create Another Studio" workflow fully established.
+
+### Completion Round 8: Multi-Studio Completion & Additional Studio Creation (October 2026)
+
+1. **Closure of Round 7 Tenant-Switching Gaps**:
+   - **Strict Per-Tab Storage**: Enforced `sessionStorage` per-tab isolation with in-memory fallback in `apps/web/src/lib/api-client.ts`, eliminating `localStorage` active studio reads/writes to prevent cross-tab tenant bleed.
+   - **Accessible Switcher**: Added `aria-hidden="true"` to fallback native `<select id="studio-select">` in `WorkspaceShell.tsx` to prevent redundant screen reader announcements while maintaining automated form compatibility.
+   - **Tenant Module Audit & Classification**:
+     - Billing: `STUDIO_SCOPED` (plans and subscriptions joined on `studio_id`).
+     - Notifications: `MIXED` (`recipient_user_id` user-scoped, optional `studio_id` tags studio context).
+     - SSE Realtime: Scoped per-tab connection lifecycle without multi-listener leakage.
+2. **First-Class Studio Creation API & Domain Logic**:
+   - Endpoint: `POST /api/v1/workspace/studios` implemented in `WorkspaceController` backed by `StudioCreationService`.
+   - Domain invariants:
+     - User account must be `ACTIVE`.
+     - Validates name (2–100 chars), professional type, city (2–50 chars), state (2–50 chars).
+     - Slug uniqueness resolved via `SlugValidationService` (with automatic suffix collision resolution or 409 Conflict rejection for custom taken handles).
+     - Inserts record in `designer_studios` (`status: ACTIVE`, `publication_status: UNPUBLISHED`, `owner_id: user.id`).
+     - Claims slug in `slug_registry`.
+     - Inserts membership in `studio_members` with role `DESIGNER_ADMIN`.
+     - **Identity Invariant Preserved**: Zero global role mutation (user's global platform role, e.g. `CUSTOMER` or `ADMIN`, remains untouched).
+     - Records audit event `STUDIO_CREATED`.
+3. **Frontend Studio Creation Workflow**:
+   - `CreateStudioModal.tsx`: Accessible dialog component (`role="dialog"`, `aria-modal="true"`, focus trap, escape key handling) with input validation, canonical professional types dropdown, double-click protection (`isSubmitting` state), and error alerts.
+   - `WorkspaceShell.tsx`:
+     - Desktop and mobile switcher dropdowns include "+ Create Another Studio" button.
+     - Single-studio identity card renders dedicated "+ Create Another Studio" button.
+     - On creation: invokes `switchStudio(newStudioId)`, reloads workspace summary and user context, announces via live region, and updates active workspace view.
+4. **Verification Baseline**:
+   - Backend Tests: **393 / 393 PASS** (0 failures, 0 skipped; added `StudioCreationServiceTest` 7/7, `WorkspaceIntegrationTest` 6/6).
+   - Frontend Tests: **316 / 316 PASS** (47 test files, 100% pass, added `CreateStudio.test.tsx` 4/4).
+   - PostgreSQL 18 RLS Isolation: **15 / 15 PASS** (`PostgreSql*` test suite on port 5433).
    - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
    - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
    - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
    - Working tree: clean.
+
 
 
 

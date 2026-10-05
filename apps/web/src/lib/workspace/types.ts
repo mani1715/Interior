@@ -133,3 +133,21 @@ export interface BusinessProfile {
   specialties: BusinessSpecialtyItem[];
   serviceAreas: BusinessServiceAreaItem[];
 }
+
+export interface CreateStudioRequest {
+  name: string;
+  professionalType: string;
+  city: string;
+  state: string;
+  slug?: string;
+}
+
+export interface CreateStudioResponse {
+  studioId: string;
+  name: string;
+  slug: string;
+  professionalType: string;
+  role: string;
+  message: string;
+}
+

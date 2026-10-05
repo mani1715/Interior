@@ -60,32 +60,26 @@ const ACTIVE_STUDIO_STORAGE_KEY = 'interior_active_studio_id';
 let currentActiveStudioIdHeader: string | null = null;
 
 export function getStoredActiveStudioId(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') return currentActiveStudioIdHeader;
   try {
     const fromSession = sessionStorage.getItem(ACTIVE_STUDIO_STORAGE_KEY);
     if (fromSession && fromSession.trim()) {
       return fromSession.trim();
     }
-    const fromLocal = localStorage.getItem(ACTIVE_STUDIO_STORAGE_KEY);
-    if (fromLocal && fromLocal.trim()) {
-      return fromLocal.trim();
-    }
   } catch {
     // Storage access may fail in restricted/private browsing modes
   }
-  return null;
+  return currentActiveStudioIdHeader;
 }
 
 export function setStoredActiveStudioId(studioId: string | null) {
-  currentActiveStudioIdHeader = studioId;
+  currentActiveStudioIdHeader = studioId && studioId.trim() ? studioId.trim() : null;
   if (typeof window === 'undefined') return;
   try {
-    if (studioId && studioId.trim()) {
-      sessionStorage.setItem(ACTIVE_STUDIO_STORAGE_KEY, studioId.trim());
-      localStorage.setItem(ACTIVE_STUDIO_STORAGE_KEY, studioId.trim());
+    if (currentActiveStudioIdHeader) {
+      sessionStorage.setItem(ACTIVE_STUDIO_STORAGE_KEY, currentActiveStudioIdHeader);
     } else {
       sessionStorage.removeItem(ACTIVE_STUDIO_STORAGE_KEY);
-      localStorage.removeItem(ACTIVE_STUDIO_STORAGE_KEY);
     }
   } catch {
     // Ignore storage write failures
