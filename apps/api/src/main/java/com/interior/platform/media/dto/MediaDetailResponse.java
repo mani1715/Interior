@@ -4,6 +4,7 @@ import com.interior.platform.media.domain.MediaProcessingStatus;
 import com.interior.platform.media.domain.MediaType;
 import com.interior.platform.media.domain.MediaVisibility;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -28,5 +29,10 @@ public record MediaDetailResponse(
         boolean watermarkEnabled,
         List<MediaDerivativeDto> derivatives,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID roomId,
+        boolean isRoomCover,
+        BigDecimal focalX,
+        BigDecimal focalY,
+        boolean motionEnabled
 ) {}

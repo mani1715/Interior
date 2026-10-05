@@ -160,6 +160,11 @@ export async function uploadMediaFile(
     visibility?: MediaVisibility;
     watermarkEnabled?: boolean;
     studioId?: string;
+    roomId?: string | null;
+    isRoomCover?: boolean;
+    focalX?: number;
+    focalY?: number;
+    motionEnabled?: boolean;
     onProgress?: (progress: number) => void;
   }
 ): Promise<MediaDetailResponse> {
@@ -187,6 +192,11 @@ export async function uploadMediaFile(
       isCover: options.isCover,
       visibility: options.visibility,
       watermarkEnabled: options.watermarkEnabled,
+      roomId: options.roomId,
+      isRoomCover: options.isRoomCover,
+      focalX: options.focalX,
+      focalY: options.focalY,
+      motionEnabled: options.motionEnabled,
     },
     options.studioId
   );

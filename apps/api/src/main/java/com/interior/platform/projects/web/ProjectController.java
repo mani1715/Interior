@@ -4,12 +4,17 @@ import com.interior.platform.projects.domain.ProjectCategory;
 import com.interior.platform.projects.domain.ProjectStatus;
 import com.interior.platform.projects.domain.VisibilityStatus;
 import com.interior.platform.projects.dto.CreateProjectRequest;
+import com.interior.platform.projects.dto.CreateRoomRequest;
 import com.interior.platform.projects.dto.ProjectActionRequest;
 import com.interior.platform.projects.dto.ProjectDetailResponse;
 import com.interior.platform.projects.dto.ProjectPresentationDto;
+import com.interior.platform.projects.dto.ProjectRoomDto;
 import com.interior.platform.projects.dto.ProjectSummaryResponse;
 import com.interior.platform.projects.dto.ReorderProjectsRequest;
+import com.interior.platform.projects.dto.ReorderRoomsRequest;
 import com.interior.platform.projects.dto.UpdateProjectRequest;
+import com.interior.platform.projects.dto.UpdateRoomRequest;
+import com.interior.platform.projects.service.ProjectRoomService;
 import com.interior.platform.projects.service.ProjectService;
 import com.interior.platform.security.domain.ActorContext;
 import com.interior.platform.security.interceptor.SecurityInterceptor;
@@ -22,7 +27,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -42,13 +49,16 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final com.interior.platform.media.service.MediaService mediaService;
+    private final ProjectRoomService projectRoomService;
 
     public ProjectController(
             ProjectService projectService,
-            com.interior.platform.media.service.MediaService mediaService
+            com.interior.platform.media.service.MediaService mediaService,
+            ProjectRoomService projectRoomService
     ) {
         this.projectService = projectService;
         this.mediaService = mediaService;
+        this.projectRoomService = projectRoomService;
     }
 
     @GetMapping
@@ -242,6 +252,81 @@ public class ProjectController {
         ActorContext actor = extractActor(request);
         UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
         mediaService.reorderMedia(actor, requestedStudioId, projectId, req);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{projectId}/rooms")
+    @Operation(summary = "Create project room", description = "Creates a new room or spatial grouping within a project.")
+    public ResponseEntity<ProjectRoomDto> createRoom(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @Valid @RequestBody CreateRoomRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        ProjectRoomDto dto = projectRoomService.createRoom(actor, requestedStudioId, projectId, req);
+        return createPrivateNoCacheResponse(dto, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{projectId}/rooms")
+    @Operation(summary = "List project rooms", description = "Lists all spatial groupings for a project in configured sort order.")
+    public ResponseEntity<List<ProjectRoomDto>> listRooms(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        List<ProjectRoomDto> list = projectRoomService.getProjectRooms(actor, requestedStudioId, projectId);
+        return createPrivateNoCacheResponse(list, HttpStatus.OK);
+    }
+
+    @PatchMapping("/{projectId}/rooms/{roomId}")
+    @Operation(summary = "Update project room", description = "Updates room type or display name for a project room.")
+    public ResponseEntity<ProjectRoomDto> updateRoom(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @PathVariable("roomId") UUID roomId,
+            @Valid @RequestBody UpdateRoomRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        ProjectRoomDto dto = projectRoomService.updateRoom(actor, requestedStudioId, projectId, roomId, req);
+        return createPrivateNoCacheResponse(dto, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{projectId}/rooms/{roomId}")
+    @Operation(summary = "Delete project room", description = "Safely deletes a room without deleting photos. Photos in this room move to Project Photos (unassigned).")
+    public ResponseEntity<Void> deleteRoom(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @PathVariable("roomId") UUID roomId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        projectRoomService.deleteRoom(actor, requestedStudioId, projectId, roomId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{projectId}/rooms/reorder")
+    @Operation(summary = "Reorder project rooms", description = "Reorders the presentation sequence of rooms within a project.")
+    public ResponseEntity<Void> reorderRooms(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @Valid @RequestBody ReorderRoomsRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        projectRoomService.reorderRooms(actor, requestedStudioId, projectId, req);
         return ResponseEntity.noContent().build();
     }
 

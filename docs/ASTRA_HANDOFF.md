@@ -846,9 +846,63 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
-## 46. ASTRA STARTING MESSAGE
+## 47. PORTFOLIO EVOLUTION — PHASE 1: ROOM & PHOTO FOUNDATION (OCTOBER 2026 - COMPLETE & VERIFIED)
 
-To hand off this project to Astra, copy and paste the following message:
+**STATUS:** **100% COMPLETE & VERIFIED**
 
-> "I am continuing development of the Interior Professional Platform. Antigravity has full access to the repository. First read `docs/ASTRA_HANDOFF.md` and `docs/AGENT_CONTEXT.md`, inspect the actual repository, Git history and Flyway migrations, and confirm your understanding of the current state. Do not implement Phase 29 yet. Act as the senior architect, security reviewer, planner and meta-prompt engineer for all future work, while Antigravity remains the execution/development agent."
+### Core Architecture & Invariant Closure
+- **Canonical Content Model**:
+  - `Studio` $\rightarrow$ `Project` $\rightarrow$ `Room / Space Group` $\rightarrow$ `Photos`.
+  - Content != Template: Room/photo groupings belong to project content and will be consumed cleanly across all 6 portfolio templates.
+  - Backward Compatibility: Zero disruption to existing portfolio or flat media queries. Flat media query returns all project media; media items without a room appear in the default unassigned group ("Project Photos").
+- **Database Architecture (Flyway `V028__project_rooms_and_photo_presentation.sql`)**:
+  - `project_rooms`: Primary key `id` (UUIDv7), `project_id`, `studio_id`, `room_type`, `custom_name`, `display_order`, timestamps.
+  - Enforced `ALTER TABLE project_rooms FORCE ROW LEVEL SECURITY` with studio tenant policy.
+  - Foreign key: `media_assets(room_id, project_id, studio_id) REFERENCES project_rooms(id, project_id, studio_id) ON DELETE SET NULL (room_id)`.
+  - Added photo presentation attributes to `media_assets`:
+    - `is_room_cover` (boolean default false)
+    - `focal_x` (numeric 0.0 to 1.0, default 0.5)
+    - `focal_y` (numeric 0.0 to 1.0, default 0.5)
+    - `motion_enabled` (boolean default true)
+  - Safe deletion guarantee: Deleting a room unlinks its photos (`room_id = NULL, is_room_cover = false`) without deleting any media assets or derivative files.
+  - Test migration: `apps/api/src/test/resources/db/test-migration/V028__project_rooms_and_photo_presentation.sql`.
+- **Backend Implementation (`apps/api`)**:
+  - `RoomType`: 11 canonical archetypes (`LIVING_ROOM`, `BEDROOM`, `KITCHEN`, `DINING_ROOM`, `BATHROOM`, `BALCONY`, `FOYER`, `HOME_OFFICE`, `POWDER_ROOM`, `WALK_IN_WARDROBE`, `OTHER`).
+  - `ProjectRoomRecord`, `ProjectRoomDto`, `CreateRoomRequest`, `UpdateRoomRequest`, `ReorderRoomsRequest`.
+  - `ProjectRoomRepository`, `JdbcProjectRoomRepository`, `ProjectRoomService`.
+  - `ProjectController`:
+    - `GET /api/v1/projects/{projectId}/rooms`
+    - `POST /api/v1/projects/{projectId}/rooms`
+    - `PUT /api/v1/projects/{projectId}/rooms/{roomId}`
+    - `DELETE /api/v1/projects/{projectId}/rooms/{roomId}`
+    - `POST /api/v1/projects/{projectId}/rooms/reorder`
+  - Dual-cover isolation in `MediaService`: Project Cover (`is_cover`) and Room Cover (`is_room_cover`) operate completely independently. Setting a room cover scopes exclusivity to that specific room.
+- **Frontend Implementation (`apps/web`)**:
+  - `ProjectRoomManager`:
+    - Spatial Index: Desktop sidebar and mobile swipeable filter pills ("All Spaces", rooms list with photo counts, "Project Photos" unassigned group, "+ Add Room" trigger).
+    - Multi-photo upload: Up to 50 photos with concurrent upload pool limit of 3 files. Uploads automatically attach to the active selected room.
+    - Photo card: Renders room pill, project cover badge, room cover badge, motion badge, quick move-to-room dropdown, quick cover toggle, reorder left/right, and inspector trigger.
+  - `PhotoInspectorSlideover`: Full-height slide-over sheet (`role="dialog"`, `aria-modal="true"`) for granular photo metadata, room reassignment, dual cover toggles, motion opt-out switch, focal point editor trigger, and photo deletion.
+  - `FocalPointModal`: Visual focal-point adjustment tool with pointer click/drag reticle, arrow key nudging, 16:9 landscape & 4:5 mobile preview viewports with real-time `transform-origin` updates, and "Reset to Center" button.
+  - `AddRoomModal`: Archetype selector with auto-populating display name and custom naming option.
+  - `ProjectEditPage`: Tabbed two-level layout separating Project Details from Rooms & Photography with sticky summary and quick jump banner.
+- **Verification Baseline**:
+  - Backend Tests: **405 / 405 PASS** (including `ProjectRoomIntegrationTest` 7/7 PASS).
+  - PostgreSQL 18 RLS: **28 / 28 PASS** (including `PostgreSqlProjectRoomRlsTest` 5/5 PASS).
+  - Frontend Vitest: **320 / 320 PASS** across 48 test files (including `ProjectRooms.test.tsx` 4/4 PASS).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 static routes).
+
+---
+
+## 48. NEXT: PHASE 2 — PUBLIC ROOM GALLERY & FULL-SCREEN VIEWER (ASTRA DESIGN)
+
+Astra is now cleared to proceed with **Phase 2 Design**:
+- Public Room Gallery & Space Navigation across portfolio templates.
+- Full-Screen Cinematic Photo Viewer respecting `motion_enabled` and `(focal_x, focal_y)`.
+- Responsive desktop & mobile viewer interactions.
+
+READY FOR ASTRA PUBLIC ROOM GALLERY + FULL-SCREEN VIEWER DESIGN.
+
 

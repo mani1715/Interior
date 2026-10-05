@@ -250,3 +250,64 @@ export interface ProjectFilterQuery {
   featured?: boolean;
   includeArchived?: boolean;
 }
+
+export type RoomType =
+  | 'LIVING_ROOM'
+  | 'KITCHEN'
+  | 'BEDROOM'
+  | 'DINING'
+  | 'BATHROOM'
+  | 'POOJA'
+  | 'HOME_OFFICE'
+  | 'BALCONY_TERRACE'
+  | 'FOYER'
+  | 'WARDROBE_DRESSER'
+  | 'OTHER';
+
+export interface RoomTypeOption {
+  code: RoomType;
+  label: string;
+}
+
+export const CANONICAL_ROOM_TYPES: RoomTypeOption[] = [
+  { code: 'LIVING_ROOM', label: 'Living Room' },
+  { code: 'KITCHEN', label: 'Modular Kitchen' },
+  { code: 'BEDROOM', label: 'Bedroom' },
+  { code: 'DINING', label: 'Dining Room' },
+  { code: 'BATHROOM', label: 'Bathroom' },
+  { code: 'POOJA', label: 'Pooja Room & Mandir' },
+  { code: 'HOME_OFFICE', label: 'Home Office & Study' },
+  { code: 'BALCONY_TERRACE', label: 'Balcony & Terrace' },
+  { code: 'FOYER', label: 'Foyer & Entryway' },
+  { code: 'WARDROBE_DRESSER', label: 'Wardrobe & Dressing Suite' },
+  { code: 'OTHER', label: 'Other Space' },
+];
+
+export interface ProjectRoomDto {
+  id: string;
+  projectId: string;
+  studioId: string;
+  roomType: RoomType;
+  displayName: string;
+  sortOrder: number;
+  photoCount: number;
+  coverAssetId?: string | null;
+  coverAssetUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoomRequest {
+  roomType: RoomType;
+  displayName?: string | null;
+}
+
+export interface UpdateRoomRequest {
+  roomType?: RoomType | null;
+  displayName?: string | null;
+}
+
+export interface ReorderRoomsRequest {
+  orderedRoomIds: string[];
+}
+

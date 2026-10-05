@@ -21,6 +21,7 @@ import com.interior.platform.security.service.AuditService;
 import com.interior.platform.security.service.AuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,30 @@ public class MediaService {
     private final AuditService auditService;
     private final StorageService storageService;
     private final ImageProcessingService imageProcessingService;
+    private final com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository;
+
+    @Autowired
+    public MediaService(
+            MediaRepository mediaRepository,
+            ProjectRepository projectRepository,
+            StudioRepository studioRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            StorageService storageService,
+            ImageProcessingService imageProcessingService,
+            com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository
+    ) {
+        this.mediaRepository = mediaRepository;
+        this.projectRepository = projectRepository;
+        this.studioRepository = studioRepository;
+        this.securityRepository = securityRepository;
+        this.authorizationService = authorizationService;
+        this.auditService = auditService;
+        this.storageService = storageService;
+        this.imageProcessingService = imageProcessingService;
+        this.projectRoomRepository = projectRoomRepository;
+    }
 
     public MediaService(
             MediaRepository mediaRepository,
@@ -52,14 +77,17 @@ public class MediaService {
             StorageService storageService,
             ImageProcessingService imageProcessingService
     ) {
-        this.mediaRepository = mediaRepository;
-        this.projectRepository = projectRepository;
-        this.studioRepository = studioRepository;
-        this.securityRepository = securityRepository;
-        this.authorizationService = authorizationService;
-        this.auditService = auditService;
-        this.storageService = storageService;
-        this.imageProcessingService = imageProcessingService;
+        this(
+                mediaRepository,
+                projectRepository,
+                studioRepository,
+                securityRepository,
+                authorizationService,
+                auditService,
+                storageService,
+                imageProcessingService,
+                null
+        );
     }
 
     // 1. Upload Intent
@@ -214,6 +242,22 @@ public class MediaService {
             mediaRepository.unsetOtherCovers(intent.projectId(), context.studioId(), mediaAssetId);
         }
 
+        // Room association and room cover handling
+        UUID targetRoomId = null;
+        if (request.roomId() != null) {
+            projectRoomRepository.findRoomByIdAndProject(request.roomId(), intent.projectId(), context.studioId())
+                    .orElseThrow(() -> new BadRequestException("Target room does not belong to this project and studio"));
+            targetRoomId = request.roomId();
+        }
+
+        boolean isRoomCover = Boolean.TRUE.equals(request.isRoomCover());
+        if (isRoomCover) {
+            if (targetRoomId == null) {
+                throw new BadRequestException("Cannot set a photo as room cover when it is not assigned to a room");
+            }
+            mediaRepository.unsetOtherRoomCovers(targetRoomId, context.studioId(), mediaAssetId);
+        }
+
         int sortOrder = mediaRepository.getNextSortOrder(intent.projectId(), context.studioId());
         boolean watermarkEnabled = request.watermarkEnabled() == null || request.watermarkEnabled();
 
@@ -238,7 +282,12 @@ public class MediaService {
                 actor.userId(),
                 now,
                 now,
-                null
+                null,
+                targetRoomId,
+                isRoomCover,
+                new java.math.BigDecimal("50.00"),
+                new java.math.BigDecimal("50.00"),
+                true
         );
 
         mediaRepository.createMediaAsset(asset);
@@ -391,6 +440,44 @@ public class MediaService {
         boolean newWatermark = request.watermarkEnabled() != null ? request.watermarkEnabled() : asset.watermarkEnabled();
         int newSort = request.sortOrder() != null ? request.sortOrder() : asset.sortOrder();
 
+        // Room assignment handling
+        UUID newRoomId;
+        if (Boolean.TRUE.equals(request.clearRoom())) {
+            newRoomId = null;
+        } else if (request.roomId() != null) {
+            projectRoomRepository.findRoomByIdAndProject(request.roomId(), asset.projectId(), context.studioId())
+                    .orElseThrow(() -> new BadRequestException("Target room does not belong to this project and studio"));
+            newRoomId = request.roomId();
+        } else {
+            newRoomId = asset.roomId();
+        }
+
+        // Room cover handling
+        boolean newIsRoomCover;
+        if (request.isRoomCover() != null) {
+            if (Boolean.TRUE.equals(request.isRoomCover())) {
+                if (newRoomId == null) {
+                    throw new BadRequestException("Cannot set a photo as room cover when it is not assigned to a room");
+                }
+                mediaRepository.unsetOtherRoomCovers(newRoomId, context.studioId(), asset.id());
+                newIsRoomCover = true;
+            } else {
+                newIsRoomCover = false;
+            }
+        } else {
+            if (newRoomId == null) {
+                newIsRoomCover = false;
+            } else if (!newRoomId.equals(asset.roomId())) {
+                newIsRoomCover = false;
+            } else {
+                newIsRoomCover = asset.isRoomCover();
+            }
+        }
+
+        java.math.BigDecimal newFocalX = request.focalX() != null ? request.focalX() : (asset.focalX() != null ? asset.focalX() : new java.math.BigDecimal("50.00"));
+        java.math.BigDecimal newFocalY = request.focalY() != null ? request.focalY() : (asset.focalY() != null ? asset.focalY() : new java.math.BigDecimal("50.00"));
+        boolean newMotionEnabled = request.motionEnabled() != null ? request.motionEnabled() : asset.motionEnabled();
+
         boolean regenerateDerivatives = (newWatermark != asset.watermarkEnabled() || newVisibility != asset.visibility())
                 && newVisibility != MediaVisibility.PRIVATE && asset.mediaType().isPublicEligible();
 
@@ -414,7 +501,12 @@ public class MediaService {
                 asset.createdBy(),
                 asset.createdAt(),
                 Instant.now(),
-                null
+                null,
+                newRoomId,
+                newIsRoomCover,
+                newFocalX,
+                newFocalY,
+                newMotionEnabled
         );
 
         mediaRepository.updateMediaAsset(updated);
@@ -704,7 +796,12 @@ public class MediaService {
                     a.width(),
                     a.height(),
                     watermarked,
-                    a.mediaType() == MediaType.AI_CONCEPT
+                    a.mediaType() == MediaType.AI_CONCEPT,
+                    a.roomId(),
+                    a.isRoomCover(),
+                    a.focalX() != null ? a.focalX() : new java.math.BigDecimal("50.00"),
+                    a.focalY() != null ? a.focalY() : new java.math.BigDecimal("50.00"),
+                    a.motionEnabled()
             ));
         }
 
@@ -869,7 +966,12 @@ public class MediaService {
                 a.watermarkEnabled(),
                 dtos,
                 a.createdAt(),
-                a.updatedAt()
+                a.updatedAt(),
+                a.roomId(),
+                a.isRoomCover(),
+                a.focalX() != null ? a.focalX() : new java.math.BigDecimal("50.00"),
+                a.focalY() != null ? a.focalY() : new java.math.BigDecimal("50.00"),
+                a.motionEnabled()
         );
     }
 

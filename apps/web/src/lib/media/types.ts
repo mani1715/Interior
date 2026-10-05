@@ -58,6 +58,11 @@ export interface MediaDetailResponse {
   derivatives: MediaDerivativeDto[];
   createdAt: string;
   updatedAt: string;
+  roomId?: string | null;
+  isRoomCover?: boolean;
+  focalX?: number | null;
+  focalY?: number | null;
+  motionEnabled?: boolean;
 }
 
 export interface CreateUploadIntentRequest {
@@ -83,6 +88,11 @@ export interface CommitUploadRequest {
   isCover?: boolean;
   visibility?: MediaVisibility;
   watermarkEnabled?: boolean;
+  roomId?: string | null;
+  isRoomCover?: boolean;
+  focalX?: number;
+  focalY?: number;
+  motionEnabled?: boolean;
 }
 
 export interface UpdateMediaRequest {
@@ -92,6 +102,12 @@ export interface UpdateMediaRequest {
   visibility?: MediaVisibility;
   watermarkEnabled?: boolean;
   sortOrder?: number;
+  roomId?: string | null;
+  isRoomCover?: boolean;
+  clearRoom?: boolean;
+  focalX?: number;
+  focalY?: number;
+  motionEnabled?: boolean;
 }
 
 export interface ReorderMediaRequest {

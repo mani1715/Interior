@@ -41,7 +41,7 @@ import {
   UpdateProjectRequest,
 } from '@/lib/projects/types';
 import { fetchProject, updateProject, archiveProject, restoreProject } from '@/lib/projects/api';
-import { ProjectMediaManager } from '@/components/media/ProjectMediaManager';
+import { ProjectRoomManager } from '@/components/media/ProjectRoomManager';
 import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
 
 export default function ProjectEditPage() {
@@ -56,6 +56,7 @@ export default function ProjectEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isDirty, setIsDirtyState] = useState(false);
+  const [activeTab, setActiveTab] = useState<'DETAILS' | 'ROOMS_PHOTOS'>('DETAILS');
 
   const setIsDirty = useCallback((dirty: boolean) => {
     setIsDirtyState(dirty);
@@ -417,14 +418,50 @@ export default function ProjectEditPage() {
           </div>
         </div>
 
-        {/* Main Editor Form */}
-        <form id="project-form" onSubmit={handleSave} className="space-y-6">
-          {/* Section 1: Core Story Information */}
-          <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="border-b border-sand-100 pb-3">
-              <h3 className="font-serif text-base text-charcoal-900 font-medium">
-                1. Story & Narrative Details
-              </h3>
+        {/* Navigation Tabs (Astra Spatial Hierarchy) */}
+        <div className="flex items-center gap-2 border-b border-sand-200 pb-px">
+          <button
+            type="button"
+            onClick={() => setActiveTab('DETAILS')}
+            className={`px-5 py-2.5 text-xs rounded-t-xl transition-all border-b-2 flex items-center gap-2 ${
+              activeTab === 'DETAILS'
+                ? 'border-charcoal-900 text-charcoal-900 bg-white font-semibold shadow-sm'
+                : 'border-transparent text-charcoal-500 hover:text-charcoal-800 hover:bg-sand-50/50 font-medium'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-bronze-600" />
+            <span>Project Details</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ROOMS_PHOTOS')}
+            className={`px-5 py-2.5 text-xs rounded-t-xl transition-all border-b-2 flex items-center gap-2 ${
+              activeTab === 'ROOMS_PHOTOS'
+                ? 'border-charcoal-900 text-charcoal-900 bg-white font-semibold shadow-sm'
+                : 'border-transparent text-charcoal-500 hover:text-charcoal-800 hover:bg-sand-50/50 font-medium'
+            }`}
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-bronze-600" />
+            <span>Rooms & Photography</span>
+          </button>
+        </div>
+
+        {activeTab === 'ROOMS_PHOTOS' ? (
+          <div className="space-y-6">
+            <ProjectRoomManager
+              projectId={project.id}
+              studioId={project.studioId}
+              isReadOnly={isArchived}
+            />
+          </div>
+        ) : (
+          <form id="project-form" onSubmit={handleSave} className="space-y-6">
+            {/* Section 1: Core Story Information */}
+            <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="border-b border-sand-100 pb-3">
+                <h3 className="font-serif text-base text-charcoal-900 font-medium">
+                  1. Story & Narrative Details
+                </h3>
               <p className="text-xs text-charcoal-500">
                 Core naming and editorial description displayed on cards and project pages.
               </p>
@@ -879,12 +916,27 @@ export default function ProjectEditPage() {
             </div>
           </div>
 
-          {/* Section 5: Project Photography & Media Engine */}
-          <ProjectMediaManager
-            projectId={project.id}
-            studioId={project.studioId}
-            isReadOnly={isArchived}
-          />
+          {/* Section 5: Project Photography & Spaces Shortcut */}
+          <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-serif text-base text-charcoal-900 font-medium">
+                  Project Photography & Media
+                </h3>
+                <p className="text-xs text-charcoal-500 mt-0.5">
+                  Organize photographs into architectural spaces, select room covers, and calibrate presentation focal points.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ROOMS_PHOTOS')}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-charcoal-900 hover:bg-charcoal-800 text-white text-xs font-medium transition-colors shadow-sm self-start sm:self-auto"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-bronze-300" />
+                <span>Open Rooms & Photos Manager →</span>
+              </button>
+            </div>
+          </div>
 
           {/* Section 6: Internal Studio Notes */}
           <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-3">
@@ -933,6 +985,7 @@ export default function ProjectEditPage() {
             </div>
           )}
         </form>
+        )}
       </div>
     </div>
   );

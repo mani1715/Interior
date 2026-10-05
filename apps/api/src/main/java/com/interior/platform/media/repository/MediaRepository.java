@@ -38,6 +38,13 @@ public interface MediaRepository {
     int getNextSortOrder(UUID projectId, UUID studioId);
     long countActiveMediaByStudio(UUID studioId);
 
+    // 3b. Room Association & Room Covers
+    void unsetOtherRoomCovers(UUID roomId, UUID studioId, UUID keepCoverMediaId);
+    void clearRoomForMediaByRoomId(UUID roomId, UUID studioId);
+    int countMediaByRoom(UUID roomId, UUID studioId);
+    Optional<MediaAssetRecord> findRoomCoverMedia(UUID roomId, UUID studioId);
+    List<MediaAssetRecord> findMediaAssetsByRoom(UUID roomId, UUID studioId);
+
     // 4. Media Derivatives
     void saveDerivatives(List<MediaDerivativeRecord> derivatives);
     List<MediaDerivativeRecord> findDerivativesByMediaId(UUID mediaId, UUID studioId);

@@ -69,7 +69,12 @@ public class JdbcMediaRepository implements MediaRepository {
             getUuid(rs, "created_by"),
             rs.getTimestamp("created_at").toInstant(),
             rs.getTimestamp("updated_at").toInstant(),
-            rs.getTimestamp("deleted_at") != null ? rs.getTimestamp("deleted_at").toInstant() : null
+            rs.getTimestamp("deleted_at") != null ? rs.getTimestamp("deleted_at").toInstant() : null,
+            getUuid(rs, "room_id"),
+            rs.getBoolean("is_room_cover"),
+            rs.getBigDecimal("focal_x"),
+            rs.getBigDecimal("focal_y"),
+            rs.getBoolean("motion_enabled")
     );
 
     private final RowMapper<MediaDerivativeRecord> derivativeMapper = (rs, rowNum) -> new MediaDerivativeRecord(
@@ -202,8 +207,9 @@ public class JdbcMediaRepository implements MediaRepository {
         String sql = "INSERT INTO media_assets (" +
                      "id, studio_id, project_id, media_type, visibility, processing_status, " +
                      "original_storage_key, content_type, file_size, width, height, sort_order, " +
-                     "is_cover, alt_text, caption, watermark_enabled, created_by, created_at, updated_at" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "is_cover, alt_text, caption, watermark_enabled, created_by, created_at, updated_at, " +
+                     "room_id, is_room_cover, focal_x, focal_y, motion_enabled" +
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 asset.id(),
                 asset.studioId(),
@@ -223,7 +229,12 @@ public class JdbcMediaRepository implements MediaRepository {
                 asset.watermarkEnabled(),
                 asset.createdBy(),
                 Timestamp.from(asset.createdAt()),
-                Timestamp.from(asset.updatedAt())
+                Timestamp.from(asset.updatedAt()),
+                asset.roomId(),
+                asset.isRoomCover(),
+                asset.focalX(),
+                asset.focalY(),
+                asset.motionEnabled()
         );
         return asset;
     }
@@ -291,7 +302,8 @@ public class JdbcMediaRepository implements MediaRepository {
     public void updateMediaAsset(MediaAssetRecord asset) {
         String sql = "UPDATE media_assets SET " +
                      "visibility = ?, processing_status = ?, is_cover = ?, alt_text = ?, caption = ?, " +
-                     "watermark_enabled = ?, sort_order = ?, updated_at = ? " +
+                     "watermark_enabled = ?, sort_order = ?, updated_at = ?, " +
+                     "room_id = ?, is_room_cover = ?, focal_x = ?, focal_y = ?, motion_enabled = ? " +
                      "WHERE id = ? AND studio_id = ?";
         jdbcTemplate.update(sql,
                 asset.visibility().name(),
@@ -302,6 +314,11 @@ public class JdbcMediaRepository implements MediaRepository {
                 asset.watermarkEnabled(),
                 asset.sortOrder(),
                 Timestamp.from(Instant.now()),
+                asset.roomId(),
+                asset.isRoomCover(),
+                asset.focalX(),
+                asset.focalY(),
+                asset.motionEnabled(),
                 asset.id(),
                 asset.studioId()
         );
@@ -311,6 +328,38 @@ public class JdbcMediaRepository implements MediaRepository {
     public void unsetOtherCovers(UUID projectId, UUID studioId, UUID keepCoverMediaId) {
         String sql = "UPDATE media_assets SET is_cover = false, updated_at = ? WHERE project_id = ? AND studio_id = ? AND id != ?";
         jdbcTemplate.update(sql, Timestamp.from(Instant.now()), projectId, studioId, keepCoverMediaId);
+    }
+
+    @Override
+    public void unsetOtherRoomCovers(UUID roomId, UUID studioId, UUID keepCoverMediaId) {
+        String sql = "UPDATE media_assets SET is_room_cover = false, updated_at = ? WHERE room_id = ? AND studio_id = ? AND id != ?";
+        jdbcTemplate.update(sql, Timestamp.from(Instant.now()), roomId, studioId, keepCoverMediaId);
+    }
+
+    @Override
+    public void clearRoomForMediaByRoomId(UUID roomId, UUID studioId) {
+        String sql = "UPDATE media_assets SET room_id = NULL, is_room_cover = false, updated_at = ? WHERE room_id = ? AND studio_id = ?";
+        jdbcTemplate.update(sql, Timestamp.from(Instant.now()), roomId, studioId);
+    }
+
+    @Override
+    public int countMediaByRoom(UUID roomId, UUID studioId) {
+        String sql = "SELECT COUNT(*) FROM media_assets WHERE room_id = ? AND studio_id = ? AND deleted_at IS NULL";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, roomId, studioId);
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public Optional<MediaAssetRecord> findRoomCoverMedia(UUID roomId, UUID studioId) {
+        String sql = "SELECT * FROM media_assets WHERE room_id = ? AND studio_id = ? AND is_room_cover = true AND deleted_at IS NULL LIMIT 1";
+        List<MediaAssetRecord> list = jdbcTemplate.query(sql, mediaAssetMapper, roomId, studioId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
+    @Override
+    public List<MediaAssetRecord> findMediaAssetsByRoom(UUID roomId, UUID studioId) {
+        String sql = "SELECT * FROM media_assets WHERE room_id = ? AND studio_id = ? AND deleted_at IS NULL ORDER BY sort_order ASC, created_at ASC";
+        return jdbcTemplate.query(sql, mediaAssetMapper, roomId, studioId);
     }
 
     @Override

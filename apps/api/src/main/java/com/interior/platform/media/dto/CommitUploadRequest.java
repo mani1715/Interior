@@ -20,5 +20,20 @@ public record CommitUploadRequest(
 
         MediaVisibility visibility,
 
-        Boolean watermarkEnabled
-) {}
+        Boolean watermarkEnabled,
+
+        UUID roomId,
+
+        Boolean isRoomCover
+) {
+    public CommitUploadRequest(
+            UUID uploadIntentId,
+            String altText,
+            String caption,
+            Boolean isCover,
+            MediaVisibility visibility,
+            Boolean watermarkEnabled
+    ) {
+        this(uploadIntentId, altText, caption, isCover, visibility, watermarkEnabled, null, null);
+    }
+}

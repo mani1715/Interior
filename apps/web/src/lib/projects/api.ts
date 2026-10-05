@@ -1,10 +1,14 @@
 import { apiFetch } from '../api-client';
 import {
   CreateProjectRequest,
+  CreateRoomRequest,
   ProjectDetailDto,
   ProjectFilterQuery,
+  ProjectRoomDto,
   ProjectSummaryDto,
+  ReorderRoomsRequest,
   UpdateProjectRequest,
+  UpdateRoomRequest,
 } from './types';
 
 function buildQuery(query?: ProjectFilterQuery, studioId?: string): string {
@@ -92,3 +96,60 @@ export async function restoreProject(
     body: JSON.stringify({ version }),
   });
 }
+
+export async function fetchProjectRooms(
+  projectId: string,
+  studioId?: string
+): Promise<ProjectRoomDto[]> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<ProjectRoomDto[]>(`/projects/${projectId}/rooms${qs}`);
+}
+
+export async function createProjectRoom(
+  projectId: string,
+  data: CreateRoomRequest,
+  studioId?: string
+): Promise<ProjectRoomDto> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<ProjectRoomDto>(`/projects/${projectId}/rooms${qs}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProjectRoom(
+  projectId: string,
+  roomId: string,
+  data: UpdateRoomRequest,
+  studioId?: string
+): Promise<ProjectRoomDto> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<ProjectRoomDto>(`/projects/${projectId}/rooms/${roomId}${qs}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProjectRoom(
+  projectId: string,
+  roomId: string,
+  studioId?: string
+): Promise<void> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<void>(`/projects/${projectId}/rooms/${roomId}${qs}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function reorderProjectRooms(
+  projectId: string,
+  orderedRoomIds: string[],
+  studioId?: string
+): Promise<void> {
+  const qs = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
+  return apiFetch<void>(`/projects/${projectId}/rooms/reorder${qs}`, {
+    method: 'PUT',
+    body: JSON.stringify({ orderedRoomIds }),
+  });
+}
+
