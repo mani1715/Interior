@@ -56,10 +56,57 @@ export function setCachedCsrfToken(token: string) {
   cachedCsrfToken = token;
 }
 
+const ACTIVE_STUDIO_STORAGE_KEY = 'interior_active_studio_id';
+let currentActiveStudioIdHeader: string | null = null;
+
+export function getStoredActiveStudioId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const fromSession = sessionStorage.getItem(ACTIVE_STUDIO_STORAGE_KEY);
+    if (fromSession && fromSession.trim()) {
+      return fromSession.trim();
+    }
+    const fromLocal = localStorage.getItem(ACTIVE_STUDIO_STORAGE_KEY);
+    if (fromLocal && fromLocal.trim()) {
+      return fromLocal.trim();
+    }
+  } catch {
+    // Storage access may fail in restricted/private browsing modes
+  }
+  return null;
+}
+
+export function setStoredActiveStudioId(studioId: string | null) {
+  currentActiveStudioIdHeader = studioId;
+  if (typeof window === 'undefined') return;
+  try {
+    if (studioId && studioId.trim()) {
+      sessionStorage.setItem(ACTIVE_STUDIO_STORAGE_KEY, studioId.trim());
+      localStorage.setItem(ACTIVE_STUDIO_STORAGE_KEY, studioId.trim());
+    } else {
+      sessionStorage.removeItem(ACTIVE_STUDIO_STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_STUDIO_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage write failures
+  }
+}
+
+export function setActiveStudioIdHeader(studioId: string | null) {
+  currentActiveStudioIdHeader = studioId;
+}
+
+export function getActiveStudioIdHeader(): string | null {
+  if (currentActiveStudioIdHeader !== null) {
+    return currentActiveStudioIdHeader;
+  }
+  return getStoredActiveStudioId();
+}
+
 /**
  * Standardized API client fetching backend REST endpoints (/api/v1).
  * Credentials (cookies) are automatically included for secure session auth.
- * Automatically forwards/extracts CSRF tokens and request IDs.
+ * Automatically forwards/extracts CSRF tokens, active studio tenant ID, and request IDs.
  */
 export async function apiFetch<T>(
   endpoint: string,
@@ -70,6 +117,14 @@ export async function apiFetch<T>(
   const headers = new Headers(options.headers);
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  // Inject active studio context header if not already provided explicitly
+  if (!headers.has('X-Studio-Id')) {
+    const activeStudio = getActiveStudioIdHeader();
+    if (activeStudio) {
+      headers.set('X-Studio-Id', activeStudio);
+    }
   }
 
   const method = (options.method || 'GET').toUpperCase();

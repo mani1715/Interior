@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { apiFetch, resetCsrfToken } from '../api-client';
+import { apiFetch, resetCsrfToken, setStoredActiveStudioId, setActiveStudioIdHeader } from '../api-client';
 
 export interface StudioSummary {
   studioId: string;
@@ -42,6 +42,7 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
+  switchStudio?: (studioId: string) => Promise<void>;
   loginDevPersona: (persona: string) => Promise<void>;
   logout: () => Promise<void>;
   revokeAllSessions: () => Promise<void>;
@@ -69,6 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           studios: data.studios || [],
           assurance: data.assurance || 'PASSWORD',
         });
+        if (data.activeStudioId) {
+          setStoredActiveStudioId(data.activeStudioId);
+        }
       } else {
         setUser(null);
       }
@@ -76,6 +80,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const switchStudio = useCallback(async (studioId: string) => {
+    if (!studioId) return;
+    setStoredActiveStudioId(studioId);
+    setActiveStudioIdHeader(studioId);
+
+    try {
+      const data = await apiFetch<AuthResponse>('/auth/me', {
+        headers: {
+          'X-Studio-Id': studioId,
+        },
+      });
+
+      if (data && data.authenticated && data.id) {
+        setUser({
+          id: data.id,
+          displayName: data.displayName || 'User',
+          email: data.email || null,
+          status: data.status || 'ACTIVE',
+          roles: data.roles || ['CUSTOMER'],
+          permissions: data.permissions || [],
+          activeStudioId: data.activeStudioId || studioId,
+          activeStudioRole: data.activeStudioRole || null,
+          studios: data.studios || [],
+          assurance: data.assurance || 'PASSWORD',
+        });
+      }
+    } finally {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('studio-switched', { detail: { studioId } }));
+      }
     }
   }, []);
 
@@ -142,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         refreshUser,
+        switchStudio,
         loginDevPersona,
         logout,
         revokeAllSessions,
@@ -157,6 +195,7 @@ const defaultAuthContext: AuthContextType = {
   isLoading: false,
   isAuthenticated: false,
   refreshUser: async () => {},
+  switchStudio: async () => {},
   loginDevPersona: async () => {},
   logout: async () => {},
   revokeAllSessions: async () => {},

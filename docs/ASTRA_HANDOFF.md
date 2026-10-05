@@ -744,9 +744,41 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
+## 44.4. MULTI-STUDIO WORKSPACE CONTEXT & SAFE TENANT SWITCHING (OCTOBER 2026 - ROUND 7)
+
+- **Strict Tenant Authorization & Tamper Guard**:
+  - `SecurityInterceptor`: When `X-Studio-Id` header or `studioId` parameter is provided, it validates against the caller's verified studio memberships. Any attempt to supply an unauthorized studio ID is immediately rejected with HTTP 403 Forbidden (`Access denied: you are not a member of the requested studio`).
+  - Unit tests added to `DevAuthSecurityTest.java` verifying 403 rejection for unauthorized studio IDs and correct role/permission derivation when authorized.
+- **PostgreSQL Connection-Pool Isolation**:
+  - Re-verified row-level security across pooled connections in `PostgreSqlStudioTeamRlsTest.java` (`testConnectionReuse_TenantSwitchingIsolation`): sequentially switching Studio A $\rightarrow$ Studio B $\rightarrow$ Reset on a single pooled physical connection verifies zero leakage of tenant data across transactions.
+- **Frontend Active-Studio Synchronization & Storage**:
+  - `apps/web/src/lib/api-client.ts`: Maintains in-memory active studio header with `sessionStorage` (per-tab) and `localStorage` fallback. Injects `X-Studio-Id` into `apiFetch` on all studio requests.
+  - `apps/web/src/lib/auth/auth-context.tsx`: Added `switchStudio(studioId: string)` which persists selection, re-fetches authenticated identity context via `/api/v1/auth/me`, recalculates studio-scoped permissions, and dispatches the `'studio-switched'` window event.
+- **Accessible Multi-Studio Switcher & Mobile Experience**:
+  - `WorkspaceShell.tsx`:
+    - Single studio membership: Clean identity presentation without redundant switcher dropdowns.
+    - Multiple studio memberships: Accessible desktop popover (`role="listbox"`, `role="option"`, `aria-selected`, `aria-haspopup`) with formatted role labels ("Studio Admin", "Team Member"), live region announcement (`aria-live="polite"`), outside click and ESC key dismissal.
+    - Mobile Header: Compact thumb-friendly studio switcher popover tailored for 360px, 390px, and 430px viewports.
+    - Native hidden `<select id="studio-select">` maintained for screen-reader and end-to-end testing compatibility.
+- **Cross-Studio Leakage Prevention & Unsaved Changes Guard**:
+  - Created `UnsavedChangesContext` and `useUnsavedChanges`: Dirty forms (e.g. Project CMS, Portfolio Builder) register unsaved changes. Switching studios prompts a confirmation dialog ("Discard & Switch Studio" vs "Cancel").
+  - Form & Module Reset: Project editor redirects to `/workspace/projects` on studio switch; Portfolio Builder, Projects List, and Workspace Home reload active studio data cleanly upon `'studio-switched'`.
+- **Multi-Studio Creation Status Audit**:
+  - Documented as **PARTIAL**: Users establish an initial studio during professional onboarding; additional studio memberships are acquired via invitations (`/invite/[token]`). Direct multi-studio creation UI ("Create Another Studio") is not yet a separate feature.
+- **Full Verification Baseline**:
+  - Backend Tests: **384 / 384 PASS** (0 failures, 0 skipped; real PostgreSQL 18.3 RLS tests PASS).
+  - Frontend Tests: **312 / 312 PASS** (46 test files, 100% pass, 0 failures).
+  - PostgreSQL 18 RLS Isolation: **28 / 28 PASS** (including pooled connection reuse test).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+  - Working tree: clean.
+
+---
+
 ## 45. FINAL GIT & HANDOFF STATE
 
-- **Commit Message:** `docs: prepare astra project handoff`
+- **Commit Message:** `feat: complete multi-studio workspace switching`
 - **Branch:** `main`
 - **Synchronization:** Local HEAD == origin/main. Working tree clean.
 

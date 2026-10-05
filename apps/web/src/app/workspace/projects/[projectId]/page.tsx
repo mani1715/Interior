@@ -42,18 +42,25 @@ import {
 } from '@/lib/projects/types';
 import { fetchProject, updateProject, archiveProject, restoreProject } from '@/lib/projects/api';
 import { ProjectMediaManager } from '@/components/media/ProjectMediaManager';
+import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
 
 export default function ProjectEditPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
+  const { setDirty: setGlobalDirty } = useUnsavedChanges();
 
   const [project, setProject] = useState<ProjectDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirtyState] = useState(false);
+
+  const setIsDirty = useCallback((dirty: boolean) => {
+    setIsDirtyState(dirty);
+    setGlobalDirty(`project-${projectId}`, dirty, 'Unsaved project details');
+  }, [projectId, setGlobalDirty]);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -133,6 +140,15 @@ export default function ProjectEditPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
+
+  // When active studio changes, navigate back to projects directory to prevent cross-studio mutation
+  useEffect(() => {
+    const handleStudioSwitched = () => {
+      router.push('/workspace/projects');
+    };
+    window.addEventListener('studio-switched', handleStudioSwitched);
+    return () => window.removeEventListener('studio-switched', handleStudioSwitched);
+  }, [router]);
 
   const handleStyleToggle = (style: ProjectStyle) => {
     setIsDirty(true);

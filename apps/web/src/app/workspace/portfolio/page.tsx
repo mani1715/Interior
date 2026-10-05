@@ -38,13 +38,21 @@ import {
 } from '@/lib/portfolio/types';
 import { TEMPLATE_REGISTRY, getAllTemplates } from '@/lib/portfolio/template-registry';
 import { normalizePortfolioProps } from '@/lib/portfolio/normalize-props';
+import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
 
 export default function PortfolioBuilderPage() {
+  const { setDirty: setGlobalDirty } = useUnsavedChanges();
   const [portfolio, setPortfolio] = useState<PortfolioDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDirty, setIsDirtyState] = useState(false);
+
+  const setIsDirty = useCallback((dirty: boolean) => {
+    setIsDirtyState(dirty);
+    setGlobalDirty('portfolio-builder', dirty, 'Unsaved portfolio changes');
+  }, [setGlobalDirty]);
 
   // Active tab in builder
   const [activeTab, setActiveTab] = useState<'content' | 'sections' | 'design' | 'versions'>('content');
@@ -62,7 +70,6 @@ export default function PortfolioBuilderPage() {
   const [secondaryColor, setSecondaryColor] = useState('#F3F4F6');
   const [accentColor, setAccentColor] = useState('#C5A880');
   const [fontPairing, setFontPairing] = useState<FontPairing>('SYSTEM_SANS');
-  const [isDirty, setIsDirty] = useState(false);
 
   // Version snapshot input state
   const [snapshotLabel, setSnapshotLabel] = useState('');
@@ -117,6 +124,15 @@ export default function PortfolioBuilderPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
+
+  // Reload portfolio whenever active studio changes
+  useEffect(() => {
+    const handleStudioSwitched = () => {
+      loadPortfolio();
+    };
+    window.addEventListener('studio-switched', handleStudioSwitched);
+    return () => window.removeEventListener('studio-switched', handleStudioSwitched);
+  }, [loadPortfolio]);
 
   // Save content & styles (optimistic concurrency version included)
   const handleSavePortfolio = async () => {

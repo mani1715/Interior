@@ -264,6 +264,7 @@ const mockDesignerAuth: AuthContextType = {
   isLoading: false,
   isAuthenticated: true,
   refreshUser: vi.fn().mockResolvedValue(undefined),
+  switchStudio: vi.fn().mockResolvedValue(undefined),
   loginDevPersona: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn().mockResolvedValue(undefined),
   revokeAllSessions: vi.fn().mockResolvedValue(undefined),
@@ -285,6 +286,7 @@ const mockCustomerAuth: AuthContextType = {
   isLoading: false,
   isAuthenticated: true,
   refreshUser: vi.fn().mockResolvedValue(undefined),
+  switchStudio: vi.fn().mockResolvedValue(undefined),
   loginDevPersona: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn().mockResolvedValue(undefined),
   revokeAllSessions: vi.fn().mockResolvedValue(undefined),
@@ -488,5 +490,84 @@ describe('Phase 09: Designer Dashboard & Professional Workspace', () => {
 
     const workspaceCta = screen.getByRole('link', { name: /continue to professional workspace/i });
     expect(workspaceCta.getAttribute('href')).toBe('/workspace');
+  });
+
+  it('renders single studio identity card without switcher dropdown when only one studio exists', async () => {
+    vi.spyOn(workspaceApi, 'fetchWorkspaceSummary').mockResolvedValue(mockSummaryData);
+
+    render(
+      <AuthContext.Provider value={mockDesignerAuth}>
+        <WorkspaceShell>
+          <div>Single Studio Content</div>
+        </WorkspaceShell>
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Srinivasa Interiors').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // When only 1 studio exists, switcher button should NOT be rendered
+    expect(screen.queryByRole('button', { name: /switch active studio/i })).toBeNull();
+  });
+
+  it('renders accessible multi-studio switcher and invokes switchStudio on selection', async () => {
+    const multiStudioSummary: WorkspaceSummary = {
+      ...mockSummaryData,
+      availableStudios: [
+        {
+          studioId: 'studio-999',
+          studioName: 'Srinivasa Interiors',
+          studioSlug: 'srinivasa-interiors',
+          role: 'OWNER',
+        },
+        {
+          studioId: 'studio-888',
+          studioName: 'Deccan Design Lab',
+          studioSlug: 'deccan-design-lab',
+          role: 'DESIGNER_MEMBER',
+        },
+      ],
+    };
+
+    vi.spyOn(workspaceApi, 'fetchWorkspaceSummary').mockResolvedValue(multiStudioSummary);
+
+    const switchStudioMock = vi.fn().mockResolvedValue(undefined);
+    const multiAuth: AuthContextType = {
+      ...mockDesignerAuth,
+      switchStudio: switchStudioMock,
+    };
+
+    render(
+      <AuthContext.Provider value={multiAuth}>
+        <WorkspaceShell>
+          <div>Multi Studio Content</div>
+        </WorkspaceShell>
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Srinivasa Interiors').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Switcher button should be visible with studio count
+    const switcherBtns = screen.getAllByRole('button', { name: /switch active studio/i });
+    expect(switcherBtns.length).toBeGreaterThanOrEqual(1);
+
+    // Open desktop switcher
+    fireEvent.click(switcherBtns[0]);
+
+    // Check listbox options
+    await waitFor(() => {
+      expect(screen.getByText('Deccan Design Lab')).toBeDefined();
+      expect(screen.getByText('Team Member')).toBeDefined();
+    });
+
+    // Select second studio from custom dropdown options
+    const deccanOptions = screen.getAllByRole('option', { name: /deccan design lab/i });
+    fireEvent.click(deccanOptions[0]);
+
+    // Verify switchStudio was invoked with target studio ID
+    expect(switchStudioMock).toHaveBeenCalledWith('studio-888');
   });
 });

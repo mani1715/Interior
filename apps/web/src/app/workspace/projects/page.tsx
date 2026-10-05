@@ -87,6 +87,15 @@ export default function ProjectsListPage() {
     loadProjects();
   }, [loadProjects]);
 
+  // Reload projects whenever active studio changes
+  useEffect(() => {
+    const handleStudioSwitched = () => {
+      loadProjects();
+    };
+    window.addEventListener('studio-switched', handleStudioSwitched);
+    return () => window.removeEventListener('studio-switched', handleStudioSwitched);
+  }, [loadProjects]);
+
   // Filtered projects
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {

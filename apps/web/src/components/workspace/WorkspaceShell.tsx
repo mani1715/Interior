@@ -25,10 +25,22 @@ import {
   MessageSquare,
   ArrowRight,
   Users2,
+  ChevronsUpDown,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { WorkspaceSummary } from '@/lib/workspace/types';
 import { fetchWorkspaceSummary } from '@/lib/workspace/api';
+import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
+
+export function formatStudioRole(role?: string | null): string {
+  if (!role) return 'Team Member';
+  const r = role.toUpperCase();
+  if (r === 'DESIGNER_ADMIN' || r === 'OWNER' || r === 'ADMIN') return 'Studio Admin';
+  if (r === 'DESIGNER_MEMBER' || r === 'MEMBER') return 'Team Member';
+  return role.replace(/_/g, ' ');
+}
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
@@ -74,15 +86,45 @@ const MOBILE_BOTTOM_NAV = [
 export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, switchStudio, logout } = useAuth();
+  const { confirmDiscard, modalOpen, cancelDiscard, proceedDiscard } = useUnsavedChanges();
 
   const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState<boolean>(false);
+  const [desktopSwitcherOpen, setDesktopSwitcherOpen] = useState<boolean>(false);
+  const [mobileSwitcherOpen, setMobileSwitcherOpen] = useState<boolean>(false);
+  const [announcement, setAnnouncement] = useState<string>('');
   const [selectedStudioId, setSelectedStudioId] = useState<string | undefined>(undefined);
 
   const bottomSheetRef = useRef<HTMLDivElement>(null);
+  const desktopSwitcherRef = useRef<HTMLDivElement>(null);
+  const mobileSwitcherRef = useRef<HTMLDivElement>(null);
+
+  // Close desktop dropdown on outside click or ESC
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (desktopSwitcherRef.current && !desktopSwitcherRef.current.contains(e.target as Node)) {
+        setDesktopSwitcherOpen(false);
+      }
+      if (mobileSwitcherRef.current && !mobileSwitcherRef.current.contains(e.target as Node)) {
+        setMobileSwitcherOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDesktopSwitcherOpen(false);
+        setMobileSwitcherOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Authentication check & Data fetching
   useEffect(() => {
@@ -128,6 +170,29 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [moreMenuOpen]);
+
+  const handleSelectStudio = (targetStudioId: string, studioName: string) => {
+    if (targetStudioId === (selectedStudioId || summary?.studio?.id || user?.activeStudioId)) {
+      setDesktopSwitcherOpen(false);
+      setMobileSwitcherOpen(false);
+      return;
+    }
+
+    confirmDiscard(async () => {
+      setSelectedStudioId(targetStudioId);
+      setDesktopSwitcherOpen(false);
+      setMobileSwitcherOpen(false);
+      setAnnouncement(`Switched to studio ${studioName}`);
+
+      try {
+        if (switchStudio) {
+          await switchStudio(targetStudioId);
+        }
+      } catch (err: any) {
+        console.error('Failed to switch studio:', err);
+      }
+    });
+  };
 
   if (authLoading || (loading && !summary && !error)) {
     return (
@@ -233,8 +298,13 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           </Link>
         </div>
 
-        {/* Studio Tenancy Identity Card */}
-        <div className="p-4 mx-3 my-3 bg-sand-50 border border-sand-200 rounded-xl">
+        {/* Studio Tenancy Identity Card & Switcher */}
+        <div ref={desktopSwitcherRef} className="relative p-4 mx-3 my-3 bg-sand-50 border border-sand-200 rounded-xl">
+          {/* Accessible Screen-Reader Announcement Live Region */}
+          <div aria-live="polite" aria-atomic="true" className="sr-only">
+            {announcement}
+          </div>
+
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-charcoal-900 truncate">
@@ -252,14 +322,74 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           {/* Multiple studio selector if available */}
           {summary && summary.availableStudios && summary.availableStudios.length > 1 && (
             <div className="mt-3 pt-2.5 border-t border-sand-200">
-              <label htmlFor="studio-select" className="text-[10px] font-medium text-charcoal-500 uppercase block mb-1">
-                Switch Studio
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider">
+                  Active Studio
+                </span>
+                <span className="text-[10px] text-bronze-700 font-medium">
+                  {summary.availableStudios.length} studios
+                </span>
+              </div>
+
+              {/* Accessible Custom Popover Trigger */}
+              <button
+                type="button"
+                onClick={() => setDesktopSwitcherOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={desktopSwitcherOpen}
+                aria-label="Switch active studio"
+                className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-sand-300 rounded-lg text-left text-xs font-medium text-charcoal-800 hover:border-bronze-500 focus:outline-none focus:ring-2 focus:ring-bronze-500 transition-colors"
+              >
+                <span className="truncate mr-2">
+                  {studio?.name || 'Select Studio'}
+                </span>
+                <ChevronsUpDown className="w-3.5 h-3.5 text-charcoal-400 flex-shrink-0" />
+              </button>
+
+              {/* Custom Accessible Dropdown Listbox */}
+              {desktopSwitcherOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Available studios"
+                  className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-sand-200 rounded-xl shadow-lg p-1.5 space-y-1 animate-fade-in"
+                >
+                  {summary.availableStudios.map((s) => {
+                    const isCurrent = s.studioId === (selectedStudioId || studio?.id || user?.activeStudioId);
+                    return (
+                      <button
+                        key={s.studioId}
+                        role="option"
+                        aria-selected={isCurrent}
+                        type="button"
+                        onClick={() => handleSelectStudio(s.studioId, s.studioName)}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs transition-colors ${
+                          isCurrent
+                            ? 'bg-sand-100 text-charcoal-900 font-semibold'
+                            : 'hover:bg-sand-50 text-charcoal-700'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="truncate font-medium">{s.studioName}</p>
+                          <p className="text-[10px] text-charcoal-500">{formatStudioRole(s.role)}</p>
+                        </div>
+                        {isCurrent && <Check className="w-3.5 h-3.5 text-bronze-700 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Fallback Native Select for standard form access & automated test compatibility */}
               <select
                 id="studio-select"
+                aria-label="Switch Studio Native"
                 value={selectedStudioId || studio?.id || ''}
-                onChange={(e) => setSelectedStudioId(e.target.value)}
-                className="w-full text-xs bg-white border border-sand-300 rounded-lg px-2 py-1 text-charcoal-800 focus:outline-none focus:ring-1 focus:ring-bronze-500"
+                onChange={(e) => {
+                  const target = summary.availableStudios.find((s) => s.studioId === e.target.value);
+                  handleSelectStudio(e.target.value, target?.studioName || 'Studio');
+                }}
+                className="sr-only"
+                tabIndex={-1}
               >
                 {summary.availableStudios.map((s) => (
                   <option key={s.studioId} value={s.studioId}>
@@ -333,19 +463,79 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-8">
         {/* Mobile Top Bar (Visible only on < md) */}
         <header className="md:hidden sticky top-0 z-30 bg-white border-b border-sand-200 px-4 h-14 flex items-center justify-between">
-          <Link href="/workspace" className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-bronze-700 text-white flex items-center justify-center font-serif font-bold text-xs shadow-2xs">
-              E
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-semibold text-charcoal-900 truncate block">
-                {studio?.name || 'Workspace'}
-              </span>
-              <span className="text-[10px] text-bronze-700 font-medium block -mt-0.5">
-                {studio?.role || 'OWNER'}
-              </span>
-            </div>
-          </Link>
+          <div ref={mobileSwitcherRef} className="relative flex items-center gap-2 min-w-0">
+            <Link href="/workspace" className="flex items-center gap-2 min-w-0 flex-shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-bronze-700 text-white flex items-center justify-center font-serif font-bold text-xs shadow-2xs">
+                E
+              </div>
+            </Link>
+
+            {summary && summary.availableStudios && summary.availableStudios.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => setMobileSwitcherOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={mobileSwitcherOpen}
+                aria-label="Switch active studio"
+                className="flex items-center gap-1.5 min-w-0 text-left py-1 px-1.5 rounded-lg hover:bg-sand-100 transition-colors"
+              >
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-charcoal-900 truncate block max-w-[150px]">
+                    {studio?.name || 'Workspace'}
+                  </span>
+                  <span className="text-[10px] text-bronze-700 font-medium block -mt-0.5">
+                    {formatStudioRole(studio?.role)}
+                  </span>
+                </div>
+                <ChevronsUpDown className="w-3.5 h-3.5 text-charcoal-400 flex-shrink-0" />
+              </button>
+            ) : (
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-charcoal-900 truncate block max-w-[160px]">
+                  {studio?.name || 'Workspace'}
+                </span>
+                <span className="text-[10px] text-bronze-700 font-medium block -mt-0.5">
+                  {formatStudioRole(studio?.role)}
+                </span>
+              </div>
+            )}
+
+            {/* Mobile Studio Switcher Dropdown */}
+            {mobileSwitcherOpen && summary && summary.availableStudios && (
+              <div
+                role="listbox"
+                aria-label="Available studios mobile"
+                className="absolute left-0 top-full mt-2 w-64 z-50 bg-white border border-sand-200 rounded-xl shadow-xl p-1.5 space-y-1 animate-fade-in"
+              >
+                <div className="px-2.5 py-1 text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider border-b border-sand-200 mb-1">
+                  Switch Active Studio
+                </div>
+                {summary.availableStudios.map((s) => {
+                  const isCurrent = s.studioId === (selectedStudioId || studio?.id || user?.activeStudioId);
+                  return (
+                    <button
+                      key={s.studioId}
+                      role="option"
+                      aria-selected={isCurrent}
+                      type="button"
+                      onClick={() => handleSelectStudio(s.studioId, s.studioName)}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs transition-colors ${
+                        isCurrent
+                          ? 'bg-sand-100 text-charcoal-900 font-semibold'
+                          : 'hover:bg-sand-50 text-charcoal-700'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="truncate font-medium">{s.studioName}</p>
+                        <p className="text-[10px] text-charcoal-500">{formatStudioRole(s.role)}</p>
+                      </div>
+                      {isCurrent && <Check className="w-3.5 h-3.5 text-bronze-700 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <Link
             href="/workspace/notifications"
@@ -472,6 +662,55 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                   <span>Sign Out</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* UNSAVED CHANGES GUARD MODAL                                  */}
+      {/* ============================================================ */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-charcoal-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unsaved-modal-title"
+        >
+          <div className="bg-white border border-sand-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 text-terracotta-700">
+              <div className="w-10 h-10 rounded-full bg-terracotta-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-terracotta-600" />
+              </div>
+              <div>
+                <h3 id="unsaved-modal-title" className="font-serif text-lg font-semibold text-charcoal-900">
+                  Unsaved Changes
+                </h3>
+                <p className="text-xs text-charcoal-500">
+                  You have unsaved changes in your current studio.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-charcoal-600 leading-relaxed">
+              Switching to another studio now will discard your unsaved progress. Are you sure you want to discard your changes and switch?
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-sand-200">
+              <button
+                type="button"
+                onClick={cancelDiscard}
+                className="px-4 py-2 text-xs font-medium text-charcoal-700 bg-sand-100 hover:bg-sand-200 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={proceedDiscard}
+                className="px-4 py-2 text-xs font-medium text-white bg-terracotta-700 hover:bg-terracotta-800 rounded-xl transition-colors shadow-2xs"
+              >
+                Discard & Switch Studio
+              </button>
             </div>
           </div>
         </div>

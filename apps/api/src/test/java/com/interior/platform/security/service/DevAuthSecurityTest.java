@@ -183,4 +183,100 @@ class DevAuthSecurityTest {
         assertEquals(Set.of("CUSTOMER"), capturedAuthActor[0].platformRoles(), "Role MUST remain CUSTOMER despite spoofed header");
         assertFalse(capturedAuthActor[0].platformRoles().contains("SUPER_ADMIN"), "Injected SUPER_ADMIN role MUST be ignored");
     }
+
+    @Test
+    @DisplayName("SecurityInterceptor rejects requests with X-Studio-Id if caller is not an active member of that studio")
+    void testUnauthorizedStudioIdRejectedWith403() throws Exception {
+        SecurityRepository securityRepository = mock(SecurityRepository.class);
+        var props = new com.interior.platform.security.config.AuthSecurityProperties();
+        SessionSecurityService sessionSecurityService = new SessionSecurityService(props, securityRepository, java.time.Clock.systemUTC());
+        SecurityInterceptor interceptor = new SecurityInterceptor(sessionSecurityService);
+        ReflectionTestUtils.setField(interceptor, "sessionCookieName", "__Host-session");
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        String rawToken = sessionSecurityService.generateOpaqueSessionToken();
+        byte[] tokenHash = sessionSecurityService.hashToken(rawToken);
+        String rawCsrf = sessionSecurityService.generateCsrfToken();
+        byte[] csrfHash = sessionSecurityService.hashToken(rawCsrf);
+
+        Cookie cookie = new Cookie("__Host-session", rawToken);
+        when(request.getCookies()).thenReturn(new Cookie[]{cookie});
+        when(request.getMethod()).thenReturn("GET");
+
+        UUID unauthorizedStudioId = UUID.randomUUID();
+        when(request.getHeader("X-Studio-Id")).thenReturn(unauthorizedStudioId.toString());
+
+        UUID userId = UUID.randomUUID();
+        UUID myStudioId = UUID.randomUUID();
+        SessionRecord session = new SessionRecord(UUID.randomUUID(), userId, tokenHash, csrfHash,
+                Instant.now(), "PASSWORD", Instant.now(), Instant.now().plusSeconds(1800), Instant.now().plusSeconds(43200), null, "device");
+        UserRecord user = new UserRecord(userId, "Designer", "designer@example.com", null, "ACTIVE", Instant.now(), Instant.now(), 0L);
+
+        when(securityRepository.findSessionByTokenHash(tokenHash)).thenReturn(Optional.of(session));
+        when(securityRepository.findUserById(userId)).thenReturn(Optional.of(user));
+        when(securityRepository.getUserRoles(userId)).thenReturn(Set.of("DESIGNER"));
+        when(securityRepository.getStudioMemberships(userId)).thenReturn(List.of(
+                new com.interior.platform.security.domain.StudioMemberRecord(UUID.randomUUID(), myStudioId, "My Studio", "my-studio", userId, "DESIGNER_ADMIN", Instant.now())
+        ));
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+        assertFalse(allowed, "Must block request when X-Studio-Id is not among user's studio memberships");
+        org.mockito.Mockito.verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied: you are not a member of the requested studio");
+    }
+
+    @Test
+    @DisplayName("SecurityInterceptor resolves requested studio and derives studio-scoped role when caller is an active member")
+    void testAuthorizedStudioSwitchingResolved() throws Exception {
+        SecurityRepository securityRepository = mock(SecurityRepository.class);
+        var props = new com.interior.platform.security.config.AuthSecurityProperties();
+        SessionSecurityService sessionSecurityService = new SessionSecurityService(props, securityRepository, java.time.Clock.systemUTC());
+        SecurityInterceptor interceptor = new SecurityInterceptor(sessionSecurityService);
+        ReflectionTestUtils.setField(interceptor, "sessionCookieName", "__Host-session");
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        String rawToken = sessionSecurityService.generateOpaqueSessionToken();
+        byte[] tokenHash = sessionSecurityService.hashToken(rawToken);
+        String rawCsrf = sessionSecurityService.generateCsrfToken();
+        byte[] csrfHash = sessionSecurityService.hashToken(rawCsrf);
+
+        Cookie cookie = new Cookie("__Host-session", rawToken);
+        when(request.getCookies()).thenReturn(new Cookie[]{cookie});
+        when(request.getMethod()).thenReturn("GET");
+
+        UUID studioA = UUID.randomUUID();
+        UUID studioB = UUID.randomUUID();
+        when(request.getHeader("X-Studio-Id")).thenReturn(studioB.toString());
+
+        UUID userId = UUID.randomUUID();
+        SessionRecord session = new SessionRecord(UUID.randomUUID(), userId, tokenHash, csrfHash,
+                Instant.now(), "PASSWORD", Instant.now(), Instant.now().plusSeconds(1800), Instant.now().plusSeconds(43200), null, "device");
+        UserRecord user = new UserRecord(userId, "Multi Studio User", "multi@example.com", null, "ACTIVE", Instant.now(), Instant.now(), 0L);
+
+        when(securityRepository.findSessionByTokenHash(tokenHash)).thenReturn(Optional.of(session));
+        when(securityRepository.findUserById(userId)).thenReturn(Optional.of(user));
+        when(securityRepository.getUserRoles(userId)).thenReturn(Set.of("DESIGNER"));
+        when(securityRepository.getStudioMemberships(userId)).thenReturn(List.of(
+                new com.interior.platform.security.domain.StudioMemberRecord(UUID.randomUUID(), studioA, "Studio A", "studio-a", userId, "DESIGNER_ADMIN", Instant.now()),
+                new com.interior.platform.security.domain.StudioMemberRecord(UUID.randomUUID(), studioB, "Studio B", "studio-b", userId, "DESIGNER_MEMBER", Instant.now())
+        ));
+
+        final ActorContext[] capturedActor = new ActorContext[1];
+        org.mockito.Mockito.doAnswer(invocation -> {
+            if (SecurityInterceptor.ACTOR_ATTRIBUTE.equals(invocation.getArgument(0))) {
+                capturedActor[0] = invocation.getArgument(1);
+            }
+            return null;
+        }).when(request).setAttribute(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+        assertTrue(allowed);
+        assertNotNull(capturedActor[0]);
+        assertEquals(studioB, capturedActor[0].activeStudioId(), "ActorContext MUST switch to Studio B");
+        assertEquals("DESIGNER_MEMBER", capturedActor[0].activeStudioRole(), "ActorContext MUST have DESIGNER_MEMBER role for Studio B");
+        assertFalse(capturedActor[0].hasPermission("team:manage"), "DESIGNER_MEMBER must not have team:manage permission");
+    }
 }

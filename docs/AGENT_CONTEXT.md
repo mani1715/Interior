@@ -833,10 +833,31 @@ Completed the professional studio team experience and multi-member tenancy acces
 4. **Frontend Canonicalization**:
    - Created `apps/web/src/lib/team/permissions.ts` with canonical helpers: `isStudioAdmin`, `isStudioMember`, `canManageTeam`, `canManageBusiness`, `canEditProjects`, `canUseAi`, `canViewLeads`, and `formatStudioRoleLabel`.
    - Clean session acceptance page `/invite/accept`: validates via cookie session, displays masked recipient and role, seamlessly accepts without exposing token.
-   - `WorkspaceShell.tsx`: Allows workspace access for any user with active studio membership or studio list.
-5. **Verification Baseline**:
-   - Backend Tests: **381 / 381 PASS** (100% pass, 0 failures, 0 skipped; real PostgreSQL 18.3 RLS tests PASS).
-   - Frontend Tests: **310 / 310 PASS** (46 test files, 100% pass, 0 failures).
+### Completion Round 7: Multi-Studio Workspace Context & Safe Tenant Switching (October 2026)
+
+1. **Strict Server-Side Tenant Authorization**:
+   - `SecurityInterceptor`: Validates `X-Studio-Id` header and `studioId` query parameter against caller's active memberships. Unauthorized studio ID requests are immediately rejected with HTTP 403 Forbidden.
+   - Tested in `DevAuthSecurityTest.java` (403 on forged/unauthorized studio headers, valid derivation of studio-scoped roles and permissions on authorized switch).
+2. **PostgreSQL RLS Connection-Pool Safety**:
+   - Verified that physical connections reused across pooled transactions (HikariCP) cannot leak tenant context: `PostgreSqlStudioTeamRlsTest.java` (`testConnectionReuse_TenantSwitchingIsolation`) sequentially tests Studio A $\rightarrow$ Studio B $\rightarrow$ RESET on a single connection.
+3. **Frontend Active Studio State & Storage Sync**:
+   - `apps/web/src/lib/api-client.ts`: Automatic injection of `X-Studio-Id` header into all requests with `sessionStorage` (per-tab) and `localStorage` fallback persistence.
+   - `apps/web/src/lib/auth/auth-context.tsx`: Added `switchStudio(studioId)` method that updates storage, calls `/api/v1/auth/me` to recompute permissions, updates React state, and dispatches custom `'studio-switched'` window events.
+4. **Accessible Multi-Studio Switcher**:
+   - `WorkspaceShell.tsx`:
+     - Single studio: Presents clean studio branding card without dropdown controls.
+     - Multiple studios: Accessible popover dropdown (`role="listbox"`, `role="option"`, `aria-selected="true"`) with human-friendly role labels ("Studio Admin", "Team Member"), live region announcement (`aria-live="polite"`), outside click and ESC dismissal.
+     - Mobile: Integrated studio switcher in mobile header responsive on 360px, 390px, 430px viewports.
+     - Preserves hidden native `<select id="studio-select">` for screen-reader and automated test compatibility.
+5. **Cross-Studio Mutation & Leakage Protection**:
+   - `UnsavedChangesContext` & `useUnsavedChanges`: Guards studio switching when unsaved changes exist in forms (Project CMS, Portfolio Builder). Prompts accessible confirmation dialog ("Discard & Switch Studio").
+   - Module Reset: Project editor redirects to `/workspace/projects` on studio switch; Portfolio Builder, Projects List, and Workspace Home reload active studio data cleanly upon `'studio-switched'`.
+6. **Multi-Studio Creation Status**:
+   - Documented as **PARTIAL**: First studio created during onboarding; additional memberships joined via invitations. A dedicated multi-studio creation UI is planned for a subsequent enhancement.
+7. **Verification Baseline**:
+   - Backend Tests: **384 / 384 PASS** (0 failures, 0 skipped).
+   - Frontend Tests: **312 / 312 PASS** (46 test files, 0 failures).
+   - PostgreSQL 18 RLS Isolation: **28 / 28 PASS**.
    - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
    - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
    - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).

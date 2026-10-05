@@ -187,4 +187,47 @@ class PostgreSqlStudioTeamRlsTest {
             assertEquals(0, deleted, "Tenant A must NOT be able to delete Tenant B invitation");
         }
     }
+
+    @Test
+    @DisplayName("RLS Connection Pool: Switching Studio A -> Studio B -> Reset on single connection does NOT leak tenant context")
+    void testConnectionReuse_TenantSwitchingIsolation() throws SQLException {
+        assumeTrue(postgresAvailable, "PostgreSQL test container/instance not available");
+
+        // Simulate a single physical pooled database connection reused across sequential requests
+        try (Connection conn = getTenantConnection(null);
+             Statement stmt = conn.createStatement()) {
+
+            // Step 1: Request 1 executes as Studio A tenant
+            stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
+            try (ResultSet rs = stmt.executeQuery("SELECT studio_id FROM studio_members;")) {
+                int countA = 0;
+                while (rs.next()) {
+                    countA++;
+                    assertEquals(studioAId, UUID.fromString(rs.getString("studio_id")));
+                }
+                assertEquals(1, countA, "Must see only Studio A member");
+            }
+
+            // Step 2: Request 2 executes on same connection switched to Studio B tenant
+            stmt.execute(String.format("SET app.current_studio_id = '%s';", studioBId));
+            try (ResultSet rs = stmt.executeQuery("SELECT studio_id FROM studio_members;")) {
+                int countB = 0;
+                while (rs.next()) {
+                    countB++;
+                    assertEquals(studioBId, UUID.fromString(rs.getString("studio_id")));
+                }
+                assertEquals(1, countB, "Must see only Studio B member");
+            }
+
+            // Step 3: Connection returned to pool / reset
+            stmt.execute("RESET app.current_studio_id;");
+            try (ResultSet rs = stmt.executeQuery("SELECT studio_id FROM studio_members;")) {
+                int countReset = 0;
+                while (rs.next()) {
+                    countReset++;
+                }
+                assertEquals(0, countReset, "Unauthenticated / reset tenant must see 0 studio members");
+            }
+        }
+    }
 }

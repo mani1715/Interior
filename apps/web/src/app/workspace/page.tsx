@@ -23,12 +23,25 @@ export default function WorkspaceHomePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadSummary = React.useCallback(() => {
+    setLoading(true);
     fetchWorkspaceSummary()
       .then(setSummary)
       .catch((err) => setError(err.message || 'Failed to load workspace'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
+  useEffect(() => {
+    const handleStudioSwitched = () => {
+      loadSummary();
+    };
+    window.addEventListener('studio-switched', handleStudioSwitched);
+    return () => window.removeEventListener('studio-switched', handleStudioSwitched);
+  }, [loadSummary]);
 
   if (loading) {
     return (
