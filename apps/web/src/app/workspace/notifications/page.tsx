@@ -19,13 +19,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
+import {
+  fetchNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from '@/lib/notifications/api';
 
 interface NotificationItem {
   id: string;
   type: string;
   title: string;
   message: string;
-  actionUrl?: string;
+  actionUrl?: string | null;
   readAt?: string | null;
   createdAt: string;
 }
@@ -40,12 +45,9 @@ export default function NotificationsWorkspacePage() {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/notifications?limit=50', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
+      const data = await fetchNotifications(50, 0);
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
     } catch {
       // Ignore
     } finally {
@@ -79,10 +81,7 @@ export default function NotificationsWorkspacePage() {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await fetch(`/api/v1/notifications/${id}/read`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await markNotificationAsRead(id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch {
@@ -92,10 +91,7 @@ export default function NotificationsWorkspacePage() {
 
   const handleMarkAllRead = async () => {
     try {
-      await fetch('/api/v1/notifications/read-all', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await markAllNotificationsAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
       setUnreadCount(0);
     } catch {

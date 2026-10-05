@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { MessageSquare, ArrowLeft, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { submitPlatformFeedback } from '@/lib/account/api';
 
 export default function FeedbackPage() {
   const [category, setCategory] = useState('GENERAL');
@@ -20,23 +21,14 @@ export default function FeedbackPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch('/api/v1/account/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category,
-          message: message.trim(),
-          contactEmail: contactEmail.trim() || undefined,
-        }),
-        credentials: 'include',
+      await submitPlatformFeedback({
+        category,
+        message: message.trim(),
+        contactEmail: contactEmail.trim() || undefined,
       });
-      if (res.ok) {
-        setSuccess(true);
-      } else {
-        setError('Failed to submit feedback. Please try again.');
-      }
+      setSuccess(true);
     } catch {
-      setError('A network error occurred. Please try again.');
+      setError('Failed to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/account")
+@RequestMapping({"/account", "/api/v1/account"})
 @Tag(name = "Account & Settings", description = "User account profile, security sessions, and privacy controls")
 public class AccountController {
 

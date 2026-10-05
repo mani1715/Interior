@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/events")
+@RequestMapping({"/events", "/api/v1/events"})
 public class SseStreamController {
 
     private static final Logger log = LoggerFactory.getLogger(SseStreamController.class);

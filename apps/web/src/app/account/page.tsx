@@ -21,6 +21,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth/auth-context';
+import {
+  fetchActiveSessions,
+  revokeActiveSession,
+  fetchCustomerInquiries,
+  updateAccountProfile,
+  requestAccountErasure,
+} from '@/lib/account/api';
+import {
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+} from '@/lib/notifications/api';
 
 interface ActiveSession {
   id: string;
@@ -108,8 +119,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (activeTab === 'security' && isAuthenticated) {
       setLoadingSessions(true);
-      fetch('/api/v1/account/sessions', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : [])
+      fetchActiveSessions()
         .then(data => setSessions(data))
         .catch(() => {})
         .finally(() => setLoadingSessions(false));
@@ -120,9 +130,8 @@ export default function AccountPage() {
   useEffect(() => {
     if (activeTab === 'inquiries' && isAuthenticated) {
       setLoadingInquiries(true);
-      fetch('/api/v1/account/inquiries', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : [])
-        .then(data => setInquiries(data))
+      fetchCustomerInquiries()
+        .then(data => setInquiries(data as any))
         .catch(() => {})
         .finally(() => setLoadingInquiries(false));
     }
@@ -131,10 +140,9 @@ export default function AccountPage() {
   // Load preferences when switching to preferences
   useEffect(() => {
     if (activeTab === 'preferences' && isAuthenticated) {
-      fetch('/api/v1/notifications/preferences', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : null)
+      fetchNotificationPreferences()
         .then(data => {
-          if (data) setPreferences(data);
+          if (data) setPreferences(data as any);
         })
         .catch(() => {});
     }
@@ -145,15 +153,8 @@ export default function AccountPage() {
     setIsSavingProfile(true);
     setProfileSuccess(null);
     try {
-      const res = await fetch('/api/v1/account/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName, phone, avatarUrl }),
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setProfileSuccess('Profile updated successfully.');
-      }
+      await updateAccountProfile({ displayName, phone, avatarUrl });
+      setProfileSuccess('Profile updated successfully.');
     } catch {
       // Ignore
     } finally {
@@ -163,13 +164,8 @@ export default function AccountPage() {
 
   const handleRevokeSession = async (sessionId: string) => {
     try {
-      const res = await fetch(`/api/v1/account/sessions/${sessionId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setSessions(prev => prev.filter(s => s.id !== sessionId));
-      }
+      await revokeActiveSession(sessionId);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
     } catch {
       // Ignore
     }
@@ -179,15 +175,8 @@ export default function AccountPage() {
     setIsSavingPrefs(true);
     setPrefsSuccess(null);
     try {
-      const res = await fetch('/api/v1/notifications/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(preferences),
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setPrefsSuccess('Notification preferences saved.');
-      }
+      await updateNotificationPreferences(preferences);
+      setPrefsSuccess('Notification preferences saved.');
     } catch {
       // Ignore
     } finally {
@@ -200,13 +189,8 @@ export default function AccountPage() {
       return;
     }
     try {
-      const res = await fetch('/api/v1/account/request-deletion', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        setDeletionSuccess(true);
-      }
+      await requestAccountErasure();
+      setDeletionSuccess(true);
     } catch {
       // Ignore
     }

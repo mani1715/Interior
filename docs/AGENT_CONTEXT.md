@@ -890,6 +890,40 @@ Completed the professional studio team experience and multi-member tenancy acces
    - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
    - Working tree: clean.
 
+### Completion Round 9: Whole-Product Gap Audit, Route Harmonization & User Acceptance (October 2026)
+
+1. **PostgreSQL RLS & Security Closure Test Reconciliation**:
+   - Discrepancy between Round 7 (28 tests) and Round 8 (15 tests) investigated and reconciled:
+     - `com.interior.platform.leads.LeadSecurityClosureTest`: 13 tests
+     - `com.interior.platform.leads.PostgreSqlLeadSecurityClosureTest`: 5 tests
+     - `com.interior.platform.security.PostgreSqlAnalyticsBillingRlsTest`: 3 tests
+     - `com.interior.platform.security.PostgreSqlReviewsVerificationCollectionsTest`: 4 tests
+     - `com.interior.platform.security.PostgreSqlStudioTeamRlsTest`: 3 tests
+     - Sum: $13 + 5 + 3 + 4 + 3 = 28$ tests in total.
+     - In Round 7, the filter matched all security closure tests (28/28 PASS). In Round 8, `-Dtest=PostgreSql*` matched only the 4 classes starting with `PostgreSql` (15/15 PASS).
+     - Running `.\apps\api\mvnw.cmd -f apps/api/pom.xml test '-Dtest=*SecurityClosureTest*,PostgreSql*'` confirmed **28 / 28 PASS** with zero skipped and zero failures.
+2. **REST Route Harmonization & Dual-Mapping Hardening**:
+   - `AccountController`: Dual-mapped to `@RequestMapping({"/account", "/api/v1/account"})`.
+   - `NotificationController`: Dual-mapped to `@RequestMapping({"/notifications", "/api/v1/notifications"})`.
+   - `SseStreamController`: Dual-mapped to `@RequestMapping({"/events", "/api/v1/events"})`.
+   - Solved path duplication risk (`/api/v1/api/v1/...`) when reverse proxies or local dev run with or without context-path stripping.
+3. **Frontend API Client & CSRF Protection Closure**:
+   - Created `apps/web/src/lib/notifications/api.ts` with typed helpers (`fetchNotifications`, `fetchUnreadNotificationCount`, `markNotificationAsRead`, `markAllNotificationsAsRead`, `fetchNotificationPreferences`, `updateNotificationPreferences`).
+   - Created `apps/web/src/lib/account/api.ts` with typed helpers (`fetchActiveSessions`, `revokeActiveSession`, `fetchCustomerInquiries`, `updateAccountProfile`, `requestAccountErasure`, `submitPlatformFeedback`).
+   - Upgraded `AccountPage`, `FeedbackPage`, `WorkspaceNotificationsPage`, and `NotificationBell` to use `apiFetch`, ensuring automatic `X-CSRF-Token` acquisition and injection on state-changing requests (`POST`, `PUT`, `DELETE`), active studio context header injection, and proper error handling.
+4. **Verification Evidence & Privacy Invariants**:
+   - Confirmed business verification evidence model accepts only corporate credentials (`BUSINESS_REGISTRATION`, `GST_CERTIFICATE`, `PROFESSIONAL_LICENSE`, `OTHER`). Zero citizen identity PII (no Aadhaar, no PAN) is collected or stored.
+5. **New Studio Zero-Record Safety**:
+   - Confirmed all workspace modules (Projects, Media, Portfolio, Leads, Reviews, Verification, Billing, Analytics) initialize or render clean empty states without crashing when a brand-new studio is created.
+6. **Full Verification Baseline**:
+   - Backend Tests: **393 / 393 PASS** (0 failures, 0 skipped).
+   - Frontend Tests: **316 / 316 PASS** (47 test files, 100% pass).
+   - PostgreSQL 18 RLS Isolation: **28 / 28 PASS** (all 5 security closure test classes).
+   - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+   - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+   - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+   - Working tree: clean.
+
 
 
 

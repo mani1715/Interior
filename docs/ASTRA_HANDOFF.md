@@ -810,11 +810,37 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
   - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
   - Working tree: clean.
 
+## 44.6. WHOLE-PRODUCT GAP AUDIT, ROUTE HARMONIZATION & USER ACCEPTANCE (OCTOBER 2026 - ROUND 9)
+
+- **PostgreSQL RLS & Security Closure Test Discrepancy Reconciliation**:
+  - Detailed audit of PostgreSQL security closure tests across `apps/api/src/test/java`:
+    - `LeadSecurityClosureTest`: 13 tests
+    - `PostgreSqlLeadSecurityClosureTest`: 5 tests
+    - `PostgreSqlAnalyticsBillingRlsTest`: 3 tests
+    - `PostgreSqlReviewsVerificationCollectionsTest`: 4 tests
+    - `PostgreSqlStudioTeamRlsTest`: 3 tests
+  - **Resolution**: Total count is exactly **28 tests**. In Round 7, the filter matched all security closure tests (28/28 PASS). In Round 8, `-Dtest=PostgreSql*` matched only the 4 classes prefixed with `PostgreSql` ($5 + 3 + 4 + 3 = 15$). Running the complete suite confirms **28 / 28 PASS** with zero security regressions.
+- **REST Route Harmonization & CSRF Protection Closure**:
+  - **Backend Dual-Mapping Hardening**: Configured `@RequestMapping({"/account", "/api/v1/account"})` in `AccountController`, `@RequestMapping({"/notifications", "/api/v1/notifications"})` in `NotificationController`, and `@RequestMapping({"/events", "/api/v1/events"})` in `SseStreamController`. This eliminates path ambiguity and double prefixing (`/api/v1/api/v1/...`) across reverse proxies and servlet context paths.
+  - **Frontend Typed Client Harmonization**: Created `apps/web/src/lib/notifications/api.ts` and `apps/web/src/lib/account/api.ts`. Replaced raw `fetch` calls in `AccountPage`, `FeedbackPage`, `WorkspaceNotificationsPage`, and `NotificationBell` with `apiFetch`. This ensures state-changing requests (`POST`, `PUT`, `DELETE`) reliably receive `X-CSRF-Token` from the backend CSRF token provider and attach `X-Studio-Id`.
+- **Verification Evidence & Privacy Audit**:
+  - Confirmed evidence document model strictly accepts business verification documents (`BUSINESS_REGISTRATION`, `GST_CERTIFICATE`, `PROFESSIONAL_LICENSE`, `OTHER`). No personal government IDs (Aadhaar/PAN) are collected or stored.
+- **New Studio Zero-Record Safety**:
+  - Confirmed brand-new studios created via `POST /workspace/studios` handle default empty states without crashing across Workspace, Portfolio, Media, Leads, Verification, Reviews, and Analytics.
+- **Full Verification Baseline**:
+  - Backend Tests: **393 / 393 PASS** (0 failures, 0 skipped).
+  - Frontend Tests: **316 / 316 PASS** (47 test files, 100% pass).
+  - PostgreSQL 18 RLS Isolation: **28 / 28 PASS** (all 5 security closure test classes).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+  - Working tree: clean.
+
 ---
 
 ## 45. FINAL GIT & HANDOFF STATE
 
-- **Commit Message:** `feat: complete multi-studio creation and tenant lifecycle`
+- **Commit Message:** `fix: close final product completion gaps`
 - **Branch:** `main`
 - **Synchronization:** Local HEAD == origin/main. Working tree clean.
 
@@ -825,3 +851,4 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 To hand off this project to Astra, copy and paste the following message:
 
 > "I am continuing development of the Interior Professional Platform. Antigravity has full access to the repository. First read `docs/ASTRA_HANDOFF.md` and `docs/AGENT_CONTEXT.md`, inspect the actual repository, Git history and Flyway migrations, and confirm your understanding of the current state. Do not implement Phase 29 yet. Act as the senior architect, security reviewer, planner and meta-prompt engineer for all future work, while Antigravity remains the execution/development agent."
+

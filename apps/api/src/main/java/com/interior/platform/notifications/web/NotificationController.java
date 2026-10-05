@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping({"/notifications", "/api/v1/notifications"})
 @Tag(name = "Notification Center", description = "Persistent in-app notifications and channel preference controls")
 public class NotificationController {
 
