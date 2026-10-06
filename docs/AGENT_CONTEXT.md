@@ -1,9 +1,43 @@
 # AGENT CONTEXT
 
-Last updated: 2026-10-05, PORTFOLIO EVOLUTION PHASE 1 (Room + Photo Foundation and Owner Organizer) COMPLETE & PASS. Full regression: backend (405/405 PASS), frontend vitest (320/320 PASS), PostgreSQL 18 RLS (28/28 PASS), typecheck, lint, and production build verified. V028 Flyway migration applied cleanly.
+Last updated: 2026-10-06, PORTFOLIO EVOLUTION PHASE 1 (Room + Photo Foundation and Owner Organizer) COMPLETE & PASS. Full regression: backend (405/405 PASS), frontend vitest (320/320 PASS), PostgreSQL 18 RLS (28/28 PASS), typecheck, lint, and production build verified. V028 Flyway migration applied cleanly.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.
+
+---
+
+## REPOSITORY SAFETY RULE & CONTEXT GUARD
+
+Before ANY implementation task:
+1. Resolve working directory explicitly to `C:\my projects\interior design`.
+2. Verify remote origin is `https://github.com/mani1715/Interior.git`.
+3. Verify current branch is `main`.
+4. Verify HEAD and context against expected baseline.
+5. STOP immediately if repository identity or directory is wrong.
+
+Expected Interior root: `C:\my projects\interior design`
+Expected remote: `https://github.com/mani1715/Interior.git`
+Never infer the active project merely from the word "portfolio".
+"Portfolio" in this codebase means professional interior-designer portfolios, NEVER Maneesh's personal developer portfolio (`C:\my projects\Portifolio\portfolio`).
+
+### MANDATORY STARTUP COMMAND
+Future Antigravity / Astra sessions MUST run:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verify-interior-context.ps1
+```
+If this script fails: STOP. Do not switch automatically to another repository. Do not search for another project with a similar name.
+
+### ANTIGRAVITY-SPECIFIC GUARD
+Before Antigravity executes Interior implementation:
+- Run context guard `scripts/verify-interior-context.ps1`.
+- Verify correct branch (`main`).
+- Verify expected starting commit from user prompt.
+- Inspect `git status`.
+- Never perform implementation in another repository (such as `C:\my projects\Portifolio\portfolio`).
+- Never import personal portfolio data (MAJA Invites, Pixora, Aishu Home Foods, MSPN Dev, SEC-OPS, personal résumé) into Interior.
+
+---
 
 ## PROJECT
 

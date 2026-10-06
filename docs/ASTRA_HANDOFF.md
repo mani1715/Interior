@@ -1,11 +1,40 @@
 # ASTRA PROJECT HANDOFF
 ## Canonical Project Context & Handoff for Astra (Senior Architect & Meta-Prompt Engineer)
 
-**Last Updated:** October 4, 2026  
-**Repository Source of Truth:** `https://github.com/mani1715/Interior.git`  
-**Current Branch:** `main`  
-**Completed Phases:** Phase 00 through Phase 29 + Completion Rounds 1-4 (100% COMPLETE & PASS)  
-**Platform Status:** PRODUCTION-READY HARDENED PLATFORM BASELINE (Phases 01-29 & Completion Rounds 1-4 Complete)
+============================================================
+CURRENT PROJECT IDENTITY / CONTEXT GUARD
+============================================================
+
+ACTIVE REPOSITORY:
+C:\my projects\interior design
+
+ACTIVE PRODUCT:
+Elégance Interior Designer Platform
+
+REMOTE REPOSITORY:
+https://github.com/mani1715/Interior.git
+
+BRANCH:
+main
+
+DO NOT USE:
+C:\my projects\Portifolio\portfolio
+
+PERSONAL PORTFOLIO IS A SEPARATE REPOSITORY.
+
+CRITICAL CONTEXT RULE:
+"Portfolio" in this repository means professional interior-designer portfolios.
+It DOES NOT mean Maneesh's personal developer portfolio.
+Do NOT import, link, or reference projects from the personal developer portfolio
+(e.g., MAJA Invites, Pixora, Aishu Home Foods, MSPN Dev, SEC-OPS, personal résumé).
+
+============================================================
+
+**Last Updated:** October 6, 2026
+**Repository Source of Truth:** `https://github.com/mani1715/Interior.git`
+**Current Branch:** `main`
+**Completed Phases:** Phase 00 through Phase 29 + Completion Rounds 1-9 + Portfolio Evolution Phase 1 (100% COMPLETE & PASS)
+**Platform Status:** PRODUCTION-READY HARDENED PLATFORM BASELINE (Commit `ddbe990`)
 
 ---
 
@@ -643,6 +672,14 @@ When acting as Senior Architect, Planner, Security Auditor, and Meta-Prompt Engi
 11. Ensure every proposed phase specifies explicit verification test criteria.
 12. Require user authorization before commencing any implementation phase.
 13. Antigravity remains the primary developer and execution agent.
+14. **MANDATORY REPOSITORY CHECK**: Before Astra performs any Interior design task:
+    - Explicitly open and inspect `C:\my projects\interior design`.
+    - Verify remote origin is `https://github.com/mani1715/Interior.git`.
+    - Ignore `PROJECT_CONTEXT.md` from any other repository.
+    - Ignore personal portfolio project data (MAJA Invites, Pixora, Aishu Home Foods, MSPN Dev, SEC-OPS, personal bio/résumé).
+    - Do NOT modify personal portfolio files in `C:\my projects\Portifolio\portfolio`.
+    - If current workspace is `C:\my projects\Portifolio\portfolio`, STOP and switch context before doing any work.
+    - Design-only tasks must not modify Interior production source unless explicitly instructed.
 
 ---
 
