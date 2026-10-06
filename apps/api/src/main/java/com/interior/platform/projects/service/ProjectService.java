@@ -9,6 +9,7 @@ import com.interior.platform.projects.domain.AreaUnit;
 import com.interior.platform.projects.domain.BudgetVisibility;
 import com.interior.platform.projects.domain.ClientNameVisibility;
 import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectPresentationMode;
 import com.interior.platform.projects.domain.ProjectScope;
 import com.interior.platform.projects.domain.ProjectStatus;
 import com.interior.platform.projects.domain.ProjectStyle;
@@ -201,6 +202,7 @@ public class ProjectService {
                 request.areaValue(),
                 request.areaUnit(),
                 request.internalNotes() != null ? request.internalNotes().trim() : null,
+                request.presentationMode() != null ? request.presentationMode() : ProjectPresentationMode.STANDARD,
                 1L,
                 actor.userId(),
                 now,
@@ -302,6 +304,7 @@ public class ProjectService {
                 request.areaValue(),
                 request.areaUnit(),
                 request.internalNotes() != null ? request.internalNotes().trim() : null,
+                request.presentationMode() != null ? request.presentationMode() : existing.presentationMode(),
                 existing.version(),
                 existing.createdBy(),
                 existing.createdAt(),
@@ -442,6 +445,7 @@ public class ProjectService {
                             reloaded.budgetVisibility(), reloaded.budgetMin(), reloaded.budgetMax(),
                             reloaded.currency(), reloaded.clientNameVisibility(), reloaded.clientDisplayName(),
                             reloaded.areaValue(), reloaded.areaUnit(), reloaded.internalNotes(),
+                            reloaded.presentationMode() != null ? reloaded.presentationMode() : ProjectPresentationMode.STANDARD,
                             reloaded.version(), reloaded.createdBy(), reloaded.createdAt(), Instant.now(), null
                     ),
                     styles,
@@ -579,6 +583,7 @@ public class ProjectService {
                 p.areaValue(),
                 p.areaUnit(),
                 p.internalNotes(),
+                p.presentationMode() != null ? p.presentationMode() : ProjectPresentationMode.STANDARD,
                 p.version(),
                 p.createdBy(),
                 p.createdAt(),

@@ -357,4 +357,84 @@ class ProjectIntegrationTest {
         assertEquals(HttpStatus.OK, restoreRes.getStatusCode());
         assertEquals(ProjectStatus.READY, restoreRes.getBody().projectStatus());
     }
+
+    @Test
+    @DisplayName("Presentation mode defaults to STANDARD and can be updated to CINEMATIC")
+    void testPresentationModePersistenceAndDefaults() {
+        MockHttpServletRequest req = createMockRequest(designerActor);
+
+        // 1. Create with default constructor (null/default presentation mode -> STANDARD)
+        CreateProjectRequest createReq = new CreateProjectRequest(
+                "Presentation Test Residence",
+                ProjectCategory.LIVING_ROOM,
+                "A minimalist living room.",
+                null,
+                PropertyType.APARTMENT,
+                ProjectScope.PARTIAL_INTERIOR,
+                List.of(ProjectStyle.MODERN_MINIMALIST),
+                "Mumbai",
+                null,
+                "Maharashtra",
+                "IN",
+                2024,
+                BudgetVisibility.HIDDEN,
+                null,
+                null,
+                "INR",
+                ClientNameVisibility.HIDDEN,
+                null,
+                null,
+                AreaUnit.SQ_FT,
+                VisibilityStatus.PORTFOLIO,
+                false,
+                null,
+                null
+        );
+
+        ResponseEntity<ProjectDetailResponse> createRes = projectController.createProject(req, null, studioId, createReq);
+        assertEquals(HttpStatus.CREATED, createRes.getStatusCode());
+        assertNotNull(createRes.getBody());
+        assertEquals(com.interior.platform.projects.domain.ProjectPresentationMode.STANDARD, createRes.getBody().presentationMode());
+
+        UUID projectId = createRes.getBody().id();
+        long version = createRes.getBody().version();
+
+        // 2. Update presentation mode to CINEMATIC
+        UpdateProjectRequest updateReq = new UpdateProjectRequest(
+                version,
+                "Presentation Test Residence",
+                ProjectCategory.LIVING_ROOM,
+                "A minimalist living room with cinematic enhancement.",
+                null,
+                PropertyType.APARTMENT,
+                ProjectScope.PARTIAL_INTERIOR,
+                List.of(ProjectStyle.MODERN_MINIMALIST),
+                "Mumbai",
+                null,
+                "Maharashtra",
+                "IN",
+                2024,
+                BudgetVisibility.HIDDEN,
+                null,
+                null,
+                "INR",
+                ClientNameVisibility.HIDDEN,
+                null,
+                null,
+                AreaUnit.SQ_FT,
+                VisibilityStatus.PORTFOLIO,
+                false,
+                null,
+                com.interior.platform.projects.domain.ProjectPresentationMode.CINEMATIC
+        );
+
+        ResponseEntity<ProjectDetailResponse> updateRes = projectController.updateProject(req, null, studioId, projectId, updateReq);
+        assertEquals(HttpStatus.OK, updateRes.getStatusCode());
+        assertEquals(com.interior.platform.projects.domain.ProjectPresentationMode.CINEMATIC, updateRes.getBody().presentationMode());
+
+        // 3. Fetch project and verify persistence
+        ResponseEntity<ProjectDetailResponse> fetchRes = projectController.getProject(req, null, studioId, projectId);
+        assertEquals(HttpStatus.OK, fetchRes.getStatusCode());
+        assertEquals(com.interior.platform.projects.domain.ProjectPresentationMode.CINEMATIC, fetchRes.getBody().presentationMode());
+    }
 }

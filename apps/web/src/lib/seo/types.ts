@@ -158,6 +158,7 @@ export interface PublicProjectDetailDto {
   relatedProjects?: import('../projects/types').ProjectPresentationDto[];
   rooms?: PublicRoomDto[];
   additionalViews?: PublicMediaDto[];
+  presentationMode?: string | null;
 }
 
 export interface SitemapItemDto {

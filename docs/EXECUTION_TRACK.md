@@ -15,7 +15,7 @@ Latest functional baseline:
 ddbe990
 
 Flyway:
-V028
+V029
 
 Production deployment:
 DEFERRED
@@ -72,17 +72,22 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Full-Screen Viewer: `GalleryViewer` evolved with room-scoped boundary enforcement, zoom in/out/fit (up to 3x), pan dragging and clamp, contact sheet (This Room vs All Rooms), and enquiry handoff to `EnquirySheet`.
   - Verified: 406/406 backend tests PASS, 324/324 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
+- **Phase 3 Implementation: Cinematic Portfolio (Antigravity)**
+  - Schema & Persistence: Flyway migration `V029__project_presentation_mode.sql` adding `presentation_mode varchar(32) NOT NULL DEFAULT 'STANDARD'` with CHECK constraint (`STANDARD`, `CINEMATIC`) and index.
+  - Domain records & services: Updated `StudioProjectRecord`, `CreateProjectRequest`, `UpdateProjectRequest`, `ProjectDetailResponse`, `JdbcProjectRepository`, `ProjectService`, `SeoService`, `PublicProjectDetailDto` with default-safe `ProjectPresentationMode`.
+  - Frontend Type Foundations: Added `ProjectPresentationMode` across `projects/types.ts`, `seo/types.ts`, `showcase-types.ts`, and `showcase-normalizer.ts`.
+  - Owner Workspace Presentation Settings: Added "Presentation Mode" switcher in Project Editor (`/workspace/projects/[projectId]`) with Standard and Cinematic cards, adaptive eligibility notes, and live preview links.
+  - Eligibility Engine: Deterministic `evaluateCinematicEligibility` and `evaluateProjectCinematicEligibility` enforcing viewport threshold ($\ge 1280 \times 800$), aspect ratio branches (1.2–2.2 Focus Push, 2.2–3.0 Gentle Drift), focal safe zone $[0.15, 0.85]$, per-photo `motion_enabled`, template scale caps (up to 1.04), and max 3 sticky chapters per project.
+  - Standard Integration Fixes:
+    1. Single-photo portrait containment: `.singlePortrait` constraint (`max-width: 680px`, `object-fit: contain`) preventing harsh cropping or viewport dominance.
+    2. Real room anchors: HTML anchor navigation (`<a href={`#room-${room.id}`}>`) with intersection observer tracking, native browser back/forward history, and deep-linking support without scroll hijacking.
+    3. Transform ownership: Moving figures tagged with `data-cinematic-controlled="true"` decouple from template transforms, hover zoom, and `PortfolioMotion`.
+  - Progressive Enhancement: Sticky pinned chapter (`CinematicChapter`) with scroll-bound linear transforms and pause-during-viewer; automatic fallback to Standard for mobile, tablet, reduced-motion, or non-qualifying spaces.
+  - Verified: 406/406 backend tests PASS, 347/347 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+
 ## Current Next Step:
 
-- Astra Cinematic Portfolio Motion Design (Phase 3 Motion Design).
-
-## Pending After Phase 2:
-
-- Astra Cinematic Portfolio Motion Design.
-- Antigravity Cinematic Portfolio Implementation.
-- Homepage refinement.
-- Entitlement reconciliation.
-- Final platform QA.
+- Platform review and next milestone planning.
 
 ---
 

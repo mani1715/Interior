@@ -5,6 +5,7 @@ import com.interior.platform.projects.domain.AreaUnit;
 import com.interior.platform.projects.domain.BudgetVisibility;
 import com.interior.platform.projects.domain.ClientNameVisibility;
 import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectPresentationMode;
 import com.interior.platform.projects.domain.ProjectScope;
 import com.interior.platform.projects.domain.ProjectStatus;
 import com.interior.platform.projects.domain.ProjectStyle;
@@ -64,6 +65,7 @@ public class JdbcProjectRepository implements ProjectRepository {
             rs.getBigDecimal("area_value"),
             rs.getString("area_unit") != null ? AreaUnit.valueOf(rs.getString("area_unit")) : null,
             rs.getString("internal_notes"),
+            rs.getString("presentation_mode") != null ? ProjectPresentationMode.valueOf(rs.getString("presentation_mode")) : ProjectPresentationMode.STANDARD,
             rs.getLong("version"),
             getUuid(rs, "created_by"),
             rs.getTimestamp("created_at").toInstant(),
@@ -78,8 +80,8 @@ public class JdbcProjectRepository implements ProjectRepository {
                      "project_status, visibility_status, featured, display_order, city, district, state, country, " +
                      "property_type, project_scope, completion_year, budget_visibility, budget_min, budget_max, " +
                      "currency, client_name_visibility, client_display_name, area_value, area_unit, internal_notes, " +
-                     "version, created_by, created_at, updated_at" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "presentation_mode, version, created_by, created_at, updated_at" +
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 project.id(),
@@ -109,6 +111,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                 project.areaValue(),
                 project.areaUnit() != null ? project.areaUnit().name() : null,
                 project.internalNotes(),
+                project.presentationMode() != null ? project.presentationMode().name() : ProjectPresentationMode.STANDARD.name(),
                 project.version(),
                 project.createdBy(),
                 Timestamp.from(project.createdAt()),
@@ -146,6 +149,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                      "area_value = ?, " +
                      "area_unit = ?, " +
                      "internal_notes = ?, " +
+                     "presentation_mode = ?, " +
                      "version = version + 1, " +
                      "updated_at = now() " +
                      "WHERE id = ? AND studio_id = ? AND version = ?";
@@ -175,6 +179,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                 project.areaValue(),
                 project.areaUnit() != null ? project.areaUnit().name() : null,
                 project.internalNotes(),
+                project.presentationMode() != null ? project.presentationMode().name() : ProjectPresentationMode.STANDARD.name(),
                 project.id(),
                 project.studioId(),
                 expectedVersion

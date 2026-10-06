@@ -23,6 +23,7 @@ import {
   Loader2,
   Sparkles,
   Info,
+  Clapperboard,
 } from 'lucide-react';
 import {
   ProjectDetailDto,
@@ -39,6 +40,7 @@ import {
   CANONICAL_PROPERTY_TYPES,
   CANONICAL_SCOPES,
   UpdateProjectRequest,
+  ProjectPresentationMode,
 } from '@/lib/projects/types';
 import { fetchProject, updateProject, archiveProject, restoreProject } from '@/lib/projects/api';
 import { ProjectRoomManager } from '@/components/media/ProjectRoomManager';
@@ -56,7 +58,8 @@ export default function ProjectEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isDirty, setIsDirtyState] = useState(false);
-  const [activeTab, setActiveTab] = useState<'DETAILS' | 'ROOMS_PHOTOS'>('DETAILS');
+  const [activeTab, setActiveTab] = useState<'DETAILS' | 'ROOMS_PHOTOS' | 'PRESENTATION'>('DETAILS');
+  const [presentationMode, setPresentationMode] = useState<ProjectPresentationMode>('STANDARD');
 
   const setIsDirty = useCallback((dirty: boolean) => {
     setIsDirtyState(dirty);
@@ -119,6 +122,7 @@ export default function ProjectEditPage() {
       setVisibilityStatus(data.visibilityStatus || 'PRIVATE');
       setFeatured(Boolean(data.featured));
       setInternalNotes(data.internalNotes || '');
+      setPresentationMode(data.presentationMode || 'STANDARD');
       setIsDirty(false);
     } catch (err: any) {
       setError(err?.message || 'Failed to load project');
@@ -207,6 +211,7 @@ export default function ProjectEditPage() {
         visibilityStatus,
         featured,
         internalNotes: internalNotes.trim() || null,
+        presentationMode,
       };
 
       const updated = await updateProject(project.id, updatePayload);
@@ -444,6 +449,18 @@ export default function ProjectEditPage() {
             <ImageIcon className="w-3.5 h-3.5 text-bronze-600" />
             <span>Rooms & Photography</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('PRESENTATION')}
+            className={`px-5 py-2.5 text-xs rounded-t-xl transition-all border-b-2 flex items-center gap-2 ${
+              activeTab === 'PRESENTATION'
+                ? 'border-charcoal-900 text-charcoal-900 bg-white font-semibold shadow-sm'
+                : 'border-transparent text-charcoal-500 hover:text-charcoal-800 hover:bg-sand-50/50 font-medium'
+            }`}
+          >
+            <Clapperboard className="w-3.5 h-3.5 text-bronze-600" />
+            <span>Presentation Mode</span>
+          </button>
         </div>
 
         {activeTab === 'ROOMS_PHOTOS' ? (
@@ -453,6 +470,125 @@ export default function ProjectEditPage() {
               studioId={project.studioId}
               isReadOnly={isArchived}
             />
+          </div>
+        ) : activeTab === 'PRESENTATION' ? (
+          <div className="space-y-6">
+            <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-6">
+              <div className="border-b border-sand-100 pb-3">
+                <h3 className="font-serif text-base text-charcoal-900 font-medium">
+                  Portfolio Presentation Experience
+                </h3>
+                <p className="text-xs text-charcoal-500 mt-1">
+                  Choose how prospective clients experience this project story on your public portfolio.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Standard Card */}
+                <div
+                  onClick={() => {
+                    setPresentationMode('STANDARD');
+                    setIsDirty(true);
+                  }}
+                  className={`p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    presentationMode === 'STANDARD'
+                      ? 'border-charcoal-900 bg-sand-50/60 shadow-sm'
+                      : 'border-sand-200 bg-white hover:border-sand-300 hover:bg-sand-50/20'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-serif text-base font-medium text-charcoal-900">Standard</span>
+                      {presentationMode === 'STANDARD' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-charcoal-600 leading-relaxed">
+                      A clear, editorial room-by-room portfolio.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-sand-100 text-[11px] text-charcoal-500">
+                    Traditional responsive grid layouts with room navigation and full-screen detail viewer.
+                  </div>
+                </div>
+
+                {/* Cinematic Card */}
+                <div
+                  onClick={() => {
+                    setPresentationMode('CINEMATIC');
+                    setIsDirty(true);
+                  }}
+                  className={`p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    presentationMode === 'CINEMATIC'
+                      ? 'border-charcoal-900 bg-sand-50/60 shadow-sm'
+                      : 'border-sand-200 bg-white hover:border-sand-300 hover:bg-sand-50/20'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-serif text-base font-medium text-charcoal-900">Cinematic Portfolio</span>
+                      {presentationMode === 'CINEMATIC' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-charcoal-600 leading-relaxed">
+                      Scroll through your project as a calm visual story.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-sand-100 text-[11px] text-charcoal-500">
+                    Motion adapts to each photograph and device. Some photographs will remain still.
+                  </div>
+                </div>
+              </div>
+
+              {/* Informational Note & Public Preview Link */}
+              <div className="p-4 bg-sand-50/80 border border-sand-200 rounded-xl space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-bronze-700 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-xs text-charcoal-600">
+                    <p className="font-medium text-charcoal-800">
+                      Adaptive Device & Photograph Behavior
+                    </p>
+                    <p>
+                      Cinematic motion runs strictly on suitable desktop viewports with eligible room covers. On mobile, tablet, reduced-motion preferences, or unpinned photos, the presentation automatically defaults to the Standard portfolio experience.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save & Preview Bar */}
+              <div className="flex items-center justify-between pt-2 border-t border-sand-100">
+                <a
+                  href={`/projects/${project.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-sand-300 text-charcoal-700 text-xs font-medium hover:bg-sand-50 transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5 text-bronze-600" />
+                  <span>Preview Public Project ↗</span>
+                </a>
+
+                {!isArchived && (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-charcoal-900 hover:bg-charcoal-800 text-white text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5 text-bronze-300" />
+                    )}
+                    <span>{saving ? 'Saving...' : 'Save Presentation Preference'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         ) : (
           <form id="project-form" onSubmit={handleSave} className="space-y-6">

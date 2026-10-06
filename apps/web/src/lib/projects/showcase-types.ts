@@ -53,6 +53,7 @@ export interface ProjectSpaceShowcaseData {
     budgetFormatted?: string | null;
     areaFormatted?: string | null;
     coverPhoto?: NormalizedPhoto | null;
+    presentationMode: 'STANDARD' | 'CINEMATIC';
     studio: {
       studioId?: string;
       slug: string;

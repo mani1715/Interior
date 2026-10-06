@@ -51,6 +51,7 @@ export type VisibilityStatus = 'PRIVATE' | 'PORTFOLIO';
 export type BudgetVisibility = 'HIDDEN' | 'RANGE' | 'STARTING_FROM';
 export type ClientNameVisibility = 'HIDDEN' | 'DISPLAY';
 export type AreaUnit = 'SQ_FT' | 'SQ_M';
+export type ProjectPresentationMode = 'STANDARD' | 'CINEMATIC';
 
 export interface CategoryOption {
   code: ProjectCategory;
@@ -178,6 +179,7 @@ export interface ProjectDetailDto {
   areaValue?: number | null;
   areaUnit?: AreaUnit | null;
   internalNotes?: string | null;
+  presentationMode?: ProjectPresentationMode;
   version: number;
   createdBy?: string | null;
   createdAt: string;
@@ -233,6 +235,7 @@ export interface CreateProjectRequest {
   visibilityStatus?: VisibilityStatus;
   featured?: boolean;
   internalNotes?: string | null;
+  presentationMode?: ProjectPresentationMode;
 }
 
 export interface UpdateProjectRequest extends CreateProjectRequest {

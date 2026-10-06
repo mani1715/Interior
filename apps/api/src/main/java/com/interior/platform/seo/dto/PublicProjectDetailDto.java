@@ -33,7 +33,8 @@ public record PublicProjectDetailDto(
         List<PublicMediaDto> media,
         List<ProjectPresentationDto> relatedProjects,
         List<PublicRoomDto> rooms,
-        List<PublicMediaDto> additionalViews
+        List<PublicMediaDto> additionalViews,
+        String presentationMode
 ) {
     public PublicProjectDetailDto(
             UUID id,
@@ -89,7 +90,69 @@ public record PublicProjectDetailDto(
                 media,
                 relatedProjects,
                 List.of(),
-                List.of()
+                List.of(),
+                "STANDARD"
+        );
+    }
+
+    public PublicProjectDetailDto(
+            UUID id,
+            String slug,
+            String title,
+            String shortDescription,
+            String fullDescription,
+            String categoryCode,
+            String categoryDisplayName,
+            List<String> styleCodes,
+            List<String> styleDisplayNames,
+            String city,
+            String district,
+            String state,
+            String country,
+            String propertyType,
+            String projectScope,
+            Integer completionYear,
+            String budgetFormatted,
+            String areaFormatted,
+            Instant updatedAt,
+            String metaTitle,
+            String metaDescription,
+            String canonicalUrl,
+            PublicStudioSummaryDto studio,
+            List<PublicMediaDto> media,
+            List<ProjectPresentationDto> relatedProjects,
+            List<PublicRoomDto> rooms,
+            List<PublicMediaDto> additionalViews
+    ) {
+        this(
+                id,
+                slug,
+                title,
+                shortDescription,
+                fullDescription,
+                categoryCode,
+                categoryDisplayName,
+                styleCodes,
+                styleDisplayNames,
+                city,
+                district,
+                state,
+                country,
+                propertyType,
+                projectScope,
+                completionYear,
+                budgetFormatted,
+                areaFormatted,
+                updatedAt,
+                metaTitle,
+                metaDescription,
+                canonicalUrl,
+                studio,
+                media,
+                relatedProjects,
+                rooms,
+                additionalViews,
+                "STANDARD"
         );
     }
 }

@@ -165,6 +165,7 @@ export function normalizeProjectSpaceShowcase(
       budgetFormatted: project.budgetFormatted,
       areaFormatted: project.areaFormatted,
       coverPhoto: projectCover,
+      presentationMode: project.presentationMode === 'CINEMATIC' ? 'CINEMATIC' : 'STANDARD',
       studio: {
         studioId: project.studio?.studioId,
         slug: project.studio?.slug || '',

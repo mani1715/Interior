@@ -56,13 +56,14 @@ export function PortfolioMotion({ mainId }: { mainId: string }) {
       let index = 0;
       main.querySelectorAll<HTMLElement>('figure').forEach(figure => {
         if (!figure.querySelector('img')) return;
+        if (figure.dataset.cinematicControlled === 'true' || figure.closest('[data-cinematic-controlled="true"]')) return;
         const section = figure.closest('[data-section-type]');
         const comparison = section?.getAttribute('data-section-type')?.startsWith('BEFORE_') || figure.closest('[data-comparisons]');
         const target = comparison ? figure.closest<HTMLElement>('article') || figure.parentElement! : figure;
         if (!targets.has(target)) targets.set(target,{media:true,direction:index++ % 2 ? 1 : -1});
       });
       main.querySelectorAll<HTMLElement>('h1,h2,h3,p,blockquote').forEach(node => {
-        if (node.closest('details,figure') || [...targets.keys()].some(parent=>parent.contains(node))) return;
+        if (node.closest('details,figure') || node.dataset.cinematicControlled === 'true' || node.closest('[data-cinematic-controlled="true"]') || [...targets.keys()].some(parent=>parent.contains(node))) return;
         targets.set(node,{media:false,direction:0});
       });
       observer = new IntersectionObserver(entries => {

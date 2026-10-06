@@ -958,6 +958,42 @@ Completed the professional studio team experience and multi-member tenancy acces
    - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
    - Working tree: clean.
 
+---
+
+## PORTFOLIO EVOLUTION — PHASE 3: CINEMATIC PORTFOLIO
+
+- **Architectural Principle**: STANDARD is the permanent content/fallback model. CINEMATIC is a progressive enhancement for suitable desktop viewports and eligible rooms.
+- **Database & Persistence**:
+  - Flyway migration `V029__project_presentation_mode.sql` (and test-migration `V029__project_presentation_mode.sql`).
+  - Added `presentation_mode varchar(32) NOT NULL DEFAULT 'STANDARD'` with CHECK constraint (`STANDARD`, `CINEMATIC`) and B-Tree index on `(studio_id, presentation_mode)`.
+  - Domain records & services: `ProjectPresentationMode`, `StudioProjectRecord`, `CreateProjectRequest`, `UpdateProjectRequest`, `ProjectDetailResponse`, `JdbcProjectRepository`, `ProjectService`, `PublicProjectDetailDto`, `SeoService`.
+- **Owner Presentation Mode UI**:
+  - Integrated dedicated "Presentation Mode" switcher in Project Editor (`/workspace/projects/[projectId]`) with Standard and Cinematic cards, real-time eligibility notes, and live preview navigation.
+- **Eligibility Engine (`cinematic-eligibility.ts`)**:
+  - Pure, deterministic evaluation of candidate room photos.
+  - Viewport desktop threshold: width $\ge 1280\text{px}$, height $\ge 800\text{px}$.
+  - Aspect ratio classification:
+    - $1.2 \le \text{aspect} \le 2.2$: `FOCUS_PUSH` (scale capped up to 1.04 anchored at focal point).
+    - $2.2 < \text{aspect} \le 3.0$: `GENTLE_DRIFT` (drift travel capped at 16px).
+    - Other aspect ratios: fallback to standard static layout.
+  - Focal safe zone: $0.15 \le \text{focalX, focalY} \le 0.85$.
+  - Per-photo `motion_enabled` permission.
+  - Sticky pin chapters cap: maximum 3 sticky chapters per project (rooms with $\ge 4$ photos).
+  - Accessibility: `prefersReducedMotion` and `forcedColors` immediately fall back to Standard.
+- **Standard Integration Fixes**:
+  - Single-photo portrait containment: `.singlePortrait` constraint (`max-width: 680px`, `object-fit: contain`) preventing harsh cropping.
+  - Real room anchors: HTML anchor navigation (`<a href={`#room-${room.id}`}>`) with intersection observer tracking, native browser history, and deep linking without scroll hijacking.
+  - Transform ownership: Elements controlled by Cinematic have `data-cinematic-controlled="true"` which suppresses template hover scale and decouples from `PortfolioMotion`.
+- **Progressive Enhancement**:
+  - Sticky pinned chapter (`CinematicChapter`) with scroll-bound linear transforms and pause-during-viewer; automatic fallback to Standard for mobile, tablet, reduced-motion, or non-qualifying spaces.
+- **Full Verification Baseline**:
+  - Backend Tests: **406 / 406 PASS** (including PostgreSQL 18 RLS 28/28).
+  - Frontend Tests: **347 / 347 PASS** (50 test files, 100% pass).
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
+
+
 
 
 

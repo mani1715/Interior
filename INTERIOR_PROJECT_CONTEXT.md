@@ -51,15 +51,16 @@ It does NOT mean the personal developer portfolio (`C:\my projects\Portifolio\po
 Current completed milestone:
 - Portfolio Evolution Phase 1: Studio → Project → Room → Photos (Canonical content model, multi-upload, spatial index, dual independent covers, photo inspector, interactive focal-point reticle modal, safe room deletion).
 - Portfolio Evolution Phase 2: Public Room Gallery + Full-Screen Photo Viewer (`ProjectSpaceShowcase`, sticky room pills, room-scoped photo viewer, zoom/pan controls, contact sheet, and EnquirySheet handoff).
+- Portfolio Evolution Phase 3: Cinematic Portfolio (`ProjectPresentationMode`, Flyway V029, pure deterministic eligibility engine, Focus Push & Gentle Drift scroll-driven transforms, matte framing, transform ownership `data-cinematic-controlled="true"`, portrait containment, real `#room-<roomId>` anchor deep linking, and owner presentation settings).
 
 Current Flyway:
-V028 (`V028__project_rooms_and_photo_presentation.sql`)
+V029 (`V029__project_presentation_mode.sql`)
 
-Next planned implementation:
-ASTRA CINEMATIC PORTFOLIO MOTION DESIGN
+Next planned milestone:
+Portfolio Evolution follow-ups / Platform polish.
 
 Cinematic Portfolio:
-NOT YET IMPLEMENTED
+COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
 
 True 3D / 360 / guided camera capture:
 DEFERRED

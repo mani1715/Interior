@@ -625,7 +625,8 @@ public class SeoService {
                 publicMedia,
                 relatedDtos,
                 publicRooms,
-                additionalViews
+                additionalViews,
+                project.presentationMode() != null ? project.presentationMode().name() : "STANDARD"
         ));
     }
 

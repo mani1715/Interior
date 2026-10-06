@@ -4,6 +4,7 @@ import com.interior.platform.projects.domain.AreaUnit;
 import com.interior.platform.projects.domain.BudgetVisibility;
 import com.interior.platform.projects.domain.ClientNameVisibility;
 import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectPresentationMode;
 import com.interior.platform.projects.domain.ProjectScope;
 import com.interior.platform.projects.domain.ProjectStyle;
 import com.interior.platform.projects.domain.PropertyType;
@@ -81,5 +82,68 @@ public record UpdateProjectRequest(
         Boolean featured,
 
         @Size(max = 2000, message = "Internal notes must not exceed 2000 characters")
-        String internalNotes
-) {}
+        String internalNotes,
+
+        ProjectPresentationMode presentationMode
+) {
+    public UpdateProjectRequest {
+        if (presentationMode == null) {
+            presentationMode = ProjectPresentationMode.STANDARD;
+        }
+    }
+
+    public UpdateProjectRequest(
+            Long version,
+            String title,
+            ProjectCategory categoryCode,
+            String shortDescription,
+            String fullDescription,
+            PropertyType propertyType,
+            ProjectScope projectScope,
+            List<ProjectStyle> styleCodes,
+            String city,
+            String district,
+            String state,
+            String country,
+            Integer completionYear,
+            BudgetVisibility budgetVisibility,
+            BigDecimal budgetMin,
+            BigDecimal budgetMax,
+            String currency,
+            ClientNameVisibility clientNameVisibility,
+            String clientDisplayName,
+            BigDecimal areaValue,
+            AreaUnit areaUnit,
+            VisibilityStatus visibilityStatus,
+            Boolean featured,
+            String internalNotes
+    ) {
+        this(
+                version,
+                title,
+                categoryCode,
+                shortDescription,
+                fullDescription,
+                propertyType,
+                projectScope,
+                styleCodes,
+                city,
+                district,
+                state,
+                country,
+                completionYear,
+                budgetVisibility,
+                budgetMin,
+                budgetMax,
+                currency,
+                clientNameVisibility,
+                clientDisplayName,
+                areaValue,
+                areaUnit,
+                visibilityStatus,
+                featured,
+                internalNotes,
+                ProjectPresentationMode.STANDARD
+        );
+    }
+}

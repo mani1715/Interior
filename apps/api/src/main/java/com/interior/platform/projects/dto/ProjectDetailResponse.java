@@ -4,6 +4,7 @@ import com.interior.platform.projects.domain.AreaUnit;
 import com.interior.platform.projects.domain.BudgetVisibility;
 import com.interior.platform.projects.domain.ClientNameVisibility;
 import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectPresentationMode;
 import com.interior.platform.projects.domain.ProjectScope;
 import com.interior.platform.projects.domain.ProjectStatus;
 import com.interior.platform.projects.domain.ProjectStyle;
@@ -46,6 +47,7 @@ public record ProjectDetailResponse(
         BigDecimal areaValue,
         AreaUnit areaUnit,
         String internalNotes,
+        ProjectPresentationMode presentationMode,
         long version,
         UUID createdBy,
         Instant createdAt,

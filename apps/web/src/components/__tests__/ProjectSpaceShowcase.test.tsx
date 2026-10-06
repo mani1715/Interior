@@ -19,6 +19,7 @@ const mockShowcaseData: ProjectSpaceShowcaseData = {
     id: 'proj-1',
     slug: 'guntur-residence',
     title: 'Guntur Residence',
+    presentationMode: 'STANDARD',
     categoryCode: 'LIVING_ROOM',
     categoryDisplayName: 'Living Room',
     styleCodes: ['MODERN'],
@@ -232,9 +233,17 @@ describe('ProjectSpaceShowcase & Room Stories', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Rooms quick navigation' });
     expect(nav).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Main Living Room (2)' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Master Bedroom (1)' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Additional Views (1)' })).toBeDefined();
+    const livingLink = screen.getByRole('link', { name: 'Main Living Room (2)' });
+    expect(livingLink).toBeDefined();
+    expect(livingLink.getAttribute('href')).toBe('#room-room-1');
+
+    const bedroomLink = screen.getByRole('link', { name: 'Master Bedroom (1)' });
+    expect(bedroomLink).toBeDefined();
+    expect(bedroomLink.getAttribute('href')).toBe('#room-room-2');
+
+    const addLink = screen.getByRole('link', { name: 'Additional Views (1)' });
+    expect(addLink).toBeDefined();
+    expect(addLink.getAttribute('href')).toBe('#room-additional-views');
   });
 
   it('renders room sections and opens room-scoped viewer on click', () => {
@@ -312,5 +321,109 @@ describe('ProjectSpaceShowcase & Room Stories', () => {
     expect(screen.queryByRole('dialog', { name: 'Main Living Room' })).toBeNull();
     expect(screen.getByText('I Want Something Similar')).toBeDefined();
     expect(screen.getAllByText(/Guntur Residence/).length).toBeGreaterThan(0);
+  });
+
+  it('applies portrait containment styling when single room photo has aspect ratio < 1', () => {
+    const portraitData: ProjectSpaceShowcaseData = {
+      ...mockShowcaseData,
+      rooms: [
+        {
+          id: 'room-powder',
+          roomType: 'BATHROOM',
+          label: 'Powder Room',
+          displayOrder: 1,
+          coverPhoto: {
+            ...mockShowcaseData.rooms[0].photos[0],
+            id: 'photo-portrait',
+            width: 800,
+            height: 1200,
+            aspectRatio: 0.67,
+          },
+          eligiblePhotoCount: 1,
+          photos: [
+            {
+              ...mockShowcaseData.rooms[0].photos[0],
+              id: 'photo-portrait',
+              width: 800,
+              height: 1200,
+              aspectRatio: 0.67,
+            },
+          ],
+        },
+      ],
+      additionalViews: [],
+    };
+
+    const { container } = render(
+      <ProjectSpaceShowcase data={portraitData} actionProject={mockActionProject} />
+    );
+
+    const singleGrid = container.querySelector('[class*="gridSingle"]');
+    expect(singleGrid).not.toBeNull();
+    expect(singleGrid?.className).toContain('singlePortrait');
+
+    const figure = singleGrid?.querySelector('figure');
+    expect(figure?.className).toContain('singlePortrait');
+  });
+
+  it('renders standard layout without cinematic controller when presentationMode is STANDARD', () => {
+    const { container } = render(
+      <ProjectSpaceShowcase data={mockShowcaseData} actionProject={mockActionProject} />
+    );
+
+    const cinematicControlled = container.querySelectorAll('[data-cinematic-controlled="true"]');
+    expect(cinematicControlled.length).toBe(0);
+  });
+
+  it('renders cinematic chapter with transform ownership when presentationMode is CINEMATIC and eligible', () => {
+    // Mock desktop viewport and IntersectionObserver
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, 'innerHeight', { writable: true, configurable: true, value: 900 });
+
+    class MockIntersectionObserver {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    }
+    window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+    const cinematicData: ProjectSpaceShowcaseData = {
+      ...mockShowcaseData,
+      project: {
+        ...mockShowcaseData.project,
+        presentationMode: 'CINEMATIC',
+      },
+      rooms: [
+        {
+          id: 'room-hero-1',
+          roomType: 'LIVING_ROOM',
+          label: 'Grand Hall',
+          displayOrder: 1,
+          coverPhoto: mockShowcaseData.rooms[0].photos[0],
+          eligiblePhotoCount: 4,
+          photos: [
+            {
+              ...mockShowcaseData.rooms[0].photos[0],
+              id: 'p1',
+              aspectRatio: 1.6,
+              focalX: 0.5,
+              focalY: 0.5,
+              motionEnabled: true,
+            },
+            { ...mockShowcaseData.rooms[0].photos[0], id: 'p2' },
+            { ...mockShowcaseData.rooms[0].photos[0], id: 'p3' },
+            { ...mockShowcaseData.rooms[0].photos[0], id: 'p4' },
+          ],
+        },
+      ],
+      additionalViews: [],
+    };
+
+    const { container } = render(
+      <ProjectSpaceShowcase data={cinematicData} actionProject={mockActionProject} />
+    );
+
+    const controlled = container.querySelectorAll('[data-cinematic-controlled="true"]');
+    expect(controlled.length).toBe(1);
   });
 });
