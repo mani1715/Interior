@@ -13,10 +13,15 @@ import com.interior.platform.portfolio.domain.PortfolioStatus;
 import com.interior.platform.portfolio.domain.PortfolioTemplateKey;
 import com.interior.platform.portfolio.repository.PortfolioRepository;
 import com.interior.platform.projects.domain.ProjectCategory;
+import com.interior.platform.projects.domain.ProjectRoomRecord;
+import com.interior.platform.projects.domain.ProjectScope;
 import com.interior.platform.projects.domain.ProjectStatus;
+import com.interior.platform.projects.domain.PropertyType;
+import com.interior.platform.projects.domain.RoomType;
 import com.interior.platform.projects.domain.StudioProjectRecord;
 import com.interior.platform.projects.domain.VisibilityStatus;
 import com.interior.platform.projects.repository.ProjectRepository;
+import com.interior.platform.projects.repository.ProjectRoomRepository;
 import com.interior.platform.security.domain.ActorContext;
 import com.interior.platform.security.domain.StudioMemberRecord;
 import com.interior.platform.security.domain.UserRecord;
@@ -49,6 +54,7 @@ class SeoServiceTest {
     @Mock private PortfolioRepository portfolioRepository;
     @Mock private ProjectRepository projectRepository;
     @Mock private MediaRepository mediaRepository;
+    @Mock private ProjectRoomRepository projectRoomRepository;
     @Mock private SecurityRepository securityRepository;
     @Mock private AuthorizationService authorizationService;
     @Mock private AuditService auditService;
@@ -71,7 +77,8 @@ class SeoServiceTest {
                 mediaRepository,
                 securityRepository,
                 authorizationService,
-                auditService
+                auditService,
+                projectRoomRepository
         );
 
         ownerActor = new ActorContext(
@@ -313,5 +320,74 @@ class SeoServiceTest {
         assertEquals(2, sitemap.size());
         assertEquals("/professionals/apex-designs", sitemap.get(0).path());
         assertEquals("/projects/modern-penthouse", sitemap.get(1).path());
+    }
+
+    @Test
+    void testGetPublicProject_ProjectsOrderedRoomsAndAdditionalViews() {
+        UUID projId = UUID.randomUUID();
+        UUID room1Id = UUID.randomUUID();
+        UUID room2Id = UUID.randomUUID();
+
+        StudioDetailRecord publishedStudio = new StudioDetailRecord(
+                studioId, sampleStudio.name(), sampleStudio.slug(), userId, "ACTIVE",
+                sampleStudio.professionalType(), sampleStudio.professionalTitle(), sampleStudio.tagline(),
+                sampleStudio.experienceSinceYear(), sampleStudio.teamSize(), sampleStudio.budgetRange(),
+                sampleStudio.addressLine(), sampleStudio.city(), sampleStudio.district(), sampleStudio.state(),
+                sampleStudio.postalCode(), sampleStudio.country(), sampleStudio.travelAvailable(),
+                sampleStudio.gstRegistered(), sampleStudio.gstNumber(), "PUBLISHED",
+                Instant.now(), Instant.now(), Instant.now(),
+                sampleStudio.contacts(), sampleStudio.services(), sampleStudio.specialties(), sampleStudio.serviceAreas()
+        );
+        when(studioRepository.findStudioBySlug("apex-designs")).thenReturn(Optional.of(publishedStudio));
+
+        StudioProjectRecord project = new StudioProjectRecord(
+                projId, studioId, "modern-penthouse", "Modern Penthouse", "Short desc", "Full desc",
+                ProjectCategory.LIVING_ROOM, ProjectStatus.READY, VisibilityStatus.PORTFOLIO,
+                true, 0, "Bengaluru", null, "Karnataka", "IN", null, null, 2025,
+                null, null, null, "INR", null, "Secret Client", null, null, "Secret Notes",
+                1, userId, Instant.now(), Instant.now(), null
+        );
+        when(projectRepository.findProjectBySlug(studioId, "modern-penthouse")).thenReturn(Optional.of(project));
+
+        // Two rooms: Living Room (sortOrder 0) and Bedroom (sortOrder 1)
+        ProjectRoomRecord livingRoom = new ProjectRoomRecord(
+                room1Id, studioId, projId, RoomType.LIVING_ROOM, "Grand Living Room", 0, Instant.now(), Instant.now()
+        );
+        ProjectRoomRecord bedroom = new ProjectRoomRecord(
+                room2Id, studioId, projId, RoomType.BEDROOM, null, 1, Instant.now(), Instant.now()
+        );
+        when(projectRoomRepository.findRoomsByProject(projId, studioId)).thenReturn(List.of(livingRoom, bedroom));
+
+        // Media items
+        MediaAssetRecord room1Photo = new MediaAssetRecord(
+                UUID.randomUUID(), studioId, projId, MediaType.REAL_PROJECT, MediaVisibility.PORTFOLIO,
+                MediaProcessingStatus.READY, "storage/lr1", "image/jpeg", 1000L, 1920, 1080, 0, true, "Living Room Main", null, true, userId, Instant.now(), Instant.now(), null,
+                room1Id, true, java.math.BigDecimal.valueOf(0.5), java.math.BigDecimal.valueOf(0.5), true
+        );
+        MediaAssetRecord room2Photo = new MediaAssetRecord(
+                UUID.randomUUID(), studioId, projId, MediaType.REAL_PROJECT, MediaVisibility.PORTFOLIO,
+                MediaProcessingStatus.READY, "storage/mb1", "image/jpeg", 1000L, 1920, 1080, 0, false, "Bedroom View", null, true, userId, Instant.now(), Instant.now(), null,
+                room2Id, false, java.math.BigDecimal.valueOf(0.5), java.math.BigDecimal.valueOf(0.5), true
+        );
+        MediaAssetRecord unassignedPhoto = new MediaAssetRecord(
+                UUID.randomUUID(), studioId, projId, MediaType.REAL_PROJECT, MediaVisibility.PORTFOLIO,
+                MediaProcessingStatus.READY, "storage/mat1", "image/jpeg", 1000L, 1920, 1080, 0, false, "Material Flatlay", null, true, userId, Instant.now(), Instant.now(), null,
+                null, false, java.math.BigDecimal.valueOf(0.5), java.math.BigDecimal.valueOf(0.5), true
+        );
+
+        when(mediaRepository.findMediaAssetsByProject(projId, studioId, false)).thenReturn(List.of(room1Photo, room2Photo, unassignedPhoto));
+
+        Optional<PublicProjectDetailDto> result = seoService.getPublicProject("apex-designs", "modern-penthouse");
+        assertTrue(result.isPresent());
+
+        PublicProjectDetailDto dto = result.get();
+        assertEquals(2, dto.rooms().size());
+        assertEquals("Grand Living Room", dto.rooms().get(0).label());
+        assertEquals(room1Photo.id(), dto.rooms().get(0).coverPhoto().id());
+        assertEquals("Bedroom", dto.rooms().get(1).label()); // Default fallback display name
+        assertEquals(room2Photo.id(), dto.rooms().get(1).coverPhoto().id()); // Fallback to first room photo
+        assertEquals(1, dto.additionalViews().size());
+        assertEquals(unassignedPhoto.id(), dto.additionalViews().get(0).id());
+        assertEquals(3, dto.media().size(), "Full flat media list must be preserved for backward compatibility");
     }
 }

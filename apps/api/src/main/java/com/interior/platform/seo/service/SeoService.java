@@ -27,7 +27,10 @@ import com.interior.platform.security.service.AuthorizationService;
 import com.interior.platform.seo.domain.SeoChecklistItem;
 import com.interior.platform.seo.domain.SeoSettingsRecord;
 import com.interior.platform.seo.dto.*;
+import com.interior.platform.projects.domain.ProjectRoomRecord;
+import com.interior.platform.projects.repository.ProjectRoomRepository;
 import com.interior.platform.seo.repository.SeoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +49,30 @@ public class SeoService {
     private final SecurityRepository securityRepository;
     private final AuthorizationService authorizationService;
     private final AuditService auditService;
+    private final ProjectRoomRepository projectRoomRepository;
+
+    @Autowired
+    public SeoService(
+            SeoRepository seoRepository,
+            StudioRepository studioRepository,
+            PortfolioRepository portfolioRepository,
+            ProjectRepository projectRepository,
+            MediaRepository mediaRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            ProjectRoomRepository projectRoomRepository
+    ) {
+        this.seoRepository = seoRepository;
+        this.studioRepository = studioRepository;
+        this.portfolioRepository = portfolioRepository;
+        this.projectRepository = projectRepository;
+        this.mediaRepository = mediaRepository;
+        this.securityRepository = securityRepository;
+        this.authorizationService = authorizationService;
+        this.auditService = auditService;
+        this.projectRoomRepository = projectRoomRepository;
+    }
 
     public SeoService(
             SeoRepository seoRepository,
@@ -57,14 +84,17 @@ public class SeoService {
             AuthorizationService authorizationService,
             AuditService auditService
     ) {
-        this.seoRepository = seoRepository;
-        this.studioRepository = studioRepository;
-        this.portfolioRepository = portfolioRepository;
-        this.projectRepository = projectRepository;
-        this.mediaRepository = mediaRepository;
-        this.securityRepository = securityRepository;
-        this.authorizationService = authorizationService;
-        this.auditService = auditService;
+        this(
+                seoRepository,
+                studioRepository,
+                portfolioRepository,
+                projectRepository,
+                mediaRepository,
+                securityRepository,
+                authorizationService,
+                auditService,
+                null
+        );
     }
 
     @Transactional(readOnly = true)
@@ -480,9 +510,62 @@ public class SeoService {
                             m.altText(),
                             m.caption(),
                             m.mediaType() == MediaType.AI_CONCEPT,
-                            derivativeDtos
+                            derivativeDtos,
+                            m.roomId(),
+                            m.isRoomCover(),
+                            m.focalX(),
+                            m.focalY(),
+                            m.motionEnabled(),
+                            m.sortOrder(),
+                            m.width(),
+                            m.height()
                     );
                 })
+                .sorted(Comparator.comparingInt(PublicMediaDto::sortOrder))
+                .toList();
+
+        // --------------------------------------------------------------------
+        // Public Room Projection & Additional Views
+        // --------------------------------------------------------------------
+        List<ProjectRoomRecord> roomRecords = projectRoomRepository != null
+                ? projectRoomRepository.findRoomsByProject(project.id(), studio.id())
+                : List.of();
+
+        List<PublicRoomDto> publicRooms = new ArrayList<>();
+        for (ProjectRoomRecord roomRecord : roomRecords) {
+            List<PublicMediaDto> roomPhotos = publicMedia.stream()
+                    .filter(m -> roomRecord.id().equals(m.roomId()))
+                    .sorted(Comparator.comparingInt(PublicMediaDto::sortOrder))
+                    .toList();
+
+            if (roomPhotos.isEmpty()) {
+                // Empty room is omitted from public presentation
+                continue;
+            }
+
+            PublicMediaDto coverPhoto = roomPhotos.stream()
+                    .filter(PublicMediaDto::isRoomCover)
+                    .findFirst()
+                    .orElse(roomPhotos.getFirst());
+
+            String humanLabel = (roomRecord.displayName() != null && !roomRecord.displayName().isBlank())
+                    ? roomRecord.displayName().trim()
+                    : roomRecord.roomType().getDefaultDisplayName();
+
+            publicRooms.add(new PublicRoomDto(
+                    roomRecord.id(),
+                    roomRecord.roomType().name(),
+                    humanLabel,
+                    roomRecord.sortOrder(),
+                    coverPhoto,
+                    roomPhotos.size(),
+                    roomPhotos
+            ));
+        }
+
+        List<PublicMediaDto> additionalViews = publicMedia.stream()
+                .filter(m -> m.roomId() == null)
+                .sorted(Comparator.comparingInt(PublicMediaDto::sortOrder))
                 .toList();
 
         List<ProjectStyle> styles = projectRepository.findStylesByProjectId(project.id());
@@ -540,7 +623,9 @@ public class SeoService {
                 canonicalUrl,
                 studioSummary,
                 publicMedia,
-                relatedDtos
+                relatedDtos,
+                publicRooms,
+                additionalViews
         ));
     }
 

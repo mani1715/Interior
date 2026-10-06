@@ -65,17 +65,36 @@ export interface PublicStudioSummaryDto {
 export interface PublicMediaDto {
   id: string;
   mediaType: string;
+  mediaTypeDisplayName?: string | null;
   isAiConcept: boolean;
-  sortOrder: number;
+  sortOrder?: number;
   isCover: boolean;
   altText: string;
   caption?: string | null;
-  originalWidth: number;
-  originalHeight: number;
-  thumbnailUrl: string;
-  mediumUrl: string;
-  largeUrl: string;
+  originalWidth?: number;
+  originalHeight?: number;
+  width?: number;
+  height?: number;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  largeUrl?: string;
   heroUrl?: string | null;
+  roomId?: string | null;
+  isRoomCover?: boolean;
+  focalX?: number | null;
+  focalY?: number | null;
+  motionEnabled?: boolean;
+  derivatives?: import('../media/types').MediaDerivativeDto[];
+}
+
+export interface PublicRoomDto {
+  id: string;
+  roomType: string;
+  label: string;
+  displayOrder: number;
+  coverPhoto: PublicMediaDto;
+  eligiblePhotoCount: number;
+  photos: PublicMediaDto[];
 }
 
 export interface PublicStudioDto {
@@ -115,21 +134,30 @@ export interface PublicProjectDetailDto {
   slug: string;
   title: string;
   categoryCode: string;
+  categoryDisplayName?: string | null;
   shortDescription?: string | null;
   fullDescription?: string | null;
   city?: string | null;
+  district?: string | null;
   state?: string | null;
   country?: string | null;
   completionYear?: number | null;
   propertyType?: string | null;
   projectScope?: string | null;
   styleCodes: string[];
+  styleDisplayNames?: string[];
   areaSqFt?: number | null;
+  budgetFormatted?: string | null;
+  areaFormatted?: string | null;
+  updatedAt?: string;
   studio: PublicStudioSummaryDto;
   canonicalUrl: string;
   metaTitle: string;
   metaDescription: string;
   media: PublicMediaDto[];
+  relatedProjects?: import('../projects/types').ProjectPresentationDto[];
+  rooms?: PublicRoomDto[];
+  additionalViews?: PublicMediaDto[];
 }
 
 export interface SitemapItemDto {

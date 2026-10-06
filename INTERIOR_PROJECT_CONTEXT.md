@@ -50,15 +50,13 @@ It does NOT mean the personal developer portfolio (`C:\my projects\Portifolio\po
 
 Current completed milestone:
 - Portfolio Evolution Phase 1: Studio → Project → Room → Photos (Canonical content model, multi-upload, spatial index, dual independent covers, photo inspector, interactive focal-point reticle modal, safe room deletion).
-
-Current baseline before guard commit:
-ddbe990 (`feat: add room-based project photo organization`)
+- Portfolio Evolution Phase 2: Public Room Gallery + Full-Screen Photo Viewer (`ProjectSpaceShowcase`, sticky room pills, room-scoped photo viewer, zoom/pan controls, contact sheet, and EnquirySheet handoff).
 
 Current Flyway:
 V028 (`V028__project_rooms_and_photo_presentation.sql`)
 
 Next planned implementation:
-PUBLIC ROOM GALLERY + FULL-SCREEN PHOTO VIEWER
+ASTRA CINEMATIC PORTFOLIO MOTION DESIGN
 
 Cinematic Portfolio:
 NOT YET IMPLEMENTED

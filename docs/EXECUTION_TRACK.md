@@ -65,11 +65,16 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Photo Inspector slide-over sheet and interactive `FocalPointModal`.
   - Verified: 405/405 backend tests, 320/320 frontend tests, 28/28 PostgreSQL RLS tests.
 
+- **Phase 2 Implementation: Public Room Gallery & Full-Screen Photo Viewer (Antigravity)**
+  - Backend Public Room Projection: `PublicRoomDto`, extended `PublicMediaDto` and `PublicProjectDetailDto` in `SeoService`.
+  - Frontend Unified Normalization: `normalizeProjectSpaceShowcase` mapping room groupings, additional views, dimensions, and focal points.
+  - Public Room Gallery: `ProjectSpaceShowcase` with sticky room navigation bar, photo count badges, multi-photo responsive story grids, and no-JS server fallback.
+  - Full-Screen Viewer: `GalleryViewer` evolved with room-scoped boundary enforcement, zoom in/out/fit (up to 3x), pan dragging and clamp, contact sheet (This Room vs All Rooms), and enquiry handoff to `EnquirySheet`.
+  - Verified: 406/406 backend tests PASS, 324/324 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+
 ## Current Next Step:
 
-- **Phase 2 Implementation:**
-  - Public Room Gallery & Space Navigation across portfolio templates.
-  - Full-Screen Cinematic Photo Viewer respecting `motion_enabled` and `(focal_x, focal_y)`.
+- Astra Cinematic Portfolio Motion Design (Phase 3 Motion Design).
 
 ## Pending After Phase 2:
 
