@@ -31,7 +31,7 @@ export function BrandHero() {
     const el = root.current;
     if (!el || !window.matchMedia || !window.IntersectionObserver) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const wide = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
+    const wide = window.matchMedia('(min-width: 1280px) and (min-height: 800px)');
     const chapters = Array.from(el.querySelectorAll<HTMLElement>('[data-brand-copy]'));
     let frame = 0;
     let visible = true;
@@ -68,7 +68,7 @@ export function BrandHero() {
   }, []);
 
   return <section ref={root} className={styles.hero} aria-label="The Elégance design experience">
-    <a className={styles.skip} href="#explore-interiors">Skip cinematic introduction</a>
+    <a className={styles.skip} href="#immediate-search">Skip cinematic introduction</a>
     <div className={styles.stage}>
       <div className={styles.world} aria-hidden="true">
         <div className={styles.room}>
@@ -76,30 +76,44 @@ export function BrandHero() {
           <div className={styles.living}><Image src="/images/approved/tv-unit.png" alt="" fill sizes="100vw" /></div>
         </div>
         <div className={styles.shade} />
-        <div className={`${styles.study} ${styles.leftStudy}`}><Image src="/images/approved/kitchen.png" alt="" fill sizes="(max-width: 767px) 1px, 34vw" /><span>01 / MATERIAL & FORM</span></div>
-        <div className={`${styles.study} ${styles.rightStudy}`}><Image src="/images/approved/feature.png" alt="" fill sizes="(max-width: 767px) 1px, 30vw" /><span>02 / LIGHT & DETAIL</span></div>
+        <div className={`${styles.study} ${styles.leftStudy}`}><Image src="/images/approved/kitchen.png" alt="" fill sizes="(max-width: 1279px) 1px, 28vw" /><span>01 / MATERIAL & FORM</span></div>
+        <div className={`${styles.study} ${styles.rightStudy}`}><Image src="/images/approved/feature.png" alt="" fill sizes="(max-width: 1279px) 1px, 26vw" /><span>02 / LIGHT & DETAIL</span></div>
         <div className={styles.portal} />
       </div>
       <div className={styles.topline}><span>SPACES FOR A LIFE WELL LIVED</span><span>ELÉGANCE / INDIA</span></div>
       <div data-brand-copy className={`${styles.copy} ${styles.opening}`}>
         <span className={styles.eyebrow}>A MORE CONSIDERED WAY TO LIVE</span>
-        <h1>Beautiful spaces.<br /><em>Human stories.</em></h1>
-        <p>Discover interiors you love.<br />Meet the people who can make them yours.</p>
-        <div data-motion-photo className={styles.mobilePhoto}><Image src="/images/approved/hall.png" alt="Warm timber and illuminated cabinetry in an imagined interior" fill sizes="(max-width: 767px) 100vw, 1px" /></div><Link className={styles.button} href="/projects">Discover the possibilities <ArrowUpRight size={18} /></Link>
+        <h1>Find your kind of space.<br /><em>Meet its creators.</em></h1>
+        <p>Explore interior projects, room by room. Discover the professionals behind them and start a conversation.</p>
+        <div className={styles.links}>
+          <Link className={styles.button} href="/projects">Explore projects <ArrowUpRight size={18} /></Link>
+          <Link className={styles.secondaryButton} href="/professionals">Find a professional <ArrowUpRight size={18} /></Link>
+        </div>
+        <div data-motion-photo className={styles.mobilePhoto}><Image src="/images/approved/hall.png" alt="Warm timber and illuminated cabinetry in an interior" fill sizes="(max-width: 1279px) 100vw, 1px" /></div>
       </div>
       <div data-brand-copy className={`${styles.copy} ${styles.craft}`}>
         <span className={styles.eyebrow}>THE DIFFERENCE IS IN THE DETAILS</span>
         <h2>Made with care.<br /><em>Made for living.</em></h2>
         <p>Warm materials. Thoughtful storage.<br />Everyday spaces, beautifully resolved.</p>
-        <Link className={styles.textLink} href="/interior-journey">Take the interior journey <ArrowUpRight size={18} /></Link>
+        <div className={styles.links}>
+          <Link className={styles.button} href="/projects">Explore projects <ArrowUpRight size={18} /></Link>
+          <Link className={styles.secondaryButton} href="/professionals">Find a professional <ArrowUpRight size={18} /></Link>
+        </div>
       </div>
       <div data-brand-copy className={`${styles.copy} ${styles.destination}`}>
         <span className={styles.eyebrow}>FROM INSPIRATION TO YOUR INTERIOR</span>
         <h2>See the potential.<br /><em>Find your people.</em></h2>
-        <p>Explore real projects, connect with studios,<br />and visualize a space that feels like you.</p>
-        <div className={styles.links}><Link className={styles.button} href="/professionals">Find your professional <ArrowUpRight size={18} /></Link><Link className={styles.textLink} href="#ai-visualizer">Visualize your ideas <ArrowUpRight size={18} /></Link></div>
+        <p>Explore real projects, connect with studios,<br />and start a conversation.</p>
+        <div className={styles.links}>
+          <Link className={styles.button} href="/projects">Explore projects <ArrowUpRight size={18} /></Link>
+          <Link className={styles.secondaryButton} href="/professionals">Find a professional <ArrowUpRight size={18} /></Link>
+        </div>
       </div>
-      <div className={styles.bottomline}><a href="#explore-interiors">SCROLL TO EXPLORE <ArrowDown size={15} /></a><span className={styles.track} aria-hidden="true" /><span>IMAGINED SPACES · AI CONCEPT VISUALIZATION</span></div>
+      <div className={styles.bottomline}>
+        <a href="#immediate-search">EXPLORE SPACES <ArrowDown size={15} /></a>
+        <span className={styles.track} aria-hidden="true" />
+        <span>IMAGINED SPACES · AI CONCEPT VISUALIZATION</span>
+      </div>
     </div>
   </section>;
 }

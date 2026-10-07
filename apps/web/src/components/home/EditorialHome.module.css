@@ -59,3 +59,89 @@
  .finalCta{padding:78px 24px}.finalCta h2{font-size:52px}.footer{padding:52px 24px 26px}
 }
 @media(prefers-reduced-motion:reduce){.primaryLink,.categoryCard h3 svg{transition:none;transform:none!important}}
+
+/* 3. Immediate Project Search */
+.searchSection{max-width:1440px;margin:auto;padding:72px 5vw 48px;border-top:1px solid #dedbd2}
+.searchContainer{max-width:960px;margin:auto;text-align:center}
+.searchTitle{font:400 clamp(32px,3.8vw,52px)/1.1 Georgia,serif;letter-spacing:-.04em;margin:0 0 28px;color:#242923}
+.searchForm{margin:0 auto 28px;max-width:760px}
+.searchLabel{display:block;font-size:12px;letter-spacing:.08em;color:#62665d;margin-bottom:12px;text-align:left}
+.searchInputRow{display:flex;gap:12px;align-items:stretch}
+.searchInputWrapper{position:relative;flex:1;display:flex;align-items:center}
+.searchIcon{position:absolute;left:16px;color:#766044;pointer-events:none}
+.searchInput{width:100%;height:52px;padding:0 16px 0 46px;font-size:15px;color:#242923;background:#faf8f3;border:1px solid #d9d5ca;border-radius:2px;outline:none;transition:border-color .2s}
+.searchInput:focus{border-color:#806648}
+.searchButton{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 28px;background:#242923;color:#faf8f3;font-size:13px;font-weight:500;border:1px solid #242923;border-radius:2px;cursor:pointer;flex-shrink:0;transition:background .2s}
+.searchButton:hover{background:#3c4b3e}
+.searchChips{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px}
+.chipHeading{font-size:10px;letter-spacing:.14em;color:#766044;font-weight:600}
+.chip{display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;background:#eae7de;color:#242923;font-size:12px;border-radius:2px;text-decoration:none;transition:background .2s}
+.chip:hover{background:#dedbd2;text-decoration:none}
+
+/* 5. Professional Discovery */
+.professionalsSection{max-width:1440px;margin:auto;padding:100px 5vw;border-top:1px solid #dedbd2}
+.professionalHeaderCta{display:flex;flex-direction:column;align-items:flex-start}
+.professionalGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.professionalCard{border:1px solid #dedbd2;background:#faf8f3;display:flex;flex-direction:column}
+.professionalCardImage{position:relative;aspect-ratio:4/3;overflow:hidden;background:#eae7de;display:flex;align-items:center;justify-content:center}
+.professionalCardImage img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.professionalCard:hover .professionalCardImage img{transform:scale(1.03)}
+.professionalPlaceholder{font:48px Georgia,serif;color:#806648}
+.professionalCardBody{padding:24px;display:flex;flex-direction:column;flex:1}
+.professionalCardBody h3{font-size:22px;font-weight:400;margin:8px 0;letter-spacing:-.02em}
+.professionalCardBody h3 a{color:#242923}
+.specialties{font-size:12px;color:#62665d;line-height:1.6;margin:4px 0 16px}
+.professionalsFallback{display:grid;grid-template-columns:1fr 1fr;background:#eae7de}
+
+/* 6. Cinematic Portfolio Intro */
+.cinematicSection{max-width:1440px;margin:auto;padding:100px 5vw;border-top:1px solid #dedbd2}
+.cinematicPreview{margin-top:24px}
+.cinematicCard{border:1px solid #dedbd2;background:#242923;color:#faf8f3;overflow:hidden;border-radius:2px}
+.cinematicMedia{position:relative;height:clamp(340px,50vh,620px);width:100%;overflow:hidden}
+.cinematicMedia img{object-fit:cover;object-position:50% 50%}
+.cinematicBadge{position:absolute;top:20px;left:20px;display:inline-flex;align-items:center;gap:8px;background:rgba(20,24,21,.75);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#faf8f3;padding:8px 14px;font-size:10px;letter-spacing:.14em;border-radius:2px}
+.badgeDivider{color:#806648}
+.cinematicCaption{position:absolute;bottom:20px;left:20px;background:rgba(20,24,21,.75);backdrop-filter:blur(8px);color:#d6d9ce;padding:6px 12px;font-size:11px;border-radius:2px}
+.cinematicFooter{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:32px;background:#202621}
+.cinematicFooter h3{font:400 24px Georgia,serif;margin:0 0 8px;color:#faf8f3}
+.cinematicFooter p{font-size:14px;color:#c6c9b9;margin:0;max-width:540px}
+
+/* 8. AI Visualizer CTA note */
+.aiCtaGroup{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.aiSignInNote{font-size:11px;color:#d2b58c;letter-spacing:.04em}
+
+/* 10. Visitor + Professional Dual Calls to Action */
+.dualCtaSection{background:#eae7de;padding:100px 5vw;border-top:1px solid #dedbd2}
+.dualCtaContainer{max-width:1296px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.ctaCard{background:#faf8f3;border:1px solid #dedbd2;padding:56px 42px;display:flex;flex-direction:column;justify-content:space-between}
+.professionalCtaCard{background:#f3efe6}
+.ctaCard h2{font:400 clamp(34px,3.8vw,52px)/1.08 Georgia,serif;letter-spacing:-.04em;margin:0 0 16px;color:#242923}
+.ctaCard h2 em{color:#666d60;font-weight:400}
+.ctaCard p{font-size:15px;line-height:1.75;color:#4e534b;margin:0 0 32px;max-width:440px}
+.ctaButtonGroup{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.secondaryButton{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:48px;font-size:13px;font-weight:500;padding:14px 22px;border:1px solid #8c9085;color:#242923;background:transparent;text-decoration:none;border-radius:2px}
+.secondaryButton:hover{background:#dedbd2;text-decoration:none}
+
+@media(max-width:1023px){
+  .professionalGrid{grid-template-columns:1fr 1fr}
+  .dualCtaContainer{grid-template-columns:1fr;gap:24px}
+  .cinematicFooter{flex-direction:column;align-items:flex-start}
+}
+
+@media(max-width:767px){
+  .searchSection{padding:48px 18px 36px}
+  .searchTitle{font-size:32px}
+  .searchInputRow{flex-direction:column}
+  .searchButton{width:100%}
+  .searchChips{justify-content:flex-start}
+  .professionalsSection{padding:60px 18px}
+  .professionalGrid{grid-template-columns:1fr;gap:24px}
+  .professionalsFallback{grid-template-columns:1fr}
+  .cinematicSection{padding:60px 18px}
+  .cinematicMedia{height:300px}
+  .cinematicFooter{padding:24px 18px}
+  .ctaCard{padding:36px 20px}
+  .ctaButtonGroup{flex-direction:column;align-items:stretch;width:100%}
+  .ctaButtonGroup a{width:100%;justify-content:center}
+}
+

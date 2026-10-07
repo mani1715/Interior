@@ -11,8 +11,11 @@ describe('Brand landing experience', () => {
     const {container} = render(<BrandHero />);
     expect(container.querySelector('[data-motion]')).toBeNull();
     expect(container.querySelectorAll('h1')).toHaveLength(1);
-    expect(screen.getByRole('link', {name:'Discover the possibilities'}).getAttribute('href')).toBe('/projects');
-    expect(screen.getByRole('link', {name:'Take the interior journey'}).getAttribute('href')).toBe('/interior-journey');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Find your kind of space');
+    const exploreLinks = screen.getAllByRole('link', { name: /explore projects/i });
+    expect(exploreLinks[0].getAttribute('href')).toBe('/projects');
+    const professionalLinks = screen.getAllByRole('link', { name: /find a professional/i });
+    expect(professionalLinks[0].getAttribute('href')).toBe('/professionals');
   });
   it.each([[true,true],[false,false]])('does not pin for reduced motion %s / desktop %s', (reduced, desktop) => {
     vi.stubGlobal('matchMedia', (query: string) => ({matches:query.includes('reduced') ? reduced : desktop, addEventListener:vi.fn(),removeEventListener:vi.fn()}));

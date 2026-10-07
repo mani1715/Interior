@@ -8,16 +8,16 @@ import { Footer } from '@/components/home/Footer';
 import { serializeJsonLd } from '@/lib/seo/structured-data';
 
 export const metadata: Metadata = {
-  title: 'Elégance — Interior Designer Portfolio, Discovery & AI Visualizer',
+  title: 'Interior Projects & Professionals | Elégance',
   description:
-    'Turn beautiful interiors into a business people can discover. Build your studio portfolio, get found on Google, visualize client ideas with AI, and capture high-intent leads across India.',
+    'Explore interior projects, discover designers and studios, and find ideas for your next space with Elégance.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Elégance — Interior Designer Portfolio, Discovery & AI Visualizer',
+    title: 'Interior Projects & Professionals | Elégance',
     description:
-      'Turn beautiful interiors into a business people can discover. Build your studio portfolio, get found on Google, visualize client ideas with AI, and capture high-intent leads across India.',
+      'Explore interior projects, discover designers and studios, and find ideas for your next space with Elégance.',
     url: '/',
     siteName: 'Elégance Interior Platform',
     locale: 'en_IN',
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Elégance — Interior Designer Portfolio, Discovery & AI Visualizer',
+    title: 'Interior Projects & Professionals | Elégance',
     description:
-      'Turn beautiful interiors into a business people can discover. Build your studio portfolio, get found on Google, and visualize client ideas with AI.',
+      'Explore interior projects, discover designers and studios, and find ideas for your next space with Elégance.',
   },
   robots: {
     index: true,

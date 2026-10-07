@@ -52,6 +52,7 @@ Current completed milestone:
 - Portfolio Evolution Phase 1: Studio → Project → Room → Photos (Canonical content model, multi-upload, spatial index, dual independent covers, photo inspector, interactive focal-point reticle modal, safe room deletion).
 - Portfolio Evolution Phase 2: Public Room Gallery + Full-Screen Photo Viewer (`ProjectSpaceShowcase`, sticky room pills, room-scoped photo viewer, zoom/pan controls, contact sheet, and EnquirySheet handoff).
 - Portfolio Evolution Phase 3: Cinematic Portfolio (`ProjectPresentationMode`, Flyway V029, pure deterministic eligibility engine, Focus Push & Gentle Drift scroll-driven transforms, matte framing, transform ownership `data-cinematic-controlled="true"`, portrait containment, real `#room-<roomId>` anchor deep linking, and owner presentation settings).
+- Implementation Phase 4: Homepage Refinement (Discovery-first visitor architecture: PublicHeader with 64px mobile bar & shortcut, BrandHero 180svh desktop motion with unpinned mobile/tablet fallback, Immediate Project Search, Projects to Explore, Professional Discovery with live API + fallback, Cinematic Portfolio Introduction, Inspiration Categories, Secondary AI Visualizer with disclosure, Trust Explanations, Visitor & Professional Dual CTAs).
 
 Current Flyway:
 V029 (`V029__project_presentation_mode.sql`)
@@ -61,6 +62,9 @@ Portfolio Evolution follow-ups / Platform polish.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
+
+Homepage Refinement:
+COMPLETE (Discovery first, approved 11-section order, responsive, accessible, zero regression)
 
 True 3D / 360 / guided camera capture:
 DEFERRED

@@ -85,6 +85,21 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Progressive Enhancement: Sticky pinned chapter (`CinematicChapter`) with scroll-bound linear transforms and pause-during-viewer; automatic fallback to Standard for mobile, tablet, reduced-motion, or non-qualifying spaces.
   - Verified: 406/406 backend tests PASS, 347/347 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
+- **Phase 4 Implementation: Homepage Refinement (Antigravity)**
+  - Reordered and refined homepage to prioritize visitor discovery first across 11 approved sections:
+    1. Public Header (`PublicHeader` with 76px desktop, 64px mobile bar, direct `/projects` mobile shortcut, and focus-trapped drawer)
+    2. Brand Hero (`BrandHero` with single `<h1>Find your kind of space.<br /><em>Meet its creators.</em></h1>`, clear CTAs `/projects` and `/professionals`, 180svh desktop motion constraint, and static editorial layout for tablet/short-desktop/mobile)
+    3. Immediate Project Search (prominent semantic search form with `/projects?q=` and quick category chips)
+    4. Projects to Explore (`EditorialProjects` with heading "Projects to explore", live `fetchDiscoveryProjects({ limit: 3 })`, studio attribution, AI badge, and empty/error states)
+    5. Professional Discovery (`EditorialProfessionals` with heading "Find the people for your space.", live `fetchDiscoveryProfessionals({ limit: 3 })`, and editorial visual fallback)
+    6. Cinematic Portfolio Introduction (progressive enhancement explanation, room card preview with badge, and CTA)
+    7. Inspiration / Categories (3:2 visual category cards, additional room links, and quiet AI concept credit)
+    8. AI Visualizer (secondary supporting tool role, 3-step room workflow, truthful legal disclaimer, and `/workspace/ai` CTA noting sign-in requirement)
+    9. Trust Explanations (3 confidence pillars: Work with attribution, Reviews with context, Verification explained)
+    10. Visitor + Professional Calls to Action (dual audience layout: homeowner discovery and professional portfolio registration)
+    11. Footer (`Footer` with platform navigation, legal links, and quiet copyright)
+  - Verified: 407/407 backend tests PASS, 352/352 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+
 ## Current Next Step:
 
 - Platform review and next milestone planning.
