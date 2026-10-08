@@ -13,9 +13,12 @@ import java.util.*;
 public class EntitlementService {
 
     public static final String BASE_PLAN_CODE = "BASE";
+    public static final String STANDARD_PLAN_CODE = "STANDARD";
 
     private final BillingRepository billingRepository;
     private final ProjectRepository projectRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.media.repository.MediaRepository mediaRepository;
 
     public EntitlementService(BillingRepository billingRepository, ProjectRepository projectRepository) {
         this.billingRepository = billingRepository;
@@ -23,23 +26,42 @@ public class EntitlementService {
     }
 
     /**
-     * Resolves the active billing plan for a studio, falling back to internal BASE plan.
+     * Resolves the active billing plan for a studio.
+     * Invariants:
+     * - An active subscription resolves to its plan.
+     * - If no active subscription exists, but the latest recorded subscription is commercial
+     *   (e.g. EXPIRED, CANCELLED, PAST_DUE), fall back safely to STANDARD to prevent granting unlimited BASE access.
+     * - Only studios without commercial subscription records fall back to internal legacy BASE.
      */
     public BillingPlanRecord getActivePlan(UUID studioId) {
         Optional<StudioSubscriptionRecord> activeSub = billingRepository.findActiveSubscription(studioId);
         if (activeSub.isPresent()) {
             return billingRepository.findPlanById(activeSub.get().planId())
-                    .orElseGet(this::getBasePlan);
+                    .orElseGet(this::getStandardPlan);
         }
+
+        Optional<StudioSubscriptionRecord> latestSub = billingRepository.findLatestSubscription(studioId);
+        if (latestSub.isPresent()) {
+            return getStandardPlan();
+        }
+
         return getBasePlan();
     }
 
     /**
-     * Retrieves the internal non-commercial BASE plan.
+     * Retrieves the internal legacy BASE plan.
      */
     public BillingPlanRecord getBasePlan() {
         return billingRepository.findPlanByCode(BASE_PLAN_CODE)
                 .orElseThrow(() -> new ResourceNotFoundException("Base plan configuration not found"));
+    }
+
+    /**
+     * Retrieves the customer-facing STANDARD plan.
+     */
+    public BillingPlanRecord getStandardPlan() {
+        return billingRepository.findPlanByCode(STANDARD_PLAN_CODE)
+                .orElseGet(this::getBasePlan);
     }
 
     /**
@@ -85,8 +107,46 @@ public class EntitlementService {
             int currentCount = projectRepository.countProjects(studioId);
             if (currentCount >= limit) {
                 throw new BadRequestException(
-                        String.format("Project limit reached for your current plan (%d/%d). Upgrade to create more projects.",
+                        String.format("Project limit reached for your current plan (%d/%d). Upgrade your plan to create more projects.",
                                 currentCount, limit)
+                );
+            }
+        }
+    }
+
+    /**
+     * Enforces portfolio photo quota per project (committed photos + reserved pending upload intents).
+     */
+    public void assertProjectPhotoQuotaAllowed(UUID studioId, UUID projectId, int incomingPhotosCount) {
+        Long limit = getNumericLimit(studioId, EntitlementKey.PROJECT_PHOTO_LIMIT);
+        if (limit != null && mediaRepository != null) {
+            int committed = mediaRepository.countCommittedPortfolioPhotos(studioId, projectId);
+            int reserved = mediaRepository.countPendingPortfolioUploadIntents(studioId, projectId);
+            int currentTotal = committed + reserved;
+            if (currentTotal + incomingPhotosCount > limit) {
+                throw new BadRequestException(
+                        String.format("Photo limit reached for this project (%d/%d). Upgrade your plan to add more portfolio photographs.",
+                                currentTotal, limit)
+                );
+            }
+        }
+    }
+
+    /**
+     * Enforces Cinematic presentation mode selection and studio-level Cinematic project quota.
+     */
+    public void assertCinematicProjectAllowed(UUID studioId) {
+        boolean cinematicEnabled = hasBooleanEntitlement(studioId, EntitlementKey.CINEMATIC_PORTFOLIO);
+        if (!cinematicEnabled) {
+            throw new BadRequestException("Cinematic project presentation is not included in your current plan. Upgrade to Pro to enable Cinematic presentation.");
+        }
+        Long limit = getNumericLimit(studioId, EntitlementKey.CINEMATIC_PROJECT_LIMIT);
+        if (limit != null) {
+            int currentCinematic = projectRepository.countCinematicProjects(studioId);
+            if (currentCinematic >= limit) {
+                throw new BadRequestException(
+                        String.format("Cinematic project allocation limit reached (%d/%d projects). Switch an existing project to Standard or upgrade.",
+                                currentCinematic, limit)
                 );
             }
         }

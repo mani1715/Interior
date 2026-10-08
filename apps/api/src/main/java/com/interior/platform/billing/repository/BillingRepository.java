@@ -18,6 +18,8 @@ public interface BillingRepository {
 
     Optional<StudioSubscriptionRecord> findActiveSubscription(UUID studioId);
 
+    Optional<StudioSubscriptionRecord> findLatestSubscription(UUID studioId);
+
     Optional<StudioSubscriptionRecord> findSubscriptionById(UUID id);
 
     Optional<StudioSubscriptionRecord> findSubscriptionByProviderSubscriptionId(String provider, String providerSubscriptionId);

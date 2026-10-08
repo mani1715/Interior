@@ -74,7 +74,8 @@ public class JdbcMediaRepository implements MediaRepository {
             rs.getBoolean("is_room_cover"),
             rs.getBigDecimal("focal_x"),
             rs.getBigDecimal("focal_y"),
-            rs.getBoolean("motion_enabled")
+            rs.getBoolean("motion_enabled"),
+            rs.getBoolean("is_portfolio_enrolled")
     );
 
     private final RowMapper<MediaDerivativeRecord> derivativeMapper = (rs, rowNum) -> new MediaDerivativeRecord(
@@ -208,8 +209,8 @@ public class JdbcMediaRepository implements MediaRepository {
                      "id, studio_id, project_id, media_type, visibility, processing_status, " +
                      "original_storage_key, content_type, file_size, width, height, sort_order, " +
                      "is_cover, alt_text, caption, watermark_enabled, created_by, created_at, updated_at, " +
-                     "room_id, is_room_cover, focal_x, focal_y, motion_enabled" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "room_id, is_room_cover, focal_x, focal_y, motion_enabled, is_portfolio_enrolled" +
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 asset.id(),
                 asset.studioId(),
@@ -234,7 +235,8 @@ public class JdbcMediaRepository implements MediaRepository {
                 asset.isRoomCover(),
                 asset.focalX(),
                 asset.focalY(),
-                asset.motionEnabled()
+                asset.motionEnabled(),
+                asset.isPortfolioEnrolled()
         );
         return asset;
     }
@@ -303,7 +305,7 @@ public class JdbcMediaRepository implements MediaRepository {
         String sql = "UPDATE media_assets SET " +
                      "visibility = ?, processing_status = ?, is_cover = ?, alt_text = ?, caption = ?, " +
                      "watermark_enabled = ?, sort_order = ?, updated_at = ?, " +
-                     "room_id = ?, is_room_cover = ?, focal_x = ?, focal_y = ?, motion_enabled = ? " +
+                     "room_id = ?, is_room_cover = ?, focal_x = ?, focal_y = ?, motion_enabled = ?, is_portfolio_enrolled = ? " +
                      "WHERE id = ? AND studio_id = ?";
         jdbcTemplate.update(sql,
                 asset.visibility().name(),
@@ -319,6 +321,7 @@ public class JdbcMediaRepository implements MediaRepository {
                 asset.focalX(),
                 asset.focalY(),
                 asset.motionEnabled(),
+                asset.isPortfolioEnrolled(),
                 asset.id(),
                 asset.studioId()
         );
@@ -387,6 +390,24 @@ public class JdbcMediaRepository implements MediaRepository {
         String sql = "SELECT COUNT(*) FROM media_assets WHERE studio_id = ? AND deleted_at IS NULL";
         Long count = jdbcTemplate.queryForObject(sql, Long.class, studioId);
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public int countCommittedPortfolioPhotos(UUID studioId, UUID projectId) {
+        String sql = "SELECT COUNT(*) FROM media_assets WHERE studio_id = ? AND project_id = ? AND is_portfolio_enrolled = true AND deleted_at IS NULL";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public int countPendingPortfolioUploadIntents(UUID studioId, UUID projectId) {
+        String sql = """
+            SELECT COUNT(*) FROM upload_intents
+            WHERE studio_id = ? AND project_id = ? AND status = 'PENDING' AND expires_at > now()
+              AND media_type IN ('REAL_PROJECT', 'BEFORE', 'AFTER')
+        """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+        return count != null ? count : 0;
     }
 
     // 4. Media Derivatives

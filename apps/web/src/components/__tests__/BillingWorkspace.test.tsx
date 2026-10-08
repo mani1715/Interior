@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import StudioBillingPage from '@/app/workspace/billing/page';
 import * as billingApi from '@/lib/billing/api';
 import { StudioBillingSummaryDto } from '@/lib/billing/types';
@@ -49,82 +49,141 @@ const mockBaseBillingSummary: StudioBillingSummaryDto = {
   },
   effectiveEntitlements: {
     PROJECT_LIMIT: null, // Unlimited
+    PROJECT_PHOTO_LIMIT: null, // Unlimited
+    CINEMATIC_PORTFOLIO: true,
+    CINEMATIC_PROJECT_LIMIT: null, // Unlimited
     STORAGE_LIMIT_BYTES: null, // Unlimited
     AI_MONTHLY_CREDITS: null, // Unlimited
-    TEAM_MEMBERS: null, // Unlimited
-    LEAD_MANAGEMENT: true,
-    ADVANCED_ANALYTICS: true,
+    LEADS_CRM: true,
+    ANALYTICS_BASIC: true,
+    ANALYTICS_ADVANCED: true,
   },
-  availablePlans: [], // No commercial plans configured
+  availablePlans: [
+    {
+      id: 'plan-std-002',
+      code: 'STANDARD',
+      name: 'Standard',
+      description: 'Essential portfolio presence for independent interior designers.',
+      currency: 'INR',
+      priceMinor: 0,
+      active: true,
+      purchasable: false,
+      displayOrder: 1,
+      entitlements: {
+        PROJECT_LIMIT: 10,
+        PROJECT_PHOTO_LIMIT: 15,
+        CINEMATIC_PORTFOLIO: false,
+        CINEMATIC_PROJECT_LIMIT: 0,
+      },
+    },
+    {
+      id: 'plan-prem-003',
+      code: 'PREMIUM',
+      name: 'Premium',
+      description: 'Expanded project and media capacity for growing design studios.',
+      currency: 'INR',
+      priceMinor: 0,
+      active: true,
+      purchasable: false,
+      displayOrder: 2,
+      entitlements: {
+        PROJECT_LIMIT: 20,
+        PROJECT_PHOTO_LIMIT: 25,
+        CINEMATIC_PORTFOLIO: false,
+        CINEMATIC_PROJECT_LIMIT: 0,
+      },
+    },
+    {
+      id: 'plan-pro-004',
+      code: 'PRO',
+      name: 'Pro',
+      description: 'Maximum capacity with cinematic project presentation.',
+      currency: 'INR',
+      priceMinor: 0,
+      active: true,
+      purchasable: false,
+      displayOrder: 3,
+      entitlements: {
+        PROJECT_LIMIT: 20,
+        PROJECT_PHOTO_LIMIT: 30,
+        CINEMATIC_PORTFOLIO: true,
+        CINEMATIC_PROJECT_LIMIT: 5,
+      },
+    },
+  ],
   billingProviderStatus: 'NOT_CONFIGURED',
   commercialCheckoutEnabled: false,
   recentTransactions: [],
+  usage: {
+    projectCount: 4,
+    projectLimit: null,
+    cinematicProjectCount: 1,
+    cinematicProjectLimit: null,
+    cinematicPortfolioAllowed: true,
+    storageBytesUsed: 1024 * 1024 * 50,
+    storageLimitBytes: null,
+    aiCreditsUsedThisMonth: 0,
+    aiMonthlyCreditLimit: null,
+  },
 };
 
-describe('Phase 28 — Billing & Plans Subsystem', () => {
+describe('Phase 30 / Phase 5 — Subscription & Entitlements Subsystem', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Studio Billing Workspace Page', () => {
-    it('truthfully renders operational BASE plan and unlimited platform entitlements', async () => {
+  describe('Studio Plan & Usage Workspace Page', () => {
+    it('truthfully renders Plan & Usage, legacy Existing Studio Access badge, and capacity meters', async () => {
       vi.mocked(billingApi.getStudioBillingSummary).mockResolvedValue(mockBaseBillingSummary);
 
       render(<StudioBillingPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Billing & Plans')).toBeDefined();
+        expect(screen.getByText('Plan & Usage')).toBeDefined();
       });
 
-      // Active Plan Card
-      expect(screen.getByText('Platform Base')).toBeDefined();
-      expect(screen.getByText('₹0')).toBeDefined();
-      expect(screen.getByText('Active Operational Access')).toBeDefined();
+      // Legacy BASE badge
+      expect(screen.getAllByText('Existing Studio Access').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Tier: BASE/)).toBeDefined();
 
-      // Entitlements list
+      // Quotas
       expect(screen.getByText('Portfolio Projects')).toBeDefined();
-      expect(screen.getByText('Unlimited capacity')).toBeDefined();
-      expect(screen.getByText('Cloud Storage')).toBeDefined();
-      expect(screen.getByText('Unlimited asset storage')).toBeDefined();
+      expect(screen.getByText('Photos / Project')).toBeDefined();
+      expect(screen.getByText('Cinematic Presentations')).toBeDefined();
 
-      // Verification separation invariant
-      expect(screen.getByText('Independent review (not purchasable)')).toBeDefined();
+      // Three commercial plan cards
+      expect(screen.getByText('Standard')).toBeDefined();
+      expect(screen.getByText('Premium')).toBeDefined();
+      expect(screen.getByText('Pro')).toBeDefined();
 
-      // Provider not configured banner
-      expect(screen.getByText('Billing Provider: NOT_CONFIGURED')).toBeDefined();
-
-      // No payment required badge
+      // Provider not active banner
+      expect(screen.getByText('Commercial Checkout Gateway: Not Active')).toBeDefined();
       expect(screen.getByText('No Payment Required')).toBeDefined();
     });
 
-    it('displays transaction history when present', async () => {
-      const summaryWithTransactions: StudioBillingSummaryDto = {
-        ...mockBaseBillingSummary,
-        recentTransactions: [
-          {
-            id: 'txn-001',
-            studioId: 'studio-001',
-            provider: 'DISABLED',
-            providerPaymentId: 'txn_init_001',
-            description: 'Operational Baseline Tier Setup',
-            amountMinor: 0,
-            currency: 'INR',
-            status: 'SUCCEEDED',
-            occurredAt: '2026-03-20T10:00:00Z',
-            createdAt: '2026-03-20T10:00:00Z',
-          },
-        ],
-      };
-      vi.mocked(billingApi.getStudioBillingSummary).mockResolvedValue(summaryWithTransactions);
+    it('opens plan review modal and displays safe capacity policy and checkout not available message', async () => {
+      vi.mocked(billingApi.getStudioBillingSummary).mockResolvedValue(mockBaseBillingSummary);
 
       render(<StudioBillingPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Billing History')).toBeDefined();
+        expect(screen.getByText('Plan & Usage')).toBeDefined();
       });
 
-      expect(screen.getByText('Operational Baseline Tier Setup')).toBeDefined();
-      expect(screen.getByText(/SUCCEEDED/)).toBeDefined();
+      // Click Review Pro button
+      const reviewProBtn = screen.getByText('Review Pro');
+      fireEvent.click(reviewProBtn);
+
+      // Verify modal content
+      expect(screen.getByText('Switch to Pro')).toBeDefined();
+      expect(screen.getByText('Safe Capacity Policy')).toBeDefined();
+      expect(screen.getByText(/Downgrading or switching plans never deletes/)).toBeDefined();
+      expect(screen.getByText('Plan purchases are not available yet.')).toBeDefined();
+
+      // Close review
+      const closeBtn = screen.getByText('Close Review');
+      fireEvent.click(closeBtn);
+      expect(screen.queryByText('Switch to Pro')).toBeNull();
     });
   });
 });

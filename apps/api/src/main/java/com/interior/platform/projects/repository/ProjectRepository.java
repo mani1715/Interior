@@ -37,6 +37,8 @@ public interface ProjectRepository {
 
     int countProjects(UUID studioId);
 
+    int countCinematicProjects(UUID studioId);
+
     int countReadyProjects(UUID studioId);
 
     void updateDisplayOrders(UUID studioId, List<UUID> projectIdsInOrder);

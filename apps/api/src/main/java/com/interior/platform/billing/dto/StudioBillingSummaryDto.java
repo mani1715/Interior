@@ -16,5 +16,29 @@ public record StudioBillingSummaryDto(
         String billingProviderStatus,
         boolean commercialCheckoutEnabled,
         List<BillingPlanDto> availablePlans,
-        List<BillingTransactionRecord> recentTransactions
-) {}
+        List<BillingTransactionRecord> recentTransactions,
+        StudioUsageBreakdownDto usage
+) {
+    public StudioBillingSummaryDto(
+            UUID studioId,
+            BillingPlanRecord currentPlan,
+            StudioSubscriptionRecord activeSubscription,
+            Map<String, Object> effectiveEntitlements,
+            String billingProviderStatus,
+            boolean commercialCheckoutEnabled,
+            List<BillingPlanDto> availablePlans,
+            List<BillingTransactionRecord> recentTransactions
+    ) {
+        this(
+                studioId,
+                currentPlan,
+                activeSubscription,
+                effectiveEntitlements,
+                billingProviderStatus,
+                commercialCheckoutEnabled,
+                availablePlans,
+                recentTransactions,
+                null
+        );
+    }
+}

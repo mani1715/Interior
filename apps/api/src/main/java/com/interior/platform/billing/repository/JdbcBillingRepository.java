@@ -151,7 +151,19 @@ public class JdbcBillingRepository implements BillingRepository {
     public Optional<StudioSubscriptionRecord> findActiveSubscription(UUID studioId) {
         String sql = """
             SELECT * FROM studio_subscriptions
-            WHERE studio_id = ? AND status IN ('ACTIVE', 'PENDING', 'CANCEL_AT_PERIOD_END')
+            WHERE studio_id = ? AND status IN ('ACTIVE', 'CANCEL_AT_PERIOD_END')
+            ORDER BY created_at DESC
+            LIMIT 1
+        """;
+        List<StudioSubscriptionRecord> list = jdbcTemplate.query(sql, subscriptionMapper, studioId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    @Override
+    public Optional<StudioSubscriptionRecord> findLatestSubscription(UUID studioId) {
+        String sql = """
+            SELECT * FROM studio_subscriptions
+            WHERE studio_id = ?
             ORDER BY created_at DESC
             LIMIT 1
         """;

@@ -53,18 +53,22 @@ Current completed milestone:
 - Portfolio Evolution Phase 2: Public Room Gallery + Full-Screen Photo Viewer (`ProjectSpaceShowcase`, sticky room pills, room-scoped photo viewer, zoom/pan controls, contact sheet, and EnquirySheet handoff).
 - Portfolio Evolution Phase 3: Cinematic Portfolio (`ProjectPresentationMode`, Flyway V029, pure deterministic eligibility engine, Focus Push & Gentle Drift scroll-driven transforms, matte framing, transform ownership `data-cinematic-controlled="true"`, portrait containment, real `#room-<roomId>` anchor deep linking, and owner presentation settings).
 - Implementation Phase 4: Homepage Refinement (Discovery-first visitor architecture: PublicHeader with 64px mobile bar & shortcut, BrandHero 180svh desktop motion with unpinned mobile/tablet fallback, Immediate Project Search, Projects to Explore, Professional Discovery with live API + fallback, Cinematic Portfolio Introduction, Inspiration Categories, Secondary AI Visualizer with disclosure, Trust Explanations, Visitor & Professional Dual CTAs).
+- Implementation Phase 5: Subscription & Entitlement Implementation (Flyway V030, Standard/Premium/Pro commercial plan model, server-side project & photo-per-project quota enforcement, upload intent reservations, Cinematic presentation entitlement & 5-project allocation cap inside Pro tier, truthful Plan & Usage workspace with legacy BASE preservation, safe over-limit policy with zero deletions, safe subscription expiration fallback to Standard).
 
 Current Flyway:
-V029 (`V029__project_presentation_mode.sql`)
+V030 (`V030__subscription_entitlements_and_quota.sql`)
 
 Next planned milestone:
-Portfolio Evolution follow-ups / Platform polish.
+Portfolio Evolution follow-ups / Commercial checkout gateway integration (when live provider is enabled).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
 
 Homepage Refinement:
 COMPLETE (Discovery first, approved 11-section order, responsive, accessible, zero regression)
+
+Subscriptions & Entitlements:
+COMPLETE (Server-side quota enforcement, Pro 5-cinematic allocation, truthful usage breakdown, disabled-checkout boundary modal)
 
 True 3D / 360 / guided camera capture:
 DEFERRED

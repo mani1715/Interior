@@ -43,6 +43,8 @@ public class MediaService {
     private final StorageService storageService;
     private final ImageProcessingService imageProcessingService;
     private final com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository;
+    @Autowired(required = false)
+    private com.interior.platform.billing.service.EntitlementService entitlementService;
 
     @Autowired
     public MediaService(
@@ -100,6 +102,13 @@ public class MediaService {
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
         StudioProjectRecord project = projectRepository.findProjectById(context.studioId(), request.projectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found in studio"));
+
+        // Portfolio media quota check (REAL_PROJECT, BEFORE, AFTER)
+        if (request.mediaType() == MediaType.REAL_PROJECT || request.mediaType() == MediaType.BEFORE || request.mediaType() == MediaType.AFTER) {
+            if (entitlementService != null) {
+                entitlementService.assertProjectPhotoQuotaAllowed(context.studioId(), project.id(), 1);
+            }
+        }
 
         UUID uploadIntentId = UuidV7.randomUuid();
         UUID mediaAssetId = UuidV7.randomUuid();
@@ -287,7 +296,8 @@ public class MediaService {
                 isRoomCover,
                 new java.math.BigDecimal("50.00"),
                 new java.math.BigDecimal("50.00"),
-                true
+                true,
+                mediaType != MediaType.REFERENCE && mediaType != MediaType.CLIENT_PRIVATE && mediaType != MediaType.AI_CONCEPT
         );
 
         mediaRepository.createMediaAsset(asset);
@@ -506,7 +516,8 @@ public class MediaService {
                 newIsRoomCover,
                 newFocalX,
                 newFocalY,
-                newMotionEnabled
+                newMotionEnabled,
+                asset.isPortfolioEnrolled()
         );
 
         mediaRepository.updateMediaAsset(updated);

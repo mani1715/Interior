@@ -37,6 +37,8 @@ public interface MediaRepository {
     void softDeleteMediaAsset(UUID mediaId, UUID studioId);
     int getNextSortOrder(UUID projectId, UUID studioId);
     long countActiveMediaByStudio(UUID studioId);
+    int countCommittedPortfolioPhotos(UUID studioId, UUID projectId);
+    int countPendingPortfolioUploadIntents(UUID studioId, UUID projectId);
 
     // 3b. Room Association & Room Covers
     void unsetOtherRoomCovers(UUID roomId, UUID studioId, UUID keepCoverMediaId);

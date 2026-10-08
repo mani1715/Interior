@@ -288,7 +288,14 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     @Override
     public int countProjects(UUID studioId) {
-        String sql = "SELECT COUNT(*) FROM studio_projects WHERE studio_id = ? AND project_status != 'ARCHIVED'";
+        String sql = "SELECT COUNT(*) FROM studio_projects WHERE studio_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId);
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public int countCinematicProjects(UUID studioId) {
+        String sql = "SELECT COUNT(*) FROM studio_projects WHERE studio_id = ? AND presentation_mode = 'CINEMATIC'";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId);
         return count != null ? count : 0;
     }

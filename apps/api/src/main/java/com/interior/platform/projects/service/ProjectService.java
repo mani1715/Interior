@@ -143,6 +143,9 @@ public class ProjectService {
 
         if (entitlementService != null) {
             entitlementService.assertProjectCreationAllowed(context.studioId());
+            if (request.presentationMode() == ProjectPresentationMode.CINEMATIC) {
+                entitlementService.assertCinematicProjectAllowed(context.studioId());
+            }
         }
 
         validateBudgetAndClient(
@@ -246,6 +249,12 @@ public class ProjectService {
 
         if (existing.projectStatus() == ProjectStatus.ARCHIVED) {
             throw new BadRequestException("Archived projects cannot be edited. Please restore the project first.");
+        }
+
+        if (request.presentationMode() == ProjectPresentationMode.CINEMATIC
+                && existing.presentationMode() != ProjectPresentationMode.CINEMATIC
+                && entitlementService != null) {
+            entitlementService.assertCinematicProjectAllowed(context.studioId());
         }
 
         validateBudgetAndClient(

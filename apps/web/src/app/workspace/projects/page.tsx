@@ -40,6 +40,8 @@ import {
   archiveProject,
   restoreProject,
 } from '@/lib/projects/api';
+import { getStudioBillingSummary } from '@/lib/billing/api';
+import { StudioBillingSummaryDto } from '@/lib/billing/types';
 
 export default function ProjectsListPage() {
   const router = useRouter();
@@ -67,15 +69,18 @@ export default function ProjectsListPage() {
 
   // Reorder loading state
   const [reordering, setReordering] = useState(false);
+  const [billingSummary, setBillingSummary] = useState<StudioBillingSummaryDto | null>(null);
 
   const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchProjects({
-        includeArchived: true,
-      });
+      const [data, billing] = await Promise.all([
+        fetchProjects({ includeArchived: true }),
+        getStudioBillingSummary().catch(() => null),
+      ]);
       setProjects(data);
+      if (billing) setBillingSummary(billing);
     } catch (err: any) {
       setError(err?.message || 'Failed to load projects');
     } finally {
@@ -229,6 +234,14 @@ export default function ProjectsListPage() {
 
             <button
               onClick={() => {
+                const projectLimit = billingSummary?.effectiveEntitlements?.PROJECT_LIMIT as number | null | undefined;
+                const totalRetained = projects.length;
+                if (projectLimit != null && totalRetained >= projectLimit) {
+                  alert(
+                    `Project limit reached (${totalRetained}/${projectLimit}). Your current plan has reached its total project capacity. Upgrade your plan in Plan & Usage to create more projects.`
+                  );
+                  return;
+                }
                 setNewTitle('');
                 setNewCategory('COMPLETE_HOME_INTERIOR');
                 setNewShortDesc('');
@@ -252,8 +265,20 @@ export default function ProjectsListPage() {
               <span>Total Active</span>
               <FolderKanban className="w-4 h-4 text-bronze-600" />
             </div>
-            <div className="text-2xl font-serif text-charcoal-900">{metrics.total}</div>
-            <div className="text-[11px] text-charcoal-400 mt-0.5">Projects in your studio</div>
+            <div className="text-2xl font-serif text-charcoal-900">
+              {metrics.total}
+              {billingSummary?.effectiveEntitlements?.PROJECT_LIMIT != null
+                ? ` / ${billingSummary.effectiveEntitlements.PROJECT_LIMIT}`
+                : ''}
+            </div>
+            <div className="text-[11px] text-charcoal-400 mt-0.5">
+              {billingSummary?.effectiveEntitlements?.PROJECT_LIMIT != null
+                ? `${Math.max(
+                    0,
+                    Number(billingSummary.effectiveEntitlements.PROJECT_LIMIT) - projects.length
+                  )} slots remaining`
+                : 'Projects in your studio'}
+            </div>
           </div>
 
           <div className="bg-white border border-sand-200 rounded-xl p-4 shadow-sm">

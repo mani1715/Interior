@@ -5,6 +5,7 @@ import com.interior.platform.billing.dto.BillingPlanDto;
 import com.interior.platform.billing.dto.CheckoutSessionResponse;
 import com.interior.platform.billing.dto.CreateCheckoutRequest;
 import com.interior.platform.billing.dto.StudioBillingSummaryDto;
+import com.interior.platform.billing.dto.StudioUsageBreakdownDto;
 import com.interior.platform.billing.provider.BillingProvider;
 import com.interior.platform.billing.provider.WebhookEvent;
 import com.interior.platform.billing.repository.BillingRepository;
@@ -32,6 +33,24 @@ public class BillingService {
     private final EntitlementService entitlementService;
     private final StudioRepository studioRepository;
     private final BillingProvider billingProvider;
+    private final com.interior.platform.projects.repository.ProjectRepository projectRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.media.repository.MediaRepository mediaRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public BillingService(
+            BillingRepository billingRepository,
+            EntitlementService entitlementService,
+            StudioRepository studioRepository,
+            BillingProvider billingProvider,
+            com.interior.platform.projects.repository.ProjectRepository projectRepository
+    ) {
+        this.billingRepository = billingRepository;
+        this.entitlementService = entitlementService;
+        this.studioRepository = studioRepository;
+        this.billingProvider = billingProvider;
+        this.projectRepository = projectRepository;
+    }
 
     public BillingService(
             BillingRepository billingRepository,
@@ -39,10 +58,7 @@ public class BillingService {
             StudioRepository studioRepository,
             BillingProvider billingProvider
     ) {
-        this.billingRepository = billingRepository;
-        this.entitlementService = entitlementService;
-        this.studioRepository = studioRepository;
-        this.billingProvider = billingProvider;
+        this(billingRepository, entitlementService, studioRepository, billingProvider, null);
     }
 
     /**
@@ -53,9 +69,7 @@ public class BillingService {
         validateStudioAccess(actor, studioId);
 
         Optional<StudioSubscriptionRecord> activeSub = billingRepository.findActiveSubscription(studioId);
-        BillingPlanRecord currentPlan = activeSub.isPresent()
-                ? billingRepository.findPlanById(activeSub.get().planId()).orElseGet(entitlementService::getBasePlan)
-                : entitlementService.getBasePlan();
+        BillingPlanRecord currentPlan = entitlementService.getActivePlan(studioId);
 
         Map<String, Object> entitlements = entitlementService.getEffectiveEntitlements(studioId);
 
@@ -91,6 +105,27 @@ public class BillingService {
 
         List<BillingTransactionRecord> recentTransactions = billingRepository.listTransactions(studioId, 10);
 
+        int projectCount = (projectRepository != null) ? projectRepository.countProjects(studioId) : 0;
+        Long projectLimit = entitlementService.getNumericLimit(studioId, EntitlementKey.PROJECT_LIMIT);
+        int cinematicProjectCount = (projectRepository != null) ? projectRepository.countCinematicProjects(studioId) : 0;
+        Long cinematicProjectLimit = entitlementService.getNumericLimit(studioId, EntitlementKey.CINEMATIC_PROJECT_LIMIT);
+        boolean cinematicPortfolioAllowed = entitlementService.hasBooleanEntitlement(studioId, EntitlementKey.CINEMATIC_PORTFOLIO);
+        Long storageLimit = entitlementService.getNumericLimit(studioId, EntitlementKey.STORAGE_LIMIT_BYTES);
+        long storageBytesUsed = (mediaRepository != null) ? mediaRepository.countActiveMediaByStudio(studioId) * 1024L * 1024L : 0L;
+        Long aiMonthlyLimit = entitlementService.getNumericLimit(studioId, EntitlementKey.AI_MONTHLY_CREDITS);
+
+        StudioUsageBreakdownDto usage = new StudioUsageBreakdownDto(
+                projectCount,
+                projectLimit,
+                cinematicProjectCount,
+                cinematicProjectLimit,
+                cinematicPortfolioAllowed,
+                storageBytesUsed,
+                storageLimit,
+                0L,
+                aiMonthlyLimit
+        );
+
         return new StudioBillingSummaryDto(
                 studioId,
                 currentPlan,
@@ -99,7 +134,8 @@ public class BillingService {
                 providerStatus,
                 commercialCheckoutEnabled,
                 availablePlanDtos,
-                recentTransactions
+                recentTransactions,
+                usage
         );
     }
 

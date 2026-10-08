@@ -29,7 +29,8 @@ public record MediaAssetRecord(
         boolean isRoomCover,
         BigDecimal focalX,
         BigDecimal focalY,
-        boolean motionEnabled
+        boolean motionEnabled,
+        boolean isPortfolioEnrolled
 ) {
     public MediaAssetRecord(
             UUID id,
@@ -78,7 +79,65 @@ public record MediaAssetRecord(
                 false,
                 new BigDecimal("50.00"),
                 new BigDecimal("50.00"),
-                true
+                true,
+                mediaType != MediaType.REFERENCE && mediaType != MediaType.CLIENT_PRIVATE && mediaType != MediaType.AI_CONCEPT
+        );
+    }
+
+    public MediaAssetRecord(
+            UUID id,
+            UUID studioId,
+            UUID projectId,
+            MediaType mediaType,
+            MediaVisibility visibility,
+            MediaProcessingStatus processingStatus,
+            String originalStorageKey,
+            String contentType,
+            long fileSize,
+            int width,
+            int height,
+            int sortOrder,
+            boolean isCover,
+            String altText,
+            String caption,
+            boolean watermarkEnabled,
+            UUID createdBy,
+            Instant createdAt,
+            Instant updatedAt,
+            Instant deletedAt,
+            UUID roomId,
+            boolean isRoomCover,
+            BigDecimal focalX,
+            BigDecimal focalY,
+            boolean motionEnabled
+    ) {
+        this(
+                id,
+                studioId,
+                projectId,
+                mediaType,
+                visibility,
+                processingStatus,
+                originalStorageKey,
+                contentType,
+                fileSize,
+                width,
+                height,
+                sortOrder,
+                isCover,
+                altText,
+                caption,
+                watermarkEnabled,
+                createdBy,
+                createdAt,
+                updatedAt,
+                deletedAt,
+                roomId,
+                isRoomCover,
+                focalX != null ? focalX : new BigDecimal("50.00"),
+                focalY != null ? focalY : new BigDecimal("50.00"),
+                motionEnabled,
+                mediaType != MediaType.REFERENCE && mediaType != MediaType.CLIENT_PRIVATE && mediaType != MediaType.AI_CONCEPT
         );
     }
 }

@@ -76,6 +76,18 @@ export interface BillingTransactionRecord {
   createdAt: string;
 }
 
+export interface StudioUsageBreakdownDto {
+  projectCount: number;
+  projectLimit?: number | null;
+  cinematicProjectCount: number;
+  cinematicProjectLimit?: number | null;
+  cinematicPortfolioAllowed: boolean;
+  storageBytesUsed: number;
+  storageLimitBytes?: number | null;
+  aiCreditsUsedThisMonth: number;
+  aiMonthlyCreditLimit?: number | null;
+}
+
 export interface StudioBillingSummaryDto {
   studioId: string;
   currentPlan: BillingPlanRecord;
@@ -85,6 +97,7 @@ export interface StudioBillingSummaryDto {
   commercialCheckoutEnabled: boolean;
   availablePlans: BillingPlanDto[];
   recentTransactions: BillingTransactionRecord[];
+  usage?: StudioUsageBreakdownDto | null;
 }
 
 export interface CreateCheckoutRequest {

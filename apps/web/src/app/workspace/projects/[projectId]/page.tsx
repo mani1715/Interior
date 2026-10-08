@@ -45,6 +45,8 @@ import {
 import { fetchProject, updateProject, archiveProject, restoreProject } from '@/lib/projects/api';
 import { ProjectRoomManager } from '@/components/media/ProjectRoomManager';
 import { useUnsavedChanges } from '@/lib/workspace/unsaved-changes-context';
+import { getStudioBillingSummary } from '@/lib/billing/api';
+import { StudioBillingSummaryDto } from '@/lib/billing/types';
 
 export default function ProjectEditPage() {
   const params = useParams();
@@ -90,13 +92,18 @@ export default function ProjectEditPage() {
   const [visibilityStatus, setVisibilityStatus] = useState<VisibilityStatus>('PRIVATE');
   const [featured, setFeatured] = useState(false);
   const [internalNotes, setInternalNotes] = useState('');
+  const [billingSummary, setBillingSummary] = useState<StudioBillingSummaryDto | null>(null);
 
   const loadProject = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchProject(projectId);
+      const [data, billing] = await Promise.all([
+        fetchProject(projectId),
+        getStudioBillingSummary().catch(() => null),
+      ]);
       setProject(data);
+      if (billing) setBillingSummary(billing);
 
       // Populate form
       setTitle(data.title || '');
@@ -515,34 +522,73 @@ export default function ProjectEditPage() {
                 </div>
 
                 {/* Cinematic Card */}
-                <div
-                  onClick={() => {
-                    setPresentationMode('CINEMATIC');
-                    setIsDirty(true);
-                  }}
-                  className={`p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                    presentationMode === 'CINEMATIC'
-                      ? 'border-charcoal-900 bg-sand-50/60 shadow-sm'
-                      : 'border-sand-200 bg-white hover:border-sand-300 hover:bg-sand-50/20'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-serif text-base font-medium text-charcoal-900">Cinematic Portfolio</span>
-                      {presentationMode === 'CINEMATIC' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Active
-                        </span>
-                      )}
+                {(() => {
+                  const cinematicAllowed = Boolean(billingSummary?.effectiveEntitlements?.CINEMATIC_PORTFOLIO ?? true);
+                  const cinematicLimit = billingSummary?.effectiveEntitlements?.CINEMATIC_PROJECT_LIMIT as number | null | undefined;
+                  const currentCinematicCount = billingSummary?.usage?.cinematicProjectCount ?? 0;
+                  const isCurrentAlreadyCinematic = project?.presentationMode === 'CINEMATIC';
+                  const isLimitReached = !isCurrentAlreadyCinematic && cinematicLimit != null && currentCinematicCount >= cinematicLimit;
+                  const isDisabled = !cinematicAllowed || isLimitReached;
+
+                  return (
+                    <div
+                      onClick={() => {
+                        if (!cinematicAllowed) {
+                          alert(
+                            'Cinematic project presentation is exclusive to the Pro plan. Standard and Premium plans present projects using the editorial Standard presentation.'
+                          );
+                          return;
+                        }
+                        if (isLimitReached) {
+                          alert(
+                            `Cinematic allocation limit reached (${currentCinematicCount}/${cinematicLimit} projects). Pro plan includes 5 Cinematic projects inside your 20 total projects. Switch an existing project to Standard to reallocate.`
+                          );
+                          return;
+                        }
+                        setPresentationMode('CINEMATIC');
+                        setIsDirty(true);
+                      }}
+                      className={`p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                        presentationMode === 'CINEMATIC'
+                          ? 'border-charcoal-900 bg-sand-50/60 shadow-sm'
+                          : isDisabled
+                          ? 'border-sand-200 bg-sand-50/40 opacity-75 hover:border-sand-300'
+                          : 'border-sand-200 bg-white hover:border-sand-300 hover:bg-sand-50/20'
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-serif text-base font-medium text-charcoal-900">
+                            Cinematic Portfolio
+                          </span>
+                          {presentationMode === 'CINEMATIC' ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Active
+                            </span>
+                          ) : !cinematicAllowed ? (
+                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-sand-200 text-charcoal-600">
+                              Pro Only
+                            </span>
+                          ) : isLimitReached ? (
+                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                              5/5 Allocated
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-charcoal-600 leading-relaxed">
+                          Scroll through your project as a calm visual story.
+                        </p>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-sand-100 text-[11px] text-charcoal-500">
+                        {!cinematicAllowed
+                          ? 'Upgrade to Pro plan in Plan & Usage to enable cinematic story presentations.'
+                          : isLimitReached
+                          ? 'All 5 cinematic project allocations are in use. Switch another project to Standard to free a slot.'
+                          : 'Motion adapts to each photograph and device. Up to 5 projects on Pro.'}
+                      </div>
                     </div>
-                    <p className="text-xs text-charcoal-600 leading-relaxed">
-                      Scroll through your project as a calm visual story.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-sand-100 text-[11px] text-charcoal-500">
-                    Motion adapts to each photograph and device. Some photographs will remain still.
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Informational Note & Public Preview Link */}

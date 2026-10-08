@@ -58,6 +58,8 @@ import {
 import { FocalPointModal } from './FocalPointModal';
 import { AddRoomModal } from './AddRoomModal';
 import { PhotoInspectorSlideover } from './PhotoInspectorSlideover';
+import { getStudioBillingSummary } from '@/lib/billing/api';
+import { StudioBillingSummaryDto } from '@/lib/billing/types';
 
 interface ProjectRoomManagerProps {
   projectId: string;
@@ -108,13 +110,17 @@ export function ProjectRoomManager({
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [selectedMediaType, setSelectedMediaType] = useState<MediaType>('REAL_PROJECT');
   const [uploadWatermark, setUploadWatermark] = useState(true);
+  const [billingSummary, setBillingSummary] = useState<StudioBillingSummaryDto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load rooms and media
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const mediaData = await fetchProjectMedia(projectId, studioId);
+      const [mediaData, billing] = await Promise.all([
+        fetchProjectMedia(projectId, studioId),
+        getStudioBillingSummary(studioId).catch(() => null),
+      ]);
       let roomsData: ProjectRoomDto[] = [];
       try {
         roomsData = await fetchProjectRooms(projectId, studioId);
@@ -123,6 +129,7 @@ export function ProjectRoomManager({
       }
       setMediaList(mediaData);
       setRooms(roomsData);
+      if (billing) setBillingSummary(billing);
     } catch (err: any) {
       setError(err?.message || 'Failed to load project media and spaces');
     } finally {
@@ -193,7 +200,36 @@ export function ProjectRoomManager({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newItems: UploadQueueItem[] = Array.from(files).slice(0, 50).map((file) => ({
+    // Check project photo quota preflight
+    const photoLimit = billingSummary?.effectiveEntitlements?.PROJECT_PHOTO_LIMIT as number | null | undefined;
+    const isPortfolioMedia = selectedMediaType === 'REAL_PROJECT' || selectedMediaType === 'BEFORE' || selectedMediaType === 'AFTER';
+    if (photoLimit != null && isPortfolioMedia) {
+      const currentCommitted = mediaList.filter(
+        (m) => m.mediaType === 'REAL_PROJECT' || m.mediaType === 'BEFORE' || m.mediaType === 'AFTER'
+      ).length;
+      const currentPending = uploadQueue.filter((u) => u.status === 'PENDING' || u.status === 'UPLOADING').length;
+      const availableSlots = Math.max(0, photoLimit - (currentCommitted + currentPending));
+
+      if (availableSlots <= 0) {
+        alert(
+          `Project photo limit reached (${currentCommitted}/${photoLimit} photos). Upgrade your plan in Plan & Usage to upload more photographs to this project.`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      if (files.length > availableSlots) {
+        alert(
+          `You selected ${files.length} photographs, but this project has only ${availableSlots} slots remaining (${currentCommitted}/${photoLimit}). Only the first ${availableSlots} files will be queued.`
+        );
+      }
+    }
+
+    const maxToQueue = photoLimit != null && isPortfolioMedia
+      ? Math.max(0, photoLimit - (mediaList.filter((m) => m.mediaType === 'REAL_PROJECT' || m.mediaType === 'BEFORE' || m.mediaType === 'AFTER').length + uploadQueue.filter((u) => u.status === 'PENDING' || u.status === 'UPLOADING').length))
+      : 50;
+
+    const newItems: UploadQueueItem[] = Array.from(files).slice(0, maxToQueue).map((file) => ({
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       file,
       progress: 0,
@@ -372,7 +408,15 @@ export function ProjectRoomManager({
               Project Photography & Media
             </h3>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sand-200 text-charcoal-700">
-              {mediaList.length} {mediaList.length === 1 ? 'Asset' : 'Assets'}
+              {(() => {
+                const photoLimit = billingSummary?.effectiveEntitlements?.PROJECT_PHOTO_LIMIT as number | null | undefined;
+                const portfolioCount = mediaList.filter(
+                  (m) => m.mediaType === 'REAL_PROJECT' || m.mediaType === 'BEFORE' || m.mediaType === 'AFTER'
+                ).length;
+                return photoLimit != null
+                  ? `${portfolioCount} / ${photoLimit} Portfolio Photos`
+                  : `${mediaList.length} ${mediaList.length === 1 ? 'Asset' : 'Assets'}`;
+              })()}
             </span>
           </div>
           <p className="text-xs text-charcoal-500 mt-0.5">
