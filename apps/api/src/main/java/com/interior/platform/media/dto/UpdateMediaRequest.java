@@ -37,7 +37,9 @@ public record UpdateMediaRequest(
         @DecimalMax(value = "100.0", message = "Focal Y cannot exceed 100")
         BigDecimal focalY,
 
-        Boolean motionEnabled
+        Boolean motionEnabled,
+
+        Boolean isPortfolioEnrolled
 ) {
     public UpdateMediaRequest(
             String altText,
@@ -47,6 +49,23 @@ public record UpdateMediaRequest(
             Boolean watermarkEnabled,
             Integer sortOrder
     ) {
-        this(altText, caption, isCover, visibility, watermarkEnabled, sortOrder, null, null, null, null, null, null);
+        this(altText, caption, isCover, visibility, watermarkEnabled, sortOrder, null, null, null, null, null, null, null);
+    }
+
+    public UpdateMediaRequest(
+            String altText,
+            String caption,
+            Boolean isCover,
+            MediaVisibility visibility,
+            Boolean watermarkEnabled,
+            Integer sortOrder,
+            UUID roomId,
+            Boolean clearRoom,
+            Boolean isRoomCover,
+            BigDecimal focalX,
+            BigDecimal focalY,
+            Boolean motionEnabled
+    ) {
+        this(altText, caption, isCover, visibility, watermarkEnabled, sortOrder, roomId, clearRoom, isRoomCover, focalX, focalY, motionEnabled, null);
     }
 }

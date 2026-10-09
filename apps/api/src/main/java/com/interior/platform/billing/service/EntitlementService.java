@@ -133,6 +133,28 @@ public class EntitlementService {
     }
 
     /**
+     * Enforces storage quota (committed media assets and derivatives + reserved pending upload intents).
+     */
+    public void assertStorageQuotaAllowed(UUID studioId, long incomingBytes) {
+        Long limit = getNumericLimit(studioId, EntitlementKey.STORAGE_LIMIT_BYTES);
+        if (limit != null && mediaRepository != null) {
+            long committed = mediaRepository.countCommittedStorageBytes(studioId);
+            long pending = mediaRepository.countPendingStorageBytes(studioId);
+            long currentTotal = committed + pending;
+            if (currentTotal + incomingBytes > limit) {
+                throw new BadRequestException(
+                        String.format("Storage limit reached for your current plan (%d/%d bytes). Upgrade your plan for additional storage capacity.",
+                                currentTotal, limit)
+                );
+            }
+        }
+    }
+
+    public Long getStorageLimitBytes(UUID studioId) {
+        return getNumericLimit(studioId, EntitlementKey.STORAGE_LIMIT_BYTES);
+    }
+
+    /**
      * Enforces Cinematic presentation mode selection and studio-level Cinematic project quota.
      */
     public void assertCinematicProjectAllowed(UUID studioId) {

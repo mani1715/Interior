@@ -53,6 +53,13 @@ public class ImageProcessingService {
             if (width <= 0 || height <= 0) {
                 throw new IllegalArgumentException("Invalid image dimensions: " + width + "x" + height);
             }
+            if (width > 10000 || height > 10000) {
+                throw new IllegalArgumentException("Image dimension exceeds maximum allowed limit (10000x10000 px): " + width + "x" + height);
+            }
+            long totalPixels = (long) width * height;
+            if (totalPixels > 50_000_000L) {
+                throw new IllegalArgumentException("Image resolution exceeds maximum allowed limit of 50 Megapixels: " + totalPixels + " pixels");
+            }
             return new ImageDimensions(width, height, format);
         } catch (IOException e) {
             throw new IllegalArgumentException("Failed to decode image: " + e.getMessage(), e);

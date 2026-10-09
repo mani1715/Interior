@@ -17,6 +17,13 @@ public interface MediaRepository {
     Optional<UploadIntentRecord> findUploadIntent(UUID intentId, UUID studioId);
     Optional<UploadIntentRecord> findUploadIntentGlobal(UUID intentId);
     void updateUploadIntentStatus(UUID intentId, UploadIntentStatus status);
+    void linkUploadIntentMediaAsset(UUID intentId, UUID mediaAssetId);
+    Optional<MediaAssetRecord> findMediaAssetByUploadIntent(UUID uploadIntentId, UUID studioId);
+    void cancelUploadIntent(UUID intentId, UUID studioId);
+    List<UploadIntentRecord> findExpiredUploadIntents(java.time.Instant cutoffTime);
+    long countCommittedStorageBytes(UUID studioId);
+    long countPendingStorageBytes(UUID studioId);
+    void replaceMediaAssetContent(UUID mediaId, UUID studioId, String newStorageKey, String newContentType, long newFileSize, int newWidth, int newHeight);
 
     // 3. Media Assets
     MediaAssetRecord createMediaAsset(MediaAssetRecord asset);

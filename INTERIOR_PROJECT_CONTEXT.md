@@ -58,12 +58,13 @@ Current completed milestone:
 - Phase 7A: Authentication & Workspace Access Flow (Server-side opaque sessions in PostgreSQL, SHA-256 hashed tokens, `__Host-session` cookie, `ActorContext` status resolution & suspended account rejection, deterministic role-aware post-login routing, open redirect defense, multi-studio switching with `X-Studio-Id`, transactional professional onboarding, and studio invitation flow).
 - Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & Client Workflow (Draft/Ready state machine, publishability evaluation gate, explicit idempotent unpublishing, transactional soft-archive, anti-abuse honeypot and rate-limited public enquiries, same-studio project attribution and active member assignment in CRM leads, WON lead verification gate for client review invitations, and multi-tenant RLS isolation).
 - Phase 7C: CRM, Notifications & Communication Delivery Completion (Authoritative In-App notification system, SSE real-time stream with heartbeats, unread counting and batch mark read, external delivery tracking in `communication_deliveries` with RLS, fail-safe transaction decoupling, XSS/host-header hardened `EmailTemplateService`, truthful provider reporting with `NOT_CONFIGURED`, self-action spam suppression).
+- Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery Completion (Two-phase commit upload intents, byte/photo quota enforcement, slot-preserving media replacement, SSRF defense service with IP resolution & redirect checks, decompression bomb 50MP limits, asynchronous AI timeout recovery, automated storage reconciliation report, multi-tenant RLS isolation across media & AI tables).
 
 Current Flyway:
-V031 (`V031__communication_delivery_and_notification_expansion.sql`)
+V032 (`V032__media_lifecycle_and_upload_hardening.sql`)
 
 Next planned milestone:
-Backend Core Phase 7D — AI, Media Storage & Failure Recovery Completion.
+Backend Core Phase 7E — Admin, Moderation, Audit & Operational Controls Completion.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

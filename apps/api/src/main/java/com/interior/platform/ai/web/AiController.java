@@ -90,6 +90,20 @@ public class AiController {
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
+    @PostMapping("/jobs/reconcile")
+    @Operation(summary = "Reconcile stuck processing jobs", description = "Recovers any AI jobs stuck in PROCESSING state due to worker restart or timeout.")
+    public ResponseEntity<java.util.Map<String, Object>> reconcileJobs(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @RequestParam(value = "timeoutMinutes", required = false, defaultValue = "10") int timeoutMinutes
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        int reconciled = aiVisualizerService.reconcileStuckProcessingJobs(java.time.Duration.ofMinutes(timeoutMinutes));
+        return createPrivateNoCacheResponse(java.util.Map.of("reconciled", reconciled), HttpStatus.OK);
+    }
+
     @GetMapping("/jobs")
     @Operation(summary = "List studio AI jobs", description = "Returns paginated list of recent AI generation jobs for the studio.")
     public ResponseEntity<AiJobListResponse> listJobs(

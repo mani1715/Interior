@@ -4,5 +4,6 @@ public enum UploadIntentStatus {
     PENDING,
     COMMITTED,
     EXPIRED,
-    FAILED
+    FAILED,
+    CANCELLED
 }

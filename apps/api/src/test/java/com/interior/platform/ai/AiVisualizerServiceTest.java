@@ -407,4 +407,25 @@ class AiVisualizerServiceTest {
         verify(aiJobRepository).updateStatus(eq(jobId), eq(AiJobStatus.CANCELLED), isNull(), isNull(), any(), eq("CANCELLED_BY_USER"), anyString(), isNull(), isNull(), eq(1L));
         verify(aiJobRepository).recordUsageEvent(argThat(event -> "GENERATION_CANCELLED".equals(event.eventType())));
     }
+
+    @Test
+    @DisplayName("Should reconcile stuck processing jobs after timeout")
+    void testReconcileStuckProcessingJobs() {
+        UUID jobId = UuidV7.randomUuid();
+        AiJobRecord stuckJob = new AiJobRecord(
+                jobId, studioId, projectId, inputMediaId, null, "stability", "prov-123",
+                "Bohemian living room", null, AiJobStatus.PROCESSING, null, null,
+                1, null, userId, Instant.now().minusSeconds(1200), Instant.now().minusSeconds(1200),
+                null, null, null, 1L
+        );
+        when(aiJobRepository.findStuckJobs(eq(AiJobStatus.PROCESSING), any(Instant.class)))
+                .thenReturn(List.of(stuckJob));
+
+        int reconciled = aiVisualizerService.reconcileStuckProcessingJobs(java.time.Duration.ofMinutes(10));
+
+        assertEquals(1, reconciled);
+        verify(aiJobRepository).updateStatus(eq(jobId), eq(AiJobStatus.FAILED), isNull(), isNull(), any(), eq("PROCESSING_TIMEOUT"), anyString(), isNull(), isNull(), eq(1L));
+        verify(aiJobRepository).recordUsageEvent(argThat(event -> "GENERATION_TIMEOUT".equals(event.eventType())));
+        verify(auditService).record(eq(userId), eq(studioId), eq("AI_JOB_TIMED_OUT"), eq("AI_JOB"), eq(jobId.toString()), anyMap(), isNull(), isNull());
+    }
 }

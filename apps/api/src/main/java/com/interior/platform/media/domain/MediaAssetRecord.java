@@ -30,8 +30,45 @@ public record MediaAssetRecord(
         BigDecimal focalX,
         BigDecimal focalY,
         boolean motionEnabled,
-        boolean isPortfolioEnrolled
+        boolean isPortfolioEnrolled,
+        UUID uploadIntentId
 ) {
+    public MediaAssetRecord(
+            UUID id,
+            UUID studioId,
+            UUID projectId,
+            MediaType mediaType,
+            MediaVisibility visibility,
+            MediaProcessingStatus processingStatus,
+            String originalStorageKey,
+            String contentType,
+            long fileSize,
+            int width,
+            int height,
+            int sortOrder,
+            boolean isCover,
+            String altText,
+            String caption,
+            boolean watermarkEnabled,
+            UUID createdBy,
+            Instant createdAt,
+            Instant updatedAt,
+            Instant deletedAt,
+            UUID roomId,
+            boolean isRoomCover,
+            BigDecimal focalX,
+            BigDecimal focalY,
+            boolean motionEnabled,
+            boolean isPortfolioEnrolled
+    ) {
+        this(
+                id, studioId, projectId, mediaType, visibility, processingStatus,
+                originalStorageKey, contentType, fileSize, width, height, sortOrder,
+                isCover, altText, caption, watermarkEnabled, createdBy, createdAt,
+                updatedAt, deletedAt, roomId, isRoomCover, focalX, focalY,
+                motionEnabled, isPortfolioEnrolled, null
+        );
+    }
     public MediaAssetRecord(
             UUID id,
             UUID studioId,

@@ -46,7 +46,8 @@ public class JdbcMediaRepository implements MediaRepository {
             UploadIntentStatus.valueOf(rs.getString("status")),
             rs.getTimestamp("expires_at").toInstant(),
             getUuid(rs, "created_by"),
-            rs.getTimestamp("created_at").toInstant()
+            rs.getTimestamp("created_at").toInstant(),
+            getUuid(rs, "media_asset_id")
     );
 
     private final RowMapper<MediaAssetRecord> mediaAssetMapper = (rs, rowNum) -> new MediaAssetRecord(
@@ -75,7 +76,8 @@ public class JdbcMediaRepository implements MediaRepository {
             rs.getBigDecimal("focal_x"),
             rs.getBigDecimal("focal_y"),
             rs.getBoolean("motion_enabled"),
-            rs.getBoolean("is_portfolio_enrolled")
+            rs.getBoolean("is_portfolio_enrolled"),
+            getUuid(rs, "upload_intent_id")
     );
 
     private final RowMapper<MediaDerivativeRecord> derivativeMapper = (rs, rowNum) -> new MediaDerivativeRecord(
@@ -164,8 +166,8 @@ public class JdbcMediaRepository implements MediaRepository {
     public UploadIntentRecord createUploadIntent(UploadIntentRecord intent) {
         String sql = "INSERT INTO upload_intents (" +
                      "id, studio_id, project_id, media_type, expected_content_type, expected_size_bytes, " +
-                     "quarantine_key, status, expires_at, created_by, created_at" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "quarantine_key, status, expires_at, created_by, created_at, media_asset_id" +
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 intent.id(),
                 intent.studioId(),
@@ -177,7 +179,8 @@ public class JdbcMediaRepository implements MediaRepository {
                 intent.status().name(),
                 Timestamp.from(intent.expiresAt()),
                 intent.createdBy(),
-                Timestamp.from(intent.createdAt())
+                Timestamp.from(intent.createdAt()),
+                intent.mediaAssetId()
         );
         return intent;
     }
@@ -202,6 +205,67 @@ public class JdbcMediaRepository implements MediaRepository {
         jdbcTemplate.update(sql, status.name(), intentId);
     }
 
+    @Override
+    public void linkUploadIntentMediaAsset(UUID intentId, UUID mediaAssetId) {
+        String sql = "UPDATE upload_intents SET media_asset_id = ?, status = 'COMMITTED' WHERE id = ?";
+        jdbcTemplate.update(sql, mediaAssetId, intentId);
+    }
+
+    @Override
+    public Optional<MediaAssetRecord> findMediaAssetByUploadIntent(UUID uploadIntentId, UUID studioId) {
+        String sql = "SELECT * FROM media_assets WHERE upload_intent_id = ? AND studio_id = ? AND deleted_at IS NULL LIMIT 1";
+        List<MediaAssetRecord> list = jdbcTemplate.query(sql, mediaAssetMapper, uploadIntentId, studioId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
+    @Override
+    public void cancelUploadIntent(UUID intentId, UUID studioId) {
+        String sql = "UPDATE upload_intents SET status = 'CANCELLED' WHERE id = ? AND studio_id = ? AND status = 'PENDING'";
+        jdbcTemplate.update(sql, intentId, studioId);
+    }
+
+    @Override
+    public List<UploadIntentRecord> findExpiredUploadIntents(Instant cutoffTime) {
+        String sql = "SELECT * FROM upload_intents WHERE status = 'PENDING' AND expires_at < ? ORDER BY expires_at ASC LIMIT 100";
+        return jdbcTemplate.query(sql, uploadIntentMapper, Timestamp.from(cutoffTime));
+    }
+
+    @Override
+    public long countCommittedStorageBytes(UUID studioId) {
+        String sql = """
+            SELECT COALESCE(SUM(file_size), 0) FROM (
+                SELECT file_size FROM media_assets WHERE studio_id = ? AND deleted_at IS NULL
+                UNION ALL
+                SELECT file_size FROM media_derivatives WHERE studio_id = ?
+            ) s
+        """;
+        Long sum = jdbcTemplate.queryForObject(sql, Long.class, studioId, studioId);
+        return sum != null ? Math.max(0L, sum) : 0L;
+    }
+
+    @Override
+    public long countPendingStorageBytes(UUID studioId) {
+        String sql = "SELECT COALESCE(SUM(expected_size_bytes), 0) FROM upload_intents WHERE studio_id = ? AND status = 'PENDING' AND expires_at > now()";
+        Long sum = jdbcTemplate.queryForObject(sql, Long.class, studioId);
+        return sum != null ? Math.max(0L, sum) : 0L;
+    }
+
+    @Override
+    public void replaceMediaAssetContent(UUID mediaId, UUID studioId, String newStorageKey, String newContentType, long newFileSize, int newWidth, int newHeight) {
+        String sql = """
+            UPDATE media_assets SET
+                original_storage_key = ?,
+                content_type = ?,
+                file_size = ?,
+                width = ?,
+                height = ?,
+                processing_status = 'READY',
+                updated_at = ?
+            WHERE id = ? AND studio_id = ? AND deleted_at IS NULL
+        """;
+        jdbcTemplate.update(sql, newStorageKey, newContentType, newFileSize, newWidth, newHeight, Timestamp.from(Instant.now()), mediaId, studioId);
+    }
+
     // 3. Media Assets
     @Override
     public MediaAssetRecord createMediaAsset(MediaAssetRecord asset) {
@@ -209,8 +273,8 @@ public class JdbcMediaRepository implements MediaRepository {
                      "id, studio_id, project_id, media_type, visibility, processing_status, " +
                      "original_storage_key, content_type, file_size, width, height, sort_order, " +
                      "is_cover, alt_text, caption, watermark_enabled, created_by, created_at, updated_at, " +
-                     "room_id, is_room_cover, focal_x, focal_y, motion_enabled, is_portfolio_enrolled" +
-                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "room_id, is_room_cover, focal_x, focal_y, motion_enabled, is_portfolio_enrolled, upload_intent_id" +
+                     ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 asset.id(),
                 asset.studioId(),
@@ -236,7 +300,8 @@ public class JdbcMediaRepository implements MediaRepository {
                 asset.focalX(),
                 asset.focalY(),
                 asset.motionEnabled(),
-                asset.isPortfolioEnrolled()
+                asset.isPortfolioEnrolled(),
+                asset.uploadIntentId()
         );
         return asset;
     }
@@ -394,19 +459,29 @@ public class JdbcMediaRepository implements MediaRepository {
 
     @Override
     public int countCommittedPortfolioPhotos(UUID studioId, UUID projectId) {
-        String sql = "SELECT COUNT(*) FROM media_assets WHERE studio_id = ? AND project_id = ? AND is_portfolio_enrolled = true AND deleted_at IS NULL";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+        String sql = projectId != null
+                ? "SELECT COUNT(*) FROM media_assets WHERE studio_id = ? AND project_id = ? AND is_portfolio_enrolled = true AND deleted_at IS NULL"
+                : "SELECT COUNT(*) FROM media_assets WHERE studio_id = ? AND is_portfolio_enrolled = true AND deleted_at IS NULL";
+        Integer count = projectId != null
+                ? jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId)
+                : jdbcTemplate.queryForObject(sql, Integer.class, studioId);
         return count != null ? count : 0;
     }
 
     @Override
     public int countPendingPortfolioUploadIntents(UUID studioId, UUID projectId) {
-        String sql = """
+        String sql = projectId != null ? """
             SELECT COUNT(*) FROM upload_intents
             WHERE studio_id = ? AND project_id = ? AND status = 'PENDING' AND expires_at > now()
               AND media_type IN ('REAL_PROJECT', 'BEFORE', 'AFTER')
+        """ : """
+            SELECT COUNT(*) FROM upload_intents
+            WHERE studio_id = ? AND status = 'PENDING' AND expires_at > now()
+              AND media_type IN ('REAL_PROJECT', 'BEFORE', 'AFTER')
         """;
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+        Integer count = projectId != null
+                ? jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId)
+                : jdbcTemplate.queryForObject(sql, Integer.class, studioId);
         return count != null ? count : 0;
     }
 

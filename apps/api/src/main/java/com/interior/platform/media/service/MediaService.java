@@ -110,6 +110,11 @@ public class MediaService {
             }
         }
 
+        // Studio storage quota check (committed + pending upload intents)
+        if (entitlementService != null) {
+            entitlementService.assertStorageQuotaAllowed(context.studioId(), request.expectedSizeBytes());
+        }
+
         UUID uploadIntentId = UuidV7.randomUuid();
         UUID mediaAssetId = UuidV7.randomUuid();
 
@@ -133,7 +138,8 @@ public class MediaService {
                 UploadIntentStatus.PENDING,
                 expiresAt,
                 actor.userId(),
-                Instant.now()
+                Instant.now(),
+                mediaAssetId
         );
 
         mediaRepository.createUploadIntent(intentRecord);
@@ -196,6 +202,17 @@ public class MediaService {
         UploadIntentRecord intent = mediaRepository.findUploadIntent(request.uploadIntentId(), context.studioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Upload intent not found"));
 
+        if (intent.status() == UploadIntentStatus.COMMITTED) {
+            Optional<MediaAssetRecord> existingAsset = mediaRepository.findMediaAssetByUploadIntent(intent.id(), context.studioId());
+            if (existingAsset.isEmpty() && intent.mediaAssetId() != null) {
+                existingAsset = mediaRepository.findMediaAsset(intent.mediaAssetId(), context.studioId());
+            }
+            if (existingAsset.isPresent()) {
+                List<MediaDerivativeRecord> d = mediaRepository.findDerivativesByMediaId(existingAsset.get().id(), context.studioId());
+                return toDetailResponse(existingAsset.get(), d);
+            }
+        }
+
         if (intent.status() != UploadIntentStatus.PENDING) {
             throw new BadRequestException("Upload intent has already been processed or cancelled");
         }
@@ -230,7 +247,7 @@ public class MediaService {
             }
         }
 
-        UUID mediaAssetId = UuidV7.randomUuid();
+        UUID mediaAssetId = intent.mediaAssetId() != null ? intent.mediaAssetId() : UuidV7.randomUuid();
         String canonicalKey = storageService.generateCanonicalOriginalKey(
                 context.studioId(),
                 intent.projectId(),
@@ -297,7 +314,8 @@ public class MediaService {
                 new java.math.BigDecimal("50.00"),
                 new java.math.BigDecimal("50.00"),
                 true,
-                mediaType != MediaType.REFERENCE && mediaType != MediaType.CLIENT_PRIVATE && mediaType != MediaType.AI_CONCEPT
+                mediaType != MediaType.REFERENCE && mediaType != MediaType.CLIENT_PRIVATE && mediaType != MediaType.AI_CONCEPT,
+                intent.id()
         );
 
         mediaRepository.createMediaAsset(asset);
@@ -366,10 +384,17 @@ public class MediaService {
                 asset.createdBy(),
                 asset.createdAt(),
                 now,
-                null
+                null,
+                asset.roomId(),
+                asset.isRoomCover(),
+                asset.focalX(),
+                asset.focalY(),
+                asset.motionEnabled(),
+                asset.isPortfolioEnrolled(),
+                asset.uploadIntentId()
         );
         mediaRepository.updateMediaAsset(readyAsset);
-        mediaRepository.updateUploadIntentStatus(intent.id(), UploadIntentStatus.COMMITTED);
+        mediaRepository.linkUploadIntentMediaAsset(intent.id(), mediaAssetId);
 
         auditService.record(
                 actor.userId(),
@@ -383,6 +408,41 @@ public class MediaService {
         );
 
         return toDetailResponse(readyAsset, derivatives);
+    }
+
+    // 3b. Cancel Upload Intent
+    @Transactional
+    public void cancelUploadIntent(ActorContext actor, UUID requestedStudioId, UUID uploadIntentId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        UploadIntentRecord intent = mediaRepository.findUploadIntent(uploadIntentId, context.studioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Upload intent not found"));
+
+        if (intent.status() == UploadIntentStatus.COMMITTED) {
+            throw new BadRequestException("Cannot cancel an already committed upload intent");
+        }
+        if (intent.status() == UploadIntentStatus.CANCELLED) {
+            return;
+        }
+
+        mediaRepository.cancelUploadIntent(uploadIntentId, context.studioId());
+        if (storageService.exists(intent.quarantineKey())) {
+            storageService.delete(intent.quarantineKey());
+        }
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "MEDIA_UPLOAD_INTENT_CANCELLED",
+                "UPLOAD_INTENT",
+                uploadIntentId.toString(),
+                Map.of("projectId", intent.projectId().toString()),
+                null,
+                null
+        );
     }
 
     // 4. List Media for Project
@@ -488,7 +548,29 @@ public class MediaService {
         java.math.BigDecimal newFocalY = request.focalY() != null ? request.focalY() : (asset.focalY() != null ? asset.focalY() : new java.math.BigDecimal("50.00"));
         boolean newMotionEnabled = request.motionEnabled() != null ? request.motionEnabled() : asset.motionEnabled();
 
-        boolean regenerateDerivatives = (newWatermark != asset.watermarkEnabled() || newVisibility != asset.visibility())
+        boolean newPortfolioEnrolled = asset.isPortfolioEnrolled();
+        if (request.isPortfolioEnrolled() != null) {
+            if (request.isPortfolioEnrolled() && !asset.isPortfolioEnrolled()) {
+                if (asset.mediaType() == MediaType.REFERENCE || asset.mediaType() == MediaType.CLIENT_PRIVATE) {
+                    throw new BadRequestException("Reference and client private media cannot be enrolled in portfolio");
+                }
+                if (entitlementService != null) {
+                    entitlementService.assertProjectPhotoQuotaAllowed(context.studioId(), asset.projectId(), 1);
+                }
+                if (asset.mediaType() == MediaType.AI_CONCEPT) {
+                    newWatermark = true;
+                }
+                newPortfolioEnrolled = true;
+            } else if (!request.isPortfolioEnrolled() && asset.isPortfolioEnrolled()) {
+                newPortfolioEnrolled = false;
+            }
+        }
+
+        if (asset.mediaType() == MediaType.AI_CONCEPT && newPortfolioEnrolled) {
+            newWatermark = true; // Mandatory AI disclosure badge
+        }
+
+        boolean regenerateDerivatives = ((newWatermark != asset.watermarkEnabled() || newVisibility != asset.visibility() || (newPortfolioEnrolled && !asset.isPortfolioEnrolled())))
                 && newVisibility != MediaVisibility.PRIVATE && asset.mediaType().isPublicEligible();
 
         MediaAssetRecord updated = new MediaAssetRecord(
@@ -517,7 +599,8 @@ public class MediaService {
                 newFocalX,
                 newFocalY,
                 newMotionEnabled,
-                asset.isPortfolioEnrolled()
+                newPortfolioEnrolled,
+                asset.uploadIntentId()
         );
 
         mediaRepository.updateMediaAsset(updated);
@@ -576,6 +659,149 @@ public class MediaService {
 
         List<MediaDerivativeRecord> derivatives = mediaRepository.findDerivativesByMediaId(asset.id(), context.studioId());
         return toDetailResponse(updated, derivatives);
+    }
+
+    // 6b. Replace Media Photo (Slot-Preserving, Quota-Neutral)
+    @Transactional
+    public MediaDetailResponse replaceMedia(ActorContext actor, UUID requestedStudioId, UUID mediaId, ReplaceMediaRequest request) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        requireStudioManagePermission(context, actor);
+
+        MediaAssetRecord asset = mediaRepository.findMediaAsset(mediaId, context.studioId())
+                .filter(a -> a.deletedAt() == null)
+                .orElseThrow(() -> new ResourceNotFoundException("Media asset not found"));
+
+        UploadIntentRecord intent = mediaRepository.findUploadIntent(request.uploadIntentId(), context.studioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Upload intent not found"));
+
+        if (intent.status() != UploadIntentStatus.PENDING) {
+            throw new BadRequestException("Upload intent has already been processed or cancelled");
+        }
+        if (intent.expiresAt().isBefore(Instant.now())) {
+            mediaRepository.updateUploadIntentStatus(intent.id(), UploadIntentStatus.EXPIRED);
+            throw new BadRequestException("Upload intent has expired");
+        }
+
+        if (!storageService.exists(intent.quarantineKey())) {
+            throw new BadRequestException("No uploaded replacement file found for intent. Please upload the file bytes before replacing.");
+        }
+
+        byte[] rawBytes = storageService.load(intent.quarantineKey());
+        if (rawBytes == null || rawBytes.length == 0) {
+            throw new BadRequestException("Replacement file data is empty");
+        }
+
+        // Validate image format and dimensions (decompression bomb defense)
+        ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(rawBytes);
+
+        // Check storage quota delta if replacement is larger than original
+        long byteDelta = rawBytes.length - asset.fileSize();
+        if (byteDelta > 0 && entitlementService != null) {
+            entitlementService.assertStorageQuotaAllowed(context.studioId(), byteDelta);
+        }
+
+        // Generate new canonical original key
+        String newCanonicalKey = storageService.generateCanonicalOriginalKey(
+                context.studioId(),
+                asset.projectId(),
+                asset.id(),
+                intent.expectedContentType()
+        );
+
+        // If replacement creates derivatives (for public/portfolio media)
+        List<MediaDerivativeRecord> newDerivatives = new ArrayList<>();
+        Instant now = Instant.now();
+        if (asset.visibility() != MediaVisibility.PRIVATE && asset.mediaType().isPublicEligible()) {
+            StudioWatermarkSettingsRecord watermarkSettings = getOrCreateWatermarkSettings(context.studioId());
+
+            for (DerivativeVariant variant : DerivativeVariant.values()) {
+                ImageProcessingService.ProcessedDerivative pd = imageProcessingService.createDerivative(
+                        rawBytes,
+                        variant,
+                        watermarkSettings,
+                        asset.watermarkEnabled(),
+                        asset.mediaType()
+                );
+
+                String derivativeKey = storageService.generateDerivativeKey(
+                        context.studioId(),
+                        asset.projectId(),
+                        asset.id(),
+                        variant.name(),
+                        pd.format()
+                );
+
+                storageService.store(derivativeKey, pd.content(), "image/jpeg");
+                String publicUrl = storageService.resolvePublicUrl(derivativeKey);
+
+                newDerivatives.add(new MediaDerivativeRecord(
+                        UuidV7.randomUuid(),
+                        asset.id(),
+                        context.studioId(),
+                        variant,
+                        pd.width(),
+                        pd.height(),
+                        pd.format(),
+                        pd.fileSize(),
+                        derivativeKey,
+                        publicUrl,
+                        pd.isWatermarked(),
+                        now
+                ));
+            }
+        }
+
+        // Clean up old derivatives from storage and DB
+        List<MediaDerivativeRecord> oldDerivatives = mediaRepository.findDerivativesByMediaId(asset.id(), context.studioId());
+        for (MediaDerivativeRecord oldD : oldDerivatives) {
+            storageService.delete(oldD.storageKey());
+        }
+        mediaRepository.deleteDerivativesByMediaId(asset.id(), context.studioId());
+        storageService.delete("studio/" + context.studioId() + "/previews/" + asset.id() + ".jpg");
+
+        // Save new derivatives if generated
+        if (!newDerivatives.isEmpty()) {
+            mediaRepository.saveDerivatives(newDerivatives);
+        }
+
+        // Clean up old original if key is different, then move new canonical original
+        if (!asset.originalStorageKey().equals(newCanonicalKey)) {
+            storageService.delete(asset.originalStorageKey());
+        }
+        storageService.move(intent.quarantineKey(), newCanonicalKey);
+
+        // Update media asset content in DB preserving all slot metadata
+        mediaRepository.replaceMediaAssetContent(
+                asset.id(),
+                context.studioId(),
+                newCanonicalKey,
+                intent.expectedContentType(),
+                rawBytes.length,
+                dims.width(),
+                dims.height()
+        );
+
+        // Mark replacement upload intent committed
+        mediaRepository.linkUploadIntentMediaAsset(intent.id(), asset.id());
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "MEDIA_REPLACED",
+                "MEDIA_ASSET",
+                asset.id().toString(),
+                Map.of("projectId", asset.projectId().toString(), "oldSize", asset.fileSize(), "newSize", rawBytes.length),
+                null,
+                null
+        );
+
+        MediaAssetRecord updatedAsset = mediaRepository.findMediaAsset(asset.id(), context.studioId())
+                .orElse(asset);
+        return toDetailResponse(updatedAsset, newDerivatives);
     }
 
     // 7. Reorder Media
@@ -690,6 +916,58 @@ public class MediaService {
                     return toDetailResponse(a, d);
                 })
                 .toList();
+    }
+
+    // 9b. Storage Quota & Orphan Reconciliation
+    @Transactional
+    public StorageReconciliationReport reconcileStorage(ActorContext actor, UUID requestedStudioId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        requireStudioManagePermission(context, actor);
+
+        // Expire overdue upload intents and clean their quarantine files
+        List<UploadIntentRecord> expired = mediaRepository.findExpiredUploadIntents(Instant.now());
+        int cleanedQuarantines = 0;
+        for (UploadIntentRecord intent : expired) {
+            if (intent.studioId().equals(context.studioId())) {
+                mediaRepository.updateUploadIntentStatus(intent.id(), UploadIntentStatus.EXPIRED);
+                if (storageService.exists(intent.quarantineKey())) {
+                    storageService.delete(intent.quarantineKey());
+                    cleanedQuarantines++;
+                }
+            }
+        }
+
+        int portfolioPhotoCount = mediaRepository.countCommittedPortfolioPhotos(context.studioId(), null);
+        int pendingPhotoReservations = mediaRepository.countPendingPortfolioUploadIntents(context.studioId(), null);
+        long committedBytes = mediaRepository.countCommittedStorageBytes(context.studioId());
+        long pendingBytes = mediaRepository.countPendingStorageBytes(context.studioId());
+        int activeMediaCount = (int) mediaRepository.countActiveMediaByStudio(context.studioId());
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "STORAGE_RECONCILED",
+                "STUDIO",
+                context.studioId().toString(),
+                Map.of("committedBytes", committedBytes, "pendingBytes", pendingBytes, "cleanedQuarantines", cleanedQuarantines),
+                null,
+                null
+        );
+
+        return new StorageReconciliationReport(
+                context.studioId(),
+                portfolioPhotoCount,
+                pendingPhotoReservations,
+                committedBytes,
+                pendingBytes,
+                committedBytes + pendingBytes,
+                cleanedQuarantines,
+                activeMediaCount
+        );
     }
 
     // 10. Watermark Settings

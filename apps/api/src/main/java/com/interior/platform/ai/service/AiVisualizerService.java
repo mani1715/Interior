@@ -944,6 +944,48 @@ public class AiVisualizerService {
         }
     }
 
+    @Transactional
+    public int reconcileStuckProcessingJobs(Duration timeout) {
+        Instant cutoff = Instant.now().minus(timeout != null ? timeout : Duration.ofMinutes(10));
+        List<AiJobRecord> stuck = aiJobRepository.findStuckJobs(AiJobStatus.PROCESSING, cutoff);
+        int reconciled = 0;
+        for (AiJobRecord job : stuck) {
+            aiJobRepository.updateStatus(
+                    job.id(),
+                    AiJobStatus.FAILED,
+                    null,
+                    null,
+                    Instant.now(),
+                    "PROCESSING_TIMEOUT",
+                    "Job processing timed out after " + (timeout != null ? timeout.toMinutes() : 10) + " minutes",
+                    null,
+                    null,
+                    job.version()
+            );
+            aiJobRepository.recordUsageEvent(new AiUsageEventRecord(
+                    UuidV7.randomUuid(),
+                    job.studioId(),
+                    job.id(),
+                    "GENERATION_TIMEOUT",
+                    job.providerKey(),
+                    0,
+                    Instant.now()
+            ));
+            auditService.record(
+                    job.createdBy(),
+                    job.studioId(),
+                    "AI_JOB_TIMED_OUT",
+                    "AI_JOB",
+                    job.id().toString(),
+                    Map.of("timeoutMinutes", (timeout != null ? timeout.toMinutes() : 10)),
+                    null,
+                    null
+            );
+            reconciled++;
+        }
+        return reconciled;
+    }
+
     private AiJobDetailResponse toJobDetail(AiJobRecord job, UUID studioId) {
         String inputPreviewUrl = resolvePreviewUrl(job.inputMediaId(), studioId);
         String outputPreviewUrl = job.outputMediaId() != null ? resolvePreviewUrl(job.outputMediaId(), studioId) : null;

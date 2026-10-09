@@ -295,6 +295,12 @@ public class JdbcAiJobRepository implements AiJobRepository {
         return count != null ? count : 0;
     }
 
+    @Override
+    public List<AiJobRecord> findStuckJobs(AiJobStatus status, Instant startedBefore) {
+        String sql = "SELECT * FROM ai_jobs WHERE status = ? AND started_at < ? ORDER BY started_at ASC LIMIT 100";
+        return jdbcTemplate.query(sql, jobMapper, status.name(), Timestamp.from(startedBefore));
+    }
+
     private UUID getUuid(ResultSet rs, String column) throws SQLException {
         Object val = rs.getObject(column);
         if (val == null) return null;

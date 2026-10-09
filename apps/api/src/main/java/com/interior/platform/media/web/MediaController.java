@@ -59,6 +59,20 @@ public class MediaController {
         return ResponseEntity.ok(Map.of("status", "uploaded", "uploadIntentId", uploadIntentId));
     }
 
+    @PostMapping("/upload-intent/{uploadIntentId}/cancel")
+    @Operation(summary = "Cancel upload intent", description = "Cancels a pending upload intent and releases reserved storage bytes and quarantine objects.")
+    public ResponseEntity<Void> cancelUploadIntent(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("uploadIntentId") UUID uploadIntentId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        mediaService.cancelUploadIntent(actor, studioId, uploadIntentId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/commit")
     @Operation(summary = "Commit uploaded media", description = "Verifies quarantined file, promotes to canonical private original, and generates responsive watermarked derivatives.")
     public ResponseEntity<MediaDetailResponse> commitUpload(
@@ -88,6 +102,19 @@ public class MediaController {
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
         List<MediaDetailResponse> list = mediaService.listStudioMedia(actor, studioId, projectId, mediaType, visibility, status);
         return createPrivateNoCacheResponse(list, HttpStatus.OK);
+    }
+
+    @PostMapping("/reconcile")
+    @Operation(summary = "Reconcile storage quota and orphans", description = "Cleans expired upload intents, removes orphaned quarantine files, and returns updated storage quota metrics.")
+    public ResponseEntity<StorageReconciliationReport> reconcileStorage(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        StorageReconciliationReport res = mediaService.reconcileStorage(actor, studioId);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
     @GetMapping("/project/{projectId}")
@@ -130,6 +157,21 @@ public class MediaController {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
         MediaDetailResponse res = mediaService.updateMedia(actor, studioId, mediaId, req);
+        return createPrivateNoCacheResponse(res, HttpStatus.OK);
+    }
+
+    @PostMapping("/{mediaId}/replace")
+    @Operation(summary = "Replace media photo content", description = "Performs quota-neutral, slot-preserving replacement of photo bytes and derivatives while preserving room, cover, caption, and motion settings.")
+    public ResponseEntity<MediaDetailResponse> replaceMedia(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("mediaId") UUID mediaId,
+            @Valid @RequestBody ReplaceMediaRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+        MediaDetailResponse res = mediaService.replaceMedia(actor, studioId, mediaId, req);
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 

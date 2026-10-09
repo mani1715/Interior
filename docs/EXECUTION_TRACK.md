@@ -126,9 +126,18 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Truthful Provider Architecture: In-app is fully operational; transactional email correctly reports `NOT_CONFIGURED` with `DisabledEmailProvider`; WhatsApp supports client-initiated `Mode A (Direct wa.me)`.
   - Comprehensive Verification: 453/453 backend tests PASS (0 failures, 0 skipped), 23/23 PostgreSQL RLS tests PASS (0 failures, 0 skipped), 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
+- **Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery Completion (Antigravity)**
+  - Two-Phase Upload Intent Lifecycle: Strict state machine (`PENDING`, `UPLOADED`, `COMMITTING`, `COMMITTED`, `CANCELLED`, `FAILED`, `EXPIRED`) with client cancellation (`POST /media/upload-intent/{id}/cancel`) and double-commit idempotency returning existing media asset.
+  - Multi-Dimensional Storage & Photo Quota Enforcement: Hard checks on committed + pending storage bytes and portfolio photo counts across studio subscription tiers. Quota reservation on upload intent creation and release on cancellation/expiry.
+  - Slot-Preserving Photo Replacement: Dedicated `POST /api/v1/workspace/media/{mediaId}/replace` endpoint that preserves room association, cover badges, captions, focal reticles, and motion settings while only validating net storage byte increases without consuming additional photo slots.
+  - Adversarial Media & Upload Hardening: SSRF defense service (`SsrfProtectionService`) blocking loopbacks, RFC1918, link-local, AWS/cloud metadata (`169.254.169.254`), and non-HTTP schemes with redirect checks. Decompression bomb protection in `ImageProcessingService` capping max dimension at 10,000px and total pixels at 50MP.
+  - AI Pipeline Decoupling & Recovery: Asynchronous AI generation jobs protected with timeout recovery (`reconcileStuckProcessingJobs`) resolving stuck jobs to `FAILED` with `PROCESSING_TIMEOUT`. Clean provenance enforcement (`AI_CONCEPT` visibility and mandatory badge watermarks upon portfolio enrollment).
+  - Multi-Tenant RLS & Storage Reconciliation: Automated reconciliation (`POST /api/v1/workspace/media/reconcile` and `POST /api/v1/workspace/ai/jobs/reconcile`), Flyway `V032__media_lifecycle_and_upload_hardening.sql`, and PostgreSQL RLS across all tables (`media_upload_intents`, `media_assets`, `ai_generation_jobs`).
+  - Comprehensive Verification: 468/468 backend tests PASS (0 failures, 0 errors, 0 skipped), 17/17 PostgreSQL RLS tests PASS (0 failures, 0 skipped), 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS.
+
 ## Current Next Step:
 
-- Backend Core Phase 7D — AI, Media Storage & Failure Recovery Completion.
+- Backend Core Phase 7E — Admin, Moderation, Audit & Operational Controls Completion.
 
 ---
 

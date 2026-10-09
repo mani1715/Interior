@@ -64,4 +64,6 @@ public interface AiJobRepository {
     void recordUsageEvent(AiUsageEventRecord event);
 
     int countTodayUsage(UUID studioId);
+
+    List<AiJobRecord> findStuckJobs(AiJobStatus status, Instant startedBefore);
 }
