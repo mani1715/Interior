@@ -101,7 +101,14 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
     9. Trust Explanations (3 confidence pillars: Work with attribution, Reviews with context, Verification explained)
     10. Visitor + Professional Calls to Action (dual audience layout: homeowner discovery and professional portfolio registration)
     11. Footer (`Footer` with platform navigation, legal links, and quiet copyright)
-  - Verified: 407/407 backend tests PASS, 352/352 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+- **Phase 7A: Authentication, Session Lifecycle, Role Routing & Workspace Access (Antigravity)**
+  - Backend Opaque Session Security: 256-bit entropy opaque sessions hashed with SHA-256 in `identity_sessions`, idle (2hr) and absolute (7d) expiration, `__Host-session` cookies (`Path=/; HttpOnly; SameSite=Lax; Secure`), and `Cache-Control: no-store, private` headers on authenticated responses.
+  - Authoritative Current User (`GET /auth/me`): Accurate status resolution (`ACTIVE`, `PENDING`, `SUSPENDED`, `DELETED`) propagated into `ActorContext`. Suspended accounts are immediately denied across `AuthorizationService` (`requireActiveUser`) and presented with a dedicated support notice in `WorkspaceShell`.
+  - Deterministic Role-Aware Routing: `resolveAuthDestination` routes `SUPER_ADMIN`/`ADMIN` to `/admin`, active studio members to `/workspace`, incomplete designers to `/onboarding/professional`, and customers to `/account`.
+  - Open Redirect Defense: `sanitizeRedirectUrl` strictly denies external schemes, protocol-relative (`//`), backslashes (`\`, `/\`, `\\`), encoded bypasses (`%2f`, `%5c`), CRLF injection, and script schemes (`javascript:`, `data:`).
+  - Multi-Studio Tenancy: Per-tab studio isolation via `sessionStorage` (`elegance_active_studio_id`) and `X-Studio-Id` header, validated by backend `TenantResolutionFilter`.
+  - Professional Onboarding & Team Invites: Transactional studio provisioning (`DESIGNER_ADMIN`), idempotency guarantees, and single-use cryptographic invitation tokens with email matching checks.
+  - Verified: 407/407 backend tests PASS, 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
 ## Current Next Step:
 

@@ -3,13 +3,13 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
-import { sanitizeRedirectUrl } from '@/lib/auth/redirect';
+import { resolveAuthDestination } from '@/lib/auth/redirect';
 
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/account';
-  const { refreshUser, isAuthenticated } = useAuth();
+  const returnUrl = searchParams.get('returnUrl');
+  const { user, refreshUser, isAuthenticated } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,10 +24,10 @@ function CallbackContent() {
   }, [refreshUser]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace(sanitizeRedirectUrl(returnUrl));
+    if (isAuthenticated && user) {
+      router.replace(resolveAuthDestination(user, returnUrl));
     }
-  }, [isAuthenticated, returnUrl, router]);
+  }, [isAuthenticated, user, returnUrl, router]);
 
   if (error) {
     return (

@@ -16,8 +16,16 @@ public class AuthorizationService {
         }
     }
 
+    public void requireActiveUser(ActorContext actor) {
+        requireAuthenticated(actor);
+        if (actor.isSuspended()) {
+            throw new AccessDeniedException("Account is suspended");
+        }
+    }
+
     public void requirePlatformRole(ActorContext actor, String role) {
         requireAuthenticated(actor);
+        requireActiveUser(actor);
         if (!actor.hasRole(role) && !actor.hasRole("SUPER_ADMIN")) {
             throw new AccessDeniedException("Required platform role missing: " + role);
         }
@@ -25,6 +33,7 @@ public class AuthorizationService {
 
     public void requirePermission(ActorContext actor, String permission) {
         requireAuthenticated(actor);
+        requireActiveUser(actor);
         if (actor.hasRole("SUPER_ADMIN")) {
             return;
         }
@@ -38,6 +47,7 @@ public class AuthorizationService {
      */
     public void requireMfaAssurance(ActorContext actor) {
         requireAuthenticated(actor);
+        requireActiveUser(actor);
         if (!actor.hasMfaAssurance()) {
             throw new AccessDeniedException("Multi-factor authentication (MFA) assurance required for this action");
         }
@@ -45,6 +55,7 @@ public class AuthorizationService {
 
     public void requireStudioAccess(ActorContext actor, UUID targetStudioId) {
         requireAuthenticated(actor);
+        requireActiveUser(actor);
 
         if (targetStudioId == null || !actor.isStudioMember(targetStudioId)) {
             throw new AccessDeniedException("Access denied: tenant isolation violation");

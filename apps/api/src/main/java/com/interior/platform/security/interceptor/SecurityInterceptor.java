@@ -76,6 +76,7 @@ public class SecurityInterceptor implements HandlerInterceptor {
                         user.id(),
                         user.displayName(),
                         user.email(),
+                        user.status(),
                         roles,
                         permissions,
                         studioId,
@@ -89,6 +90,12 @@ public class SecurityInterceptor implements HandlerInterceptor {
         request.setAttribute(ACTOR_ATTRIBUTE, actor);
         if (session != null) {
             request.setAttribute(SESSION_ATTRIBUTE, session);
+        }
+
+        if (actor.isAuthenticated()) {
+            if (response.getHeader("Cache-Control") == null) {
+                response.setHeader("Cache-Control", "no-store, private");
+            }
         }
 
         // Enforce CSRF token on mutating HTTP methods for authenticated sessions

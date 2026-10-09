@@ -7,6 +7,7 @@ public record ActorContext(
     UUID userId,
     String displayName,
     String email,
+    String status,
     Set<String> platformRoles,
     Set<String> permissions,
     UUID activeStudioId,
@@ -19,15 +20,29 @@ public record ActorContext(
         String displayName,
         String email,
         Set<String> platformRoles,
+        Set<String> permissions,
+        UUID activeStudioId,
+        String activeStudioRole,
+        String assurance,
+        boolean isAuthenticated
+    ) {
+        this(userId, displayName, email, "ACTIVE", platformRoles, permissions, activeStudioId, activeStudioRole, assurance, isAuthenticated);
+    }
+
+    public ActorContext(
+        UUID userId,
+        String displayName,
+        String email,
+        Set<String> platformRoles,
         UUID activeStudioId,
         String activeStudioRole,
         boolean isAuthenticated
     ) {
-        this(userId, displayName, email, platformRoles, Set.of(), activeStudioId, activeStudioRole, "PASSKEY", isAuthenticated);
+        this(userId, displayName, email, "ACTIVE", platformRoles, Set.of(), activeStudioId, activeStudioRole, "PASSKEY", isAuthenticated);
     }
 
     public static ActorContext anonymous() {
-        return new ActorContext(null, "Anonymous", null, Set.of("PUBLIC"), Set.of(), null, null, "NONE", false);
+        return new ActorContext(null, "Anonymous", null, "NONE", Set.of("PUBLIC"), Set.of(), null, null, "NONE", false);
     }
 
     public boolean hasRole(String role) {
@@ -57,5 +72,9 @@ public record ActorContext(
 
     public boolean hasMfaAssurance() {
         return "MFA".equalsIgnoreCase(assurance) || "WEBAUTHN".equalsIgnoreCase(assurance);
+    }
+
+    public boolean isSuspended() {
+        return "SUSPENDED".equalsIgnoreCase(status);
     }
 }

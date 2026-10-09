@@ -142,4 +142,28 @@ class AuthorizationPolicyTest {
         assertDoesNotThrow(() -> authorizationService.requireMfaAssurance(mfaAdmin));
         assertDoesNotThrow(() -> authorizationService.requireMfaAssurance(webAuthnAdmin));
     }
+
+    @Test
+    @DisplayName("Suspended accounts are strictly rejected across all authorization checks")
+    void testSuspendedAccountRejection() {
+        UUID studioId = UUID.randomUUID();
+        ActorContext suspendedAdmin = new ActorContext(
+                UUID.randomUUID(),
+                "Suspended Admin",
+                "bad@admin.com",
+                "SUSPENDED",
+                Set.of("ADMIN", "SUPER_ADMIN"),
+                Set.of("*"),
+                studioId,
+                "DESIGNER_ADMIN",
+                "MFA",
+                true
+        );
+
+        assertTrue(suspendedAdmin.isSuspended());
+        assertThrows(AccessDeniedException.class, () -> authorizationService.requirePlatformRole(suspendedAdmin, "ADMIN"));
+        assertThrows(AccessDeniedException.class, () -> authorizationService.requireStudioAccess(suspendedAdmin, studioId));
+        assertThrows(AccessDeniedException.class, () -> authorizationService.requireStudioAdmin(suspendedAdmin, studioId));
+        assertThrows(AccessDeniedException.class, () -> authorizationService.requirePermission(suspendedAdmin, "project:read"));
+    }
 }

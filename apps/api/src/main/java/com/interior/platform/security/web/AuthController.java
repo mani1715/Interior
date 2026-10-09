@@ -192,7 +192,7 @@ public class AuthController {
                 actor.userId(),
                 actor.displayName(),
                 actor.email(),
-                "ACTIVE",
+                actor.status(),
                 actor.platformRoles(),
                 actor.permissions(),
                 actor.activeStudioId(),

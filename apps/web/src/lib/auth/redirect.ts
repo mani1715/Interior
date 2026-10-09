@@ -1,3 +1,5 @@
+import type { AuthUser } from './auth-context';
+
 /**
  * Sanitizes a redirect URL to prevent open redirect vulnerabilities.
  * Only allows safe, relative internal application paths.
@@ -32,4 +34,40 @@ export function sanitizeRedirectUrl(url?: string | null, defaultUrl: string = '/
   }
 
   return trimmed;
+}
+
+/**
+ * Deterministically resolves post-authentication routing based on user global role,
+ * studio membership, onboarding status, and sanitized returnUrl.
+ */
+export function resolveAuthDestination(user?: AuthUser | null, returnUrl?: string | null): string {
+  // If user provided a specific non-default internal destination, respect it!
+  if (returnUrl) {
+    const sanitized = sanitizeRedirectUrl(returnUrl, '');
+    if (sanitized && sanitized !== '/' && sanitized !== '/account' && sanitized !== '/sign-in') {
+      return sanitized;
+    }
+  }
+
+  if (!user) {
+    return '/';
+  }
+
+  // 1. Platform Admin / Super Admin explicit admin entry
+  if (user.roles && (user.roles.includes('SUPER_ADMIN') || user.roles.includes('ADMIN'))) {
+    return '/admin';
+  }
+
+  // 2. Professional with studio membership -> professional workspace
+  if (user.activeStudioId || (user.studios && user.studios.length > 0)) {
+    return '/workspace';
+  }
+
+  // 3. User with DESIGNER role but incomplete onboarding (no studio created yet)
+  if (user.roles && user.roles.includes('DESIGNER')) {
+    return '/onboarding/professional';
+  }
+
+  // 4. Customer / default home account experience
+  return '/account';
 }

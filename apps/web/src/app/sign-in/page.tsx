@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
-import { sanitizeRedirectUrl } from '@/lib/auth/redirect';
+import { sanitizeRedirectUrl, resolveAuthDestination } from '@/lib/auth/redirect';
 import { apiFetch } from '@/lib/api-client';
 
 interface ProviderInfo {
@@ -30,7 +30,7 @@ interface ProvidersResponse {
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/account';
+  const returnUrl = searchParams.get('returnUrl');
   const { user, isAuthenticated, loginDevPersona } = useAuth();
 
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -41,7 +41,7 @@ function SignInContent() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      router.push(sanitizeRedirectUrl(returnUrl));
+      router.push(resolveAuthDestination(user, returnUrl));
     }
   }, [isAuthenticated, user, returnUrl, router]);
 
@@ -101,7 +101,8 @@ function SignInContent() {
                 disabled={!p.isConfigured || isSubmitting}
                 onClick={() => {
                   if (p.isConfigured) {
-                    window.location.href = `/api/v1/auth/login?provider=${p.id}&returnUrl=${encodeURIComponent(returnUrl)}`;
+                    const target = returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : '';
+                    window.location.href = `/api/v1/auth/login?provider=${p.id}${target}`;
                   }
                 }}
                 className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
