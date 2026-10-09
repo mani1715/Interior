@@ -31,6 +31,14 @@ public class AuthorizationService {
         }
     }
 
+    public void requireSuperAdmin(ActorContext actor) {
+        requireAuthenticated(actor);
+        requireActiveUser(actor);
+        if (!actor.hasRole("SUPER_ADMIN")) {
+            throw new AccessDeniedException("SUPER_ADMIN privileges required");
+        }
+    }
+
     public void requirePermission(ActorContext actor, String permission) {
         requireAuthenticated(actor);
         requireActiveUser(actor);

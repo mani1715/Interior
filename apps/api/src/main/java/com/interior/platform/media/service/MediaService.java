@@ -970,6 +970,54 @@ public class MediaService {
         );
     }
 
+    @Transactional
+    public StorageReconciliationReport reconcileStorageForAdmin(ActorContext actor, UUID studioId) {
+        authorizationService.requirePlatformRole(actor, "ADMIN");
+        if (studioId == null) {
+            throw new BadRequestException("Target studioId is required for admin media reconciliation");
+        }
+
+        List<UploadIntentRecord> expired = mediaRepository.findExpiredUploadIntents(Instant.now());
+        int cleanedQuarantines = 0;
+        for (UploadIntentRecord intent : expired) {
+            if (intent.studioId().equals(studioId)) {
+                mediaRepository.updateUploadIntentStatus(intent.id(), UploadIntentStatus.EXPIRED);
+                if (storageService.exists(intent.quarantineKey())) {
+                    storageService.delete(intent.quarantineKey());
+                    cleanedQuarantines++;
+                }
+            }
+        }
+
+        int portfolioPhotoCount = mediaRepository.countCommittedPortfolioPhotos(studioId, null);
+        int pendingPhotoReservations = mediaRepository.countPendingPortfolioUploadIntents(studioId, null);
+        long committedBytes = mediaRepository.countCommittedStorageBytes(studioId);
+        long pendingBytes = mediaRepository.countPendingStorageBytes(studioId);
+        int activeMediaCount = (int) mediaRepository.countActiveMediaByStudio(studioId);
+
+        auditService.record(
+                actor.userId(),
+                studioId,
+                "ADMIN_STORAGE_RECONCILED",
+                "STUDIO",
+                studioId.toString(),
+                Map.of("committedBytes", committedBytes, "pendingBytes", pendingBytes, "cleanedQuarantines", cleanedQuarantines),
+                null,
+                null
+        );
+
+        return new StorageReconciliationReport(
+                studioId,
+                portfolioPhotoCount,
+                pendingPhotoReservations,
+                committedBytes,
+                pendingBytes,
+                committedBytes + pendingBytes,
+                cleanedQuarantines,
+                activeMediaCount
+        );
+    }
+
     // 10. Watermark Settings
     @Transactional(readOnly = true)
     public WatermarkSettingsResponse getWatermarkSettings(ActorContext actor, UUID requestedStudioId) {

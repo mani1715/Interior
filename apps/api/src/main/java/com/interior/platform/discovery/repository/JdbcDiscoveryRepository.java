@@ -40,7 +40,8 @@ public class JdbcDiscoveryRepository implements DiscoveryRepository {
             BASE_PUBLIC_STUDIO_GATE +
             "AND p.project_status = 'READY' " +
             "AND p.visibility_status = 'PORTFOLIO' " +
-            "AND p.archived_at IS NULL ";
+            "AND p.archived_at IS NULL " +
+            "AND (p.moderation_status IS NULL OR p.moderation_status = 'APPROVED') ";
 
     @Override
     public List<DiscoveryProjectCardDto> searchProjects(DiscoverySearchParams params) {

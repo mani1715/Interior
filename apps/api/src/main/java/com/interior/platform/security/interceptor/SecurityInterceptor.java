@@ -55,7 +55,9 @@ public class SecurityInterceptor implements HandlerInterceptor {
                 var memberships = vs.studioMemberships();
                 java.util.UUID requestedStudioId = resolveRequestedStudioId(request);
                 var activeMembership = memberships.isEmpty() ? null : memberships.get(0);
-                if (requestedStudioId != null) {
+                boolean isAdminPath = request.getRequestURI() != null &&
+                        (request.getRequestURI().startsWith("/admin") || request.getRequestURI().startsWith("/api/v1/admin"));
+                if (requestedStudioId != null && !isAdminPath) {
                     var matched = memberships.stream()
                             .filter(m -> m.studioId().equals(requestedStudioId))
                             .findFirst();

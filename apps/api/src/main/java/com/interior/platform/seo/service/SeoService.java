@@ -335,8 +335,8 @@ public class SeoService {
         }
 
         StudioDetailRecord studio = studioOpt.get();
-        // GATING: Only PUBLISHED studios are public!
-        if (!"PUBLISHED".equalsIgnoreCase(studio.publicationStatus())) {
+        // GATING: Only PUBLISHED and ACTIVE studios are public!
+        if (!"PUBLISHED".equalsIgnoreCase(studio.publicationStatus()) || !"ACTIVE".equalsIgnoreCase(studio.status())) {
             return Optional.empty();
         }
 
@@ -444,8 +444,8 @@ public class SeoService {
         }
 
         StudioDetailRecord studio = studioOpt.get();
-        // Parent must be PUBLISHED!
-        if (!"PUBLISHED".equalsIgnoreCase(studio.publicationStatus())) {
+        // Parent must be PUBLISHED and ACTIVE!
+        if (!"PUBLISHED".equalsIgnoreCase(studio.publicationStatus()) || !"ACTIVE".equalsIgnoreCase(studio.status())) {
             return Optional.empty();
         }
 

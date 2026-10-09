@@ -12,13 +12,17 @@ Branch:
 main
 
 Latest functional baseline:
-c5a968d
+Phase 7E Complete
 
 Flyway:
-V030
+V033
 
-Phase 6 Security Hardening & Adversarial Audit:
-COMPLETE (100 controls audited, 0 open Critical/High, 426 backend tests PASS, 352 frontend tests PASS, AdversarialSecurityAuditTest regression suite added)
+Phase 7 Hardening Tracks:
+- Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
+- Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & CRM Workflow (PASS)
+- Phase 7C: In-App Notifications & Authoritative Communication Delivery (PASS)
+- Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery (PASS)
+- Phase 7E: Admin, Moderation, Audit & Operational Controls (PASS)
 
 Production deployment:
 DEFERRED

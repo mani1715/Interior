@@ -59,12 +59,13 @@ Current completed milestone:
 - Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & Client Workflow (Draft/Ready state machine, publishability evaluation gate, explicit idempotent unpublishing, transactional soft-archive, anti-abuse honeypot and rate-limited public enquiries, same-studio project attribution and active member assignment in CRM leads, WON lead verification gate for client review invitations, and multi-tenant RLS isolation).
 - Phase 7C: CRM, Notifications & Communication Delivery Completion (Authoritative In-App notification system, SSE real-time stream with heartbeats, unread counting and batch mark read, external delivery tracking in `communication_deliveries` with RLS, fail-safe transaction decoupling, XSS/host-header hardened `EmailTemplateService`, truthful provider reporting with `NOT_CONFIGURED`, self-action spam suppression).
 - Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery Completion (Two-phase commit upload intents, byte/photo quota enforcement, slot-preserving media replacement, SSRF defense service with IP resolution & redirect checks, decompression bomb 50MP limits, asynchronous AI timeout recovery, automated storage reconciliation report, multi-tenant RLS isolation across media & AI tables).
+- Phase 7E: Admin, Moderation, Audit & Operational Controls Completion (Segregated trust domains, Super Admin privilege boundaries, self-suspension/lockout protection, session invalidation on suspension, content moderation with PostgreSQL RLS `public_read_studio_projects` moderation gating, truthful delivery audit with recipient PII masking, operational health diagnostics, storage reconciliation, and stuck AI job recovery).
 
 Current Flyway:
-V032 (`V032__media_lifecycle_and_upload_hardening.sql`)
+V033 (`V033__admin_operations_and_moderation_controls.sql`)
 
 Next planned milestone:
-Backend Core Phase 7E — Admin, Moderation, Audit & Operational Controls Completion.
+Backend Core Phase 7F — Final Security, API, Concurrency & End-to-End Release Audit.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
