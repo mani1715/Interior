@@ -38,7 +38,9 @@ public class NotificationController {
             @RequestParam(defaultValue = "0") int offset,
             HttpServletRequest request
     ) {
-        return ResponseEntity.ok(notificationService.getNotifications(getActor(request), limit, offset));
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedOffset = Math.max(0, offset);
+        return ResponseEntity.ok(notificationService.getNotifications(getActor(request), clampedLimit, clampedOffset));
     }
 
     @GetMapping("/unread-count")

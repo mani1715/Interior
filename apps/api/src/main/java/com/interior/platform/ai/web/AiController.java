@@ -102,7 +102,9 @@ public class AiController {
     ) {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
-        AiJobListResponse res = aiVisualizerService.listJobs(actor, studioId, projectId, limit, offset);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedOffset = Math.max(0, offset);
+        AiJobListResponse res = aiVisualizerService.listJobs(actor, studioId, projectId, clampedLimit, clampedOffset);
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
@@ -285,7 +287,9 @@ public class AiController {
     ) {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
-        AiJobHistoryResponse res = aiVisualizerService.listJobHistory(actor, studioId, projectId, editingMode, status, shortlistedOnly, page, limit);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedPage = Math.max(0, page);
+        AiJobHistoryResponse res = aiVisualizerService.listJobHistory(actor, studioId, projectId, editingMode, status, shortlistedOnly, clampedPage, clampedLimit);
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 
@@ -319,7 +323,9 @@ public class AiController {
     ) {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
-        List<ClientReviewDetailResponse> res = aiVisualizerService.listStudioReviews(actor, studioId, projectId, page, limit);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedPage = Math.max(0, page);
+        List<ClientReviewDetailResponse> res = aiVisualizerService.listStudioReviews(actor, studioId, projectId, clampedPage, clampedLimit);
         return createPrivateNoCacheResponse(res, HttpStatus.OK);
     }
 

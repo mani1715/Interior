@@ -66,7 +66,10 @@ public class StudioReviewController {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam, actor);
 
-        List<ReviewInvitationDto> list = invitationService.listInvitations(actor, studioId, limit, offset);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedOffset = Math.max(0, offset);
+
+        List<ReviewInvitationDto> list = invitationService.listInvitations(actor, studioId, clampedLimit, clampedOffset);
         return ResponseEntity.ok(list);
     }
 
@@ -97,7 +100,10 @@ public class StudioReviewController {
         ActorContext actor = extractActor(request);
         UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam, actor);
 
-        List<StudioReviewRecord> list = reviewService.listStudioReviews(actor, studioId, limit, offset);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedOffset = Math.max(0, offset);
+
+        List<StudioReviewRecord> list = reviewService.listStudioReviews(actor, studioId, clampedLimit, clampedOffset);
         return ResponseEntity.ok(list);
     }
 

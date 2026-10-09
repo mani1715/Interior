@@ -49,7 +49,9 @@ public class PublicReviewController {
             @RequestParam(value = "limit", required = false, defaultValue = "10") int limit,
             @RequestParam(value = "offset", required = false, defaultValue = "0") int offset
     ) {
-        PublicStudioReviewsResponse response = reviewService.getPublicReviews(studioSlug, limit, offset);
+        int clampedLimit = Math.max(1, Math.min(limit, 50));
+        int clampedOffset = Math.max(0, offset);
+        PublicStudioReviewsResponse response = reviewService.getPublicReviews(studioSlug, clampedLimit, clampedOffset);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, s-maxage=300, stale-while-revalidate=600")
                 .body(response);

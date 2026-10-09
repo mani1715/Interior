@@ -21,10 +21,17 @@ public class SecurityInterceptor implements HandlerInterceptor {
     private final SessionSecurityService sessionSecurityService;
 
     @Value("${app.security.session-cookie-name:__Host-session}")
-    private String sessionCookieName;
+    private String sessionCookieName = "__Host-session";
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SecurityInterceptor(SessionSecurityService sessionSecurityService) {
         this.sessionSecurityService = sessionSecurityService;
+    }
+
+    public void setSessionCookieName(String sessionCookieName) {
+        if (sessionCookieName != null) {
+            this.sessionCookieName = sessionCookieName;
+        }
     }
 
     @Override

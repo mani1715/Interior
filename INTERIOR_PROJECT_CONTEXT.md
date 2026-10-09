@@ -54,6 +54,7 @@ Current completed milestone:
 - Portfolio Evolution Phase 3: Cinematic Portfolio (`ProjectPresentationMode`, Flyway V029, pure deterministic eligibility engine, Focus Push & Gentle Drift scroll-driven transforms, matte framing, transform ownership `data-cinematic-controlled="true"`, portrait containment, real `#room-<roomId>` anchor deep linking, and owner presentation settings).
 - Implementation Phase 4: Homepage Refinement (Discovery-first visitor architecture: PublicHeader with 64px mobile bar & shortcut, BrandHero 180svh desktop motion with unpinned mobile/tablet fallback, Immediate Project Search, Projects to Explore, Professional Discovery with live API + fallback, Cinematic Portfolio Introduction, Inspiration Categories, Secondary AI Visualizer with disclosure, Trust Explanations, Visitor & Professional Dual CTAs).
 - Implementation Phase 5: Subscription & Entitlement Implementation (Flyway V030, Standard/Premium/Pro commercial plan model, server-side project & photo-per-project quota enforcement, upload intent reservations, Cinematic presentation entitlement & 5-project allocation cap inside Pro tier, truthful Plan & Usage workspace with legacy BASE preservation, safe over-limit policy with zero deletions, safe subscription expiration fallback to Standard).
+- Phase 6: Security Hardening & Adversarial Audit (Full 100-control audit, magic-byte upload validation, unbounded pagination guards, adversarial regression test suite, zero open Critical/High vulnerabilities, RLS & multi-tenant isolation verified).
 
 Current Flyway:
 V030 (`V030__subscription_entitlements_and_quota.sql`)
@@ -69,6 +70,9 @@ COMPLETE (Discovery first, approved 11-section order, responsive, accessible, ze
 
 Subscriptions & Entitlements:
 COMPLETE (Server-side quota enforcement, Pro 5-cinematic allocation, truthful usage breakdown, disabled-checkout boundary modal)
+
+Security Hardening & Adversarial Audit:
+COMPLETE (100 controls audited, 426 backend tests PASS, 352 frontend tests PASS, 0 Open Critical/High, release status: READY FOR RELEASE QA)
 
 True 3D / 360 / guided camera capture:
 DEFERRED

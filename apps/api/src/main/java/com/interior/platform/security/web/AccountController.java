@@ -204,7 +204,9 @@ public class AccountController {
             HttpServletRequest request
     ) {
         ActorContext actor = getActor(request);
-        List<LeadRepository.CustomerInquiryRecord> inquiries = leadRepository.findCustomerInquiries(actor.userId(), limit, offset);
+        int clampedLimit = Math.max(1, Math.min(limit, 100));
+        int clampedOffset = Math.max(0, offset);
+        List<LeadRepository.CustomerInquiryRecord> inquiries = leadRepository.findCustomerInquiries(actor.userId(), clampedLimit, clampedOffset);
         return ResponseEntity.ok(inquiries);
     }
 

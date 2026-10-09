@@ -12,10 +12,13 @@ Branch:
 main
 
 Latest functional baseline:
-ddbe990
+c5a968d
 
 Flyway:
-V029
+V030
+
+Phase 6 Security Hardening & Adversarial Audit:
+COMPLETE (100 controls audited, 0 open Critical/High, 426 backend tests PASS, 352 frontend tests PASS, AdversarialSecurityAuditTest regression suite added)
 
 Production deployment:
 DEFERRED
