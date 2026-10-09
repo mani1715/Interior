@@ -70,11 +70,11 @@ public class NotificationService {
 
             // Check category preferences
             boolean allowed = switch (type) {
-                case NEW_LEAD, LEAD_FOLLOW_UP -> prefs.leadNotifications();
-                case NEW_REVIEW, REVIEW_RESPONSE -> prefs.reviewNotifications();
-                case AI_GENERATION_COMPLETE, AI_GENERATION_FAILED, CLIENT_APPROVED_CONCEPT, CLIENT_REQUESTED_CHANGES -> prefs.aiNotifications();
-                case VERIFICATION_UPDATE, PORTFOLIO_PUBLISHED, PORTFOLIO_ACTION_REQUIRED, PROJECT_ACTION_REQUIRED,
-                     STUDIO_INVITATION_ACCEPTED, STUDIO_MEMBER_ADDED, STUDIO_ROLE_CHANGED, STUDIO_MEMBER_REMOVED, SYSTEM_NOTICE -> prefs.systemNotifications();
+                case NEW_LEAD, LEAD_ASSIGNED, LEAD_FOLLOW_UP -> prefs.leadNotifications();
+                case NEW_REVIEW, REVIEW_RESPONSE, REVIEW_INVITATION_READY -> prefs.reviewNotifications();
+                case AI_GENERATION_COMPLETE, AI_GENERATION_FAILED, CLIENT_APPROVED_CONCEPT, CLIENT_REQUESTED_CHANGES, CLIENT_FEEDBACK_RECEIVED -> prefs.aiNotifications();
+                case VERIFICATION_UPDATE, PORTFOLIO_PUBLISHED, PORTFOLIO_ACTION_REQUIRED, PROJECT_ACTION_REQUIRED, PROJECT_PUBLISH_STATE_CHANGED,
+                     TEAM_INVITATION, STUDIO_INVITATION_ACCEPTED, STUDIO_MEMBER_ADDED, STUDIO_ROLE_CHANGED, STUDIO_MEMBER_REMOVED, SYSTEM_NOTICE -> prefs.systemNotifications();
             };
 
             if (!allowed) {

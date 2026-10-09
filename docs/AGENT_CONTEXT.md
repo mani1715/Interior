@@ -136,7 +136,7 @@ Paths below are relative to this document; filenames are the canonical repositor
   - Build Tool: Maven 3.9.9 (`mvnw.cmd` checked in)
 - **Database & Persistence**:
   - PostgreSQL 18.3 active on port 5433 (database: `interior_design_dev`)
-  - Flyway versioned SQL migrations: `V001` through `V014` applied cleanly
+  - Flyway versioned SQL migrations: `V001` through `V031` applied cleanly
   - In-memory H2 with Flyway test migrations for fast, isolated backend test execution
 - **Architecture Highlights**:
   - Modular monolith with explicit module boundaries

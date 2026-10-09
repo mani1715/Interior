@@ -269,6 +269,9 @@ System enum `ProfessionalType.java` and PostgreSQL DB constraints enforce 7 cano
 | **29** | Admin & Hardening | Admin Console, Rate Limiting, CSRF, Health Probes | `V022`, `V023` | `com.interior.platform.admin` | **PASS** |
 | **R3** | Realtime Experience | Authenticated User-Scoped SSE Stream, Reconnect | `V024` | `com.interior.platform.realtime` | **PASS** |
 | **R4** | Client Collaboration | Pinpoint Annotations, Revisions, Preferred Concept | `V025` | `ai_client_review_annotations` | **PASS** |
+| **7A** | Auth, Sessions & Multi-Studio | Opaque Sessions, Role Routing, Studio Isolation | `V026`, `V027` | `com.interior.platform.security` | **PASS** |
+| **7B** | Project Lifecycle & CRM | Readiness Gate, Unpublish, CRM Workflow, RLS | `V028`–`V030` | `projects`, `leads`, `reviews` | **PASS** |
+| **7C** | CRM, Notifications & Delivery | In-App SSE Notifications, Communication Deliveries | `V031` | `notifications`, `email` | **PASS** |
 
 ---
 

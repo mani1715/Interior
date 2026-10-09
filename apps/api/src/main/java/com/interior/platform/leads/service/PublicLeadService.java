@@ -21,12 +21,17 @@ import com.interior.platform.analytics.domain.AnalyticsEventType;
 import com.interior.platform.analytics.service.AnalyticsService;
 import com.interior.platform.notifications.domain.NotificationType;
 import com.interior.platform.notifications.service.NotificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.interior.platform.email.service.EmailTemplateService;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class PublicLeadService {
+
+    private static final Logger log = LoggerFactory.getLogger(PublicLeadService.class);
 
     private final LeadRepository leadRepository;
     private final PhoneNormalizationService phoneNormalizationService;
@@ -36,6 +41,15 @@ public class PublicLeadService {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.email.service.CommunicationDeliveryService communicationDeliveryService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.email.service.EmailTemplateService emailTemplateService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.security.repository.SecurityRepository securityRepository;
 
     public PublicLeadService(
             LeadRepository leadRepository,
@@ -199,6 +213,31 @@ public class PublicLeadService {
                     "/workspace/leads/" + leadId,
                     "{\"leadId\":\"" + leadId + "\"}"
             );
+
+            // Attempt transactional email alert to studio owner (truthfully logs NOT_CONFIGURED when disabled)
+            if (communicationDeliveryService != null && emailTemplateService != null && securityRepository != null) {
+                try {
+                    securityRepository.findUserById(studio.ownerId()).ifPresent(owner -> {
+                        if (owner.email() != null && !owner.email().isBlank()) {
+                            EmailTemplateService.RenderedEmail rendered = emailTemplateService.renderNewLeadAlert(
+                                    studio.name(), sanitizedName, category, "/workspace/leads/" + leadId
+                            );
+                            communicationDeliveryService.attemptEmailDelivery(
+                                    studio.id(),
+                                    studio.ownerId(),
+                                    "NEW_LEAD",
+                                    owner.email(),
+                                    rendered.subject(),
+                                    rendered.textBody(),
+                                    rendered.htmlBody(),
+                                    "lead_email:" + leadId
+                            );
+                        }
+                    });
+                } catch (Exception e) {
+                    log.warn("Failed to dispatch email alert for lead {}: {}", leadId, e.getMessage());
+                }
+            }
         }
 
         String referenceNumber = "INQ-" + leadId.toString().substring(0, 8).toUpperCase();

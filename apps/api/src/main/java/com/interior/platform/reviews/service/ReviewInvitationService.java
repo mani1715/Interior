@@ -11,6 +11,8 @@ import com.interior.platform.leads.repository.LeadRepository;
 import com.interior.platform.reviews.domain.ReviewInvitationRecord;
 import com.interior.platform.reviews.domain.ReviewInvitationSessionRecord;
 import com.interior.platform.reviews.domain.ReviewInvitationStatus;
+import com.interior.platform.email.service.CommunicationDeliveryService;
+import com.interior.platform.email.service.EmailTemplateService;
 import com.interior.platform.reviews.dto.CreateReviewInvitationRequest;
 import com.interior.platform.reviews.dto.CreateReviewInvitationResponse;
 import com.interior.platform.reviews.dto.ReviewInvitationDto;
@@ -40,15 +42,30 @@ public class ReviewInvitationService {
     private final ReviewRepository reviewRepository;
     private final LeadRepository leadRepository;
     private final StudioRepository studioRepository;
+    private final CommunicationDeliveryService communicationDeliveryService;
+    private final EmailTemplateService emailTemplateService;
 
     public ReviewInvitationService(
             ReviewRepository reviewRepository,
             LeadRepository leadRepository,
             StudioRepository studioRepository
     ) {
+        this(reviewRepository, leadRepository, studioRepository, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ReviewInvitationService(
+            ReviewRepository reviewRepository,
+            LeadRepository leadRepository,
+            StudioRepository studioRepository,
+            CommunicationDeliveryService communicationDeliveryService,
+            EmailTemplateService emailTemplateService
+    ) {
         this.reviewRepository = reviewRepository;
         this.leadRepository = leadRepository;
         this.studioRepository = studioRepository;
+        this.communicationDeliveryService = communicationDeliveryService;
+        this.emailTemplateService = emailTemplateService;
     }
 
     @Transactional
@@ -109,6 +126,25 @@ public class ReviewInvitationService {
         reviewRepository.createInvitation(record);
 
         String invitationUrl = "/review/invite/" + rawToken;
+
+        // Attempt transactional email delivery (truthfully records NOT_CONFIGURED when disabled)
+        if (communicationDeliveryService != null && emailTemplateService != null && lead.emailNormalized() != null && !lead.emailNormalized().isBlank()) {
+            String studioName = studioRepository.findStudioById(studioId).map(StudioDetailRecord::name).orElse("Interior Studio");
+            EmailTemplateService.RenderedEmail rendered = emailTemplateService.renderReviewInvitation(
+                    studioName, lead.name(), invitationUrl
+            );
+            communicationDeliveryService.attemptEmailDelivery(
+                    studioId,
+                    lead.customerUserId(),
+                    "REVIEW_INVITATION",
+                    lead.emailNormalized(),
+                    rendered.subject(),
+                    rendered.textBody(),
+                    rendered.htmlBody(),
+                    "review_invite:" + invitationId
+            );
+        }
+
         return new CreateReviewInvitationResponse(invitationId, rawToken, invitationUrl, expiresAt);
     }
 

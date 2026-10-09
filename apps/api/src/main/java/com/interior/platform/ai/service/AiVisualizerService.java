@@ -78,10 +78,17 @@ public class AiVisualizerService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.notifications.service.NotificationService notificationService;
+
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
         this.realtimeEventPublisher = publisher;
+    }
+
+    public void setNotificationService(com.interior.platform.notifications.service.NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     private void emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent event) {
@@ -1989,6 +1996,28 @@ public class AiVisualizerService {
                         "clientName", request.clientName() != null ? sanitize(request.clientName()) : "Client"
                 )
         ));
+
+        // Dispatch in-app notification to review creator
+        if (notificationService != null && review.createdBy() != null) {
+            com.interior.platform.notifications.domain.NotificationType notifType =
+                    request.decision() == ClientReviewDecisionType.APPROVED
+                            ? com.interior.platform.notifications.domain.NotificationType.CLIENT_APPROVED_CONCEPT
+                            : com.interior.platform.notifications.domain.NotificationType.CLIENT_REQUESTED_CHANGES;
+            String notifTitle = request.decision() == ClientReviewDecisionType.APPROVED
+                    ? "Client Approved Concept"
+                    : "Client Requested Concept Changes";
+            String clientName = request.clientName() != null ? sanitize(request.clientName()) : "Client";
+            String notifMsg = clientName + " submitted " + request.decision().name() + " on concept review.";
+            notificationService.dispatchNotification(
+                    review.createdBy(),
+                    review.studioId(),
+                    notifType,
+                    notifTitle,
+                    notifMsg,
+                    "/workspace/ai",
+                    "{\"reviewId\":\"" + review.id() + "\",\"jobId\":\"" + request.jobId() + "\"}"
+            );
+        }
     }
 
     public void submitClientComment(String rawSessionToken, String csrfToken, SubmitClientCommentRequest request, String clientIp) {
@@ -2041,6 +2070,20 @@ public class AiVisualizerService {
                         "reviewId", review.id().toString()
                 )
         ));
+
+        // Dispatch in-app notification to review creator
+        if (notificationService != null && review.createdBy() != null) {
+            String clientName = comment.authorName() != null ? comment.authorName() : "Client";
+            notificationService.dispatchNotification(
+                    review.createdBy(),
+                    review.studioId(),
+                    com.interior.platform.notifications.domain.NotificationType.CLIENT_FEEDBACK_RECEIVED,
+                    "New Client Feedback Comment",
+                    clientName + " commented on concept review.",
+                    "/workspace/ai",
+                    "{\"reviewId\":\"" + review.id() + "\"}"
+            );
+        }
     }
 
     public ClientReviewAnnotationDto submitClientAnnotation(String rawSessionToken, String csrfToken, CreateAnnotationRequest request, String clientIp) {
@@ -2113,6 +2156,20 @@ public class AiVisualizerService {
                         "annotationId", annotation.id().toString()
                 )
         ));
+
+        // Dispatch in-app notification to review creator
+        if (notificationService != null && review.createdBy() != null) {
+            String clientName = annotation.authorName() != null ? annotation.authorName() : "Client";
+            notificationService.dispatchNotification(
+                    review.createdBy(),
+                    review.studioId(),
+                    com.interior.platform.notifications.domain.NotificationType.CLIENT_FEEDBACK_RECEIVED,
+                    "New Client Pin Annotation",
+                    clientName + " pinned an annotation on concept image.",
+                    "/workspace/ai",
+                    "{\"reviewId\":\"" + review.id() + "\"}"
+            );
+        }
 
         return new ClientReviewAnnotationDto(
                 annotation.id(),

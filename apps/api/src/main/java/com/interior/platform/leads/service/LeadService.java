@@ -32,6 +32,9 @@ public class LeadService {
     private final PhoneNormalizationService phoneNormalizationService;
     private final AnalyticsService analyticsService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.notifications.service.NotificationService notificationService;
+
     public LeadService(
             LeadRepository leadRepository,
             SecurityRepository securityRepository,
@@ -44,6 +47,10 @@ public class LeadService {
         this.authorizationService = authorizationService;
         this.phoneNormalizationService = phoneNormalizationService;
         this.analyticsService = analyticsService;
+    }
+
+    public void setNotificationService(com.interior.platform.notifications.service.NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -331,6 +338,21 @@ public class LeadService {
                 "{\"assignedUserName\":\"" + assigneeName + "\"}",
                 Instant.now()
         ));
+
+        // Dispatch in-app notification to new assignee (suppressing self-action spam)
+        if (req.assignedUserId() != null && !req.assignedUserId().equals(actor.userId()) && notificationService != null) {
+            String projectTitle = current.projectId() != null ? leadRepository.getProjectTitle(current.projectId()) : null;
+            String notifMsg = "Lead " + current.name() + (projectTitle != null ? " for " + projectTitle : "") + " has been assigned to you.";
+            notificationService.dispatchNotification(
+                    req.assignedUserId(),
+                    studioId,
+                    com.interior.platform.notifications.domain.NotificationType.LEAD_ASSIGNED,
+                    "New Lead Assigned",
+                    notifMsg,
+                    "/workspace/leads/" + leadId,
+                    "{\"leadId\":\"" + leadId + "\"}"
+            );
+        }
 
         return getLeadDetail(actor, requestedStudioId, leadId);
     }

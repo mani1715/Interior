@@ -117,9 +117,18 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Client Review Verification Gate: Verified client review invitations unlocked strictly when CRM lead achieves status `WON` (`ReviewInvitationService`), protected by single-use 30-day cryptographic tokens.
   - Multi-Tenant RLS & Security: 438/438 full backend tests PASS, 20/20 PostgreSQL RLS tests PASS, 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
+- **Phase 7C: CRM, Notifications & Communication Delivery Completion (Antigravity)**
+  - Authoritative In-App Notification Engine: Single unified model in `notifications` table, real-time SSE stream (`/api/v1/workspace/notifications/stream`) with keepalive heartbeats, unread counting, batch mark-all-read, bounded pagination limits, and self-action spam suppression.
+  - Expanded Notification Domain: Flyway V031 adding `NEW_LEAD`, `LEAD_ASSIGNED`, `CLIENT_FEEDBACK_RECEIVED`, `CLIENT_APPROVED_CONCEPT`, `CLIENT_REQUESTED_CHANGES`, `TEAM_INVITATION`, `REVIEW_INVITATION_READY`, and `PROJECT_PUBLISH_STATE_CHANGED`.
+  - External Communication Delivery Tracking: New `communication_deliveries` table protected by PostgreSQL RLS with `FORCE ROW LEVEL SECURITY`. Bounded retries, idempotency key checks, and delivery statuses (`PENDING`, `SENT`, `FAILED`, `NOT_CONFIGURED`, `DELIVERED`).
+  - Fail-Safe Transaction Boundaries: External provider exceptions (SMTP/SES) never abort or roll back primary database transactions; failures are cleanly captured in `communication_deliveries`.
+  - Security-Hardened Email Templates: `EmailTemplateService` with strict XSS escaping via `HtmlUtils.htmlEscape` and host-header injection mitigation using canonical `app.baseUrl`.
+  - Truthful Provider Architecture: In-app is fully operational; transactional email correctly reports `NOT_CONFIGURED` with `DisabledEmailProvider`; WhatsApp supports client-initiated `Mode A (Direct wa.me)`.
+  - Comprehensive Verification: 453/453 backend tests PASS (0 failures, 0 skipped), 23/23 PostgreSQL RLS tests PASS (0 failures, 0 skipped), 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+
 ## Current Next Step:
 
-- Backend Core Phase 7C — CRM, Notifications & Communication Delivery Completion.
+- Backend Core Phase 7D — AI, Media Storage & Failure Recovery Completion.
 
 ---
 

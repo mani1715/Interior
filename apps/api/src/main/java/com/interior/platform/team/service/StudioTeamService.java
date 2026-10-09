@@ -5,6 +5,8 @@ import com.interior.platform.common.exception.BadRequestException;
 import com.interior.platform.common.exception.ConflictException;
 import com.interior.platform.common.exception.ResourceNotFoundException;
 import com.interior.platform.common.util.UuidV7;
+import com.interior.platform.email.service.CommunicationDeliveryService;
+import com.interior.platform.email.service.EmailTemplateService;
 import com.interior.platform.notifications.domain.NotificationType;
 import com.interior.platform.notifications.service.NotificationService;
 import com.interior.platform.realtime.domain.RealtimeEvent;
@@ -66,6 +68,8 @@ public class StudioTeamService {
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final RealtimeEventPublisher realtimeEventPublisher;
+    private final CommunicationDeliveryService communicationDeliveryService;
+    private final EmailTemplateService emailTemplateService;
 
     public StudioTeamService(
             StudioTeamRepository teamRepository,
@@ -75,12 +79,28 @@ public class StudioTeamService {
             NotificationService notificationService,
             RealtimeEventPublisher realtimeEventPublisher
     ) {
+        this(teamRepository, authorizationService, rateLimiterService, auditService, notificationService, realtimeEventPublisher, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public StudioTeamService(
+            StudioTeamRepository teamRepository,
+            AuthorizationService authorizationService,
+            RateLimiterService rateLimiterService,
+            AuditService auditService,
+            NotificationService notificationService,
+            RealtimeEventPublisher realtimeEventPublisher,
+            CommunicationDeliveryService communicationDeliveryService,
+            EmailTemplateService emailTemplateService
+    ) {
         this.teamRepository = teamRepository;
         this.authorizationService = authorizationService;
         this.rateLimiterService = rateLimiterService;
         this.auditService = auditService;
         this.notificationService = notificationService;
         this.realtimeEventPublisher = realtimeEventPublisher;
+        this.communicationDeliveryService = communicationDeliveryService;
+        this.emailTemplateService = emailTemplateService;
     }
 
     /**
@@ -221,6 +241,24 @@ public class StudioTeamService {
         ));
 
         String inviteUrl = "/invite/" + rawToken;
+
+        // Attempt transactional email delivery (truthfully records NOT_CONFIGURED when disabled)
+        if (communicationDeliveryService != null && emailTemplateService != null) {
+            String studioName = teamRepository.findStudioName(studioId);
+            EmailTemplateService.RenderedEmail rendered = emailTemplateService.renderTeamInvitation(
+                    studioName, normalizeRoleDisplay(normalizedRole), inviteUrl
+            );
+            communicationDeliveryService.attemptEmailDelivery(
+                    studioId,
+                    null,
+                    "TEAM_INVITATION",
+                    email,
+                    rendered.subject(),
+                    rendered.textBody(),
+                    rendered.htmlBody(),
+                    "team_invite:" + invitationId
+            );
+        }
 
         return new CreateInvitationResponse(
                 invitationId,
