@@ -281,7 +281,7 @@ public class JdbcProjectRepository implements ProjectRepository {
     @Override
     public List<StudioProjectRecord> findPortfolioProjects(UUID studioId) {
         String sql = "SELECT * FROM studio_projects " +
-                     "WHERE studio_id = ? AND project_status != 'ARCHIVED' AND visibility_status = 'PORTFOLIO' " +
+                     "WHERE studio_id = ? AND project_status = 'READY' AND visibility_status = 'PORTFOLIO' AND archived_at IS NULL " +
                      "ORDER BY display_order ASC, created_at DESC";
         return jdbcTemplate.query(sql, projectMapper, studioId);
     }

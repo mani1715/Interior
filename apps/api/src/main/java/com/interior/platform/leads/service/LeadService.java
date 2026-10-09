@@ -188,10 +188,18 @@ public class LeadService {
         String lostReason = (newStatus == LeadStatus.LOST) ? req.lostReason() : current.lostReason();
         Instant nextFollowUpAt = (req.nextFollowUpAt() != null) ? req.nextFollowUpAt() : current.nextFollowUpAt();
 
+        UUID targetProjectId = current.projectId();
+        if (req.projectId() != null) {
+            if (!leadRepository.isStudioProject(studioId, req.projectId())) {
+                throw new BadRequestException("Project does not belong to this studio");
+            }
+            targetProjectId = req.projectId();
+        }
+
         StudioLeadRecord updatedRecord = new StudioLeadRecord(
                 current.id(),
                 current.studioId(),
-                current.projectId(),
+                targetProjectId,
                 current.source(),
                 newStatus,
                 current.name(),

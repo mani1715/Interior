@@ -434,6 +434,14 @@ public class JdbcLeadRepository implements LeadRepository {
     }
 
     @Override
+    public boolean isStudioProject(UUID studioId, UUID projectId) {
+        if (projectId == null || studioId == null) return false;
+        String sql = "SELECT COUNT(*) FROM studio_projects WHERE studio_id = ? AND id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, projectId);
+        return count != null && count > 0;
+    }
+
+    @Override
     public String getUserDisplayName(UUID userId) {
         if (userId == null) return null;
         String sql = "SELECT display_name FROM users WHERE id = ?";

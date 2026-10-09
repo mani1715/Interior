@@ -108,11 +108,18 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Open Redirect Defense: `sanitizeRedirectUrl` strictly denies external schemes, protocol-relative (`//`), backslashes (`\`, `/\`, `\\`), encoded bypasses (`%2f`, `%5c`), CRLF injection, and script schemes (`javascript:`, `data:`).
   - Multi-Studio Tenancy: Per-tab studio isolation via `sessionStorage` (`elegance_active_studio_id`) and `X-Studio-Id` header, validated by backend `TenantResolutionFilter`.
   - Professional Onboarding & Team Invites: Transactional studio provisioning (`DESIGNER_ADMIN`), idempotency guarantees, and single-use cryptographic invitation tokens with email matching checks.
-  - Verified: 407/407 backend tests PASS, 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
+- **Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & Client Workflow (Antigravity)**
+  - Project State & Readiness Engine: Dedicated publish gate (`checkPublishability`, `publishProject`, `unpublishProject`), enforcing readiness criteria (`title`, `categoryCode`, `shortDescription`, `city`, `state`), active studio membership invariants, and non-archived state.
+  - Publish & Unpublish Invariants: Optimistic concurrency control (`version`), explicit unpublishing (`POST /{projectId}/unpublish`), idempotent publish operations preventing duplicate audit entries, and soft-archive semantics preserving room/photo/lead integrity.
+  - Hardened Portfolio Visibility: `findPortfolioProjects` query strictly enforces `project_status = 'READY' AND visibility_status = 'PORTFOLIO' AND archived_at IS NULL`.
+  - Anti-Abuse Public Enquiry Intake: `PublicLeadService` honeypot fields, tiered IP rate limits (5 per 15 min), phone flood controls (3 per hr), and cross-studio project attribution verification.
+  - CRM Lead Lifecycle & Assignment: Strict state machine (`NEW` -> `CONTACTED` -> `QUALIFIED` -> `SITE_VISIT_PLANNED` -> `IN_DISCUSSION` -> `WON` / `LOST` / `ARCHIVED`), verified studio member assignment enforcement, and studio-isolated project linking in `LeadService.updateLead`.
+  - Client Review Verification Gate: Verified client review invitations unlocked strictly when CRM lead achieves status `WON` (`ReviewInvitationService`), protected by single-use 30-day cryptographic tokens.
+  - Multi-Tenant RLS & Security: 438/438 full backend tests PASS, 20/20 PostgreSQL RLS tests PASS, 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS, Next.js production build PASS.
 
 ## Current Next Step:
 
-- Platform review and next milestone planning.
+- Backend Core Phase 7C — CRM, Notifications & Communication Delivery Completion.
 
 ---
 

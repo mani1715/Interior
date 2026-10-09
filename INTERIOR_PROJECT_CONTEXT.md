@@ -56,12 +56,13 @@ Current completed milestone:
 - Implementation Phase 5: Subscription & Entitlement Implementation (Flyway V030, Standard/Premium/Pro commercial plan model, server-side project & photo-per-project quota enforcement, upload intent reservations, Cinematic presentation entitlement & 5-project allocation cap inside Pro tier, truthful Plan & Usage workspace with legacy BASE preservation, safe over-limit policy with zero deletions, safe subscription expiration fallback to Standard).
 - Phase 6: Security Hardening & Adversarial Audit (Full 100-control audit, magic-byte upload validation, unbounded pagination guards, adversarial regression test suite, zero open Critical/High vulnerabilities, RLS & multi-tenant isolation verified).
 - Phase 7A: Authentication & Workspace Access Flow (Server-side opaque sessions in PostgreSQL, SHA-256 hashed tokens, `__Host-session` cookie, `ActorContext` status resolution & suspended account rejection, deterministic role-aware post-login routing, open redirect defense, multi-studio switching with `X-Studio-Id`, transactional professional onboarding, and studio invitation flow).
+- Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & Client Workflow (Draft/Ready state machine, publishability evaluation gate, explicit idempotent unpublishing, transactional soft-archive, anti-abuse honeypot and rate-limited public enquiries, same-studio project attribution and active member assignment in CRM leads, WON lead verification gate for client review invitations, and multi-tenant RLS isolation).
 
 Current Flyway:
 V030 (`V030__subscription_entitlements_and_quota.sql`)
 
 Next planned milestone:
-Portfolio Evolution follow-ups / Commercial checkout gateway integration (when live provider is enabled).
+Backend Core Phase 7C — CRM, Notifications & Communication Delivery Completion.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

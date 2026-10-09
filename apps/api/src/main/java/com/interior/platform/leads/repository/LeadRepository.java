@@ -98,6 +98,8 @@ public interface LeadRepository {
 
     boolean isStudioMember(UUID studioId, UUID userId);
 
+    boolean isStudioProject(UUID studioId, UUID projectId);
+
     String getUserDisplayName(UUID userId);
 
     String getProjectTitle(UUID projectId);

@@ -19,6 +19,7 @@ import com.interior.platform.projects.domain.VisibilityStatus;
 import com.interior.platform.projects.dto.CreateProjectRequest;
 import com.interior.platform.projects.dto.ProjectDetailResponse;
 import com.interior.platform.projects.dto.ProjectPresentationDto;
+import com.interior.platform.projects.dto.ProjectPublishCheckResponse;
 import com.interior.platform.projects.dto.ProjectSummaryResponse;
 import com.interior.platform.projects.dto.ReorderProjectsRequest;
 import com.interior.platform.projects.dto.UpdateProjectRequest;
@@ -29,6 +30,8 @@ import com.interior.platform.security.domain.UserRecord;
 import com.interior.platform.security.repository.SecurityRepository;
 import com.interior.platform.security.service.AuditService;
 import com.interior.platform.security.service.AuthorizationService;
+import com.interior.platform.media.dto.MediaPresentationDto;
+import com.interior.platform.designers.domain.StudioDetailRecord;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +56,12 @@ public class ProjectService {
     private final com.interior.platform.media.service.MediaService mediaService;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.billing.service.EntitlementService entitlementService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.designers.repository.StudioRepository studioRepository;
+
+    public void setStudioRepository(com.interior.platform.designers.repository.StudioRepository studioRepository) {
+        this.studioRepository = studioRepository;
+    }
 
     public ProjectService(
             ProjectRepository projectRepository,
@@ -279,6 +288,14 @@ public class ProjectService {
 
         ProjectStatus projectStatus = readiness.isReady() ? ProjectStatus.READY : ProjectStatus.DRAFT;
         VisibilityStatus visibilityStatus = request.visibilityStatus() != null ? request.visibilityStatus() : existing.visibilityStatus();
+
+        if (visibilityStatus == VisibilityStatus.PORTFOLIO && existing.visibilityStatus() != VisibilityStatus.PORTFOLIO) {
+            ProjectPublishCheckResponse check = evaluatePublishabilityInternal(context.studioId(), existing, readiness);
+            if (!check.isPublishable()) {
+                throw new BadRequestException("Cannot set visibility to PORTFOLIO: " + String.join("; ", check.blockers()));
+            }
+        }
+
         BudgetVisibility budgetVisibility = request.budgetVisibility() != null ? request.budgetVisibility() : existing.budgetVisibility();
         ClientNameVisibility clientNameVisibility = request.clientNameVisibility() != null ? request.clientNameVisibility() : existing.clientNameVisibility();
         String country = (request.country() != null && !request.country().isBlank()) ? request.country().toUpperCase(Locale.ROOT) : existing.country();
@@ -475,6 +492,230 @@ public class ProjectService {
         );
 
         List<ProjectStyle> styles = projectRepository.findStylesByProjectId(projectId);
+        return toDetailResponse(reloaded, styles);
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectPublishCheckResponse checkPublishability(ActorContext actor, UUID requestedStudioId, UUID projectId) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        requireStudioManagePermission(context, actor);
+
+        StudioProjectRecord project = projectRepository.findProjectById(context.studioId(), projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        ReadinessEvaluation readiness = evaluateReadiness(
+                project.title(),
+                project.categoryCode(),
+                project.shortDescription(),
+                project.city(),
+                project.state()
+        );
+
+        return evaluatePublishabilityInternal(context.studioId(), project, readiness);
+    }
+
+    private ProjectPublishCheckResponse evaluatePublishabilityInternal(
+            UUID studioId,
+            StudioProjectRecord project,
+            ReadinessEvaluation readiness
+    ) {
+        List<String> blockers = new ArrayList<>();
+
+        if (project.projectStatus() == ProjectStatus.ARCHIVED || project.archivedAt() != null) {
+            blockers.add("PROJECT_ARCHIVED: Archived projects cannot be published. Restore the project first.");
+        }
+
+        if (!readiness.isReady()) {
+            blockers.add("PROJECT_NOT_READY: Project story incomplete (" + String.join(", ", readiness.missingFields()) + ")");
+        }
+
+        boolean studioActive = true;
+        if (studioRepository != null) {
+            Optional<StudioDetailRecord> studioOpt = studioRepository.findStudioById(studioId);
+            if (studioOpt.isEmpty() || !"ACTIVE".equalsIgnoreCase(studioOpt.get().status())) {
+                studioActive = false;
+                blockers.add("STUDIO_INACTIVE: Studio account must be active to publish projects.");
+            }
+        }
+
+        boolean hasPublicMedia = false;
+        if (mediaService != null) {
+            List<MediaPresentationDto> media = mediaService.getProjectMediaPresentation(studioId, project.id());
+            hasPublicMedia = media != null && !media.isEmpty();
+        }
+
+        boolean isPublishable = blockers.isEmpty();
+        return new ProjectPublishCheckResponse(isPublishable, blockers, readiness.isReady(), studioActive, hasPublicMedia);
+    }
+
+    @Transactional
+    public ProjectDetailResponse publishProject(
+            ActorContext actor,
+            UUID requestedStudioId,
+            UUID projectId,
+            long expectedVersion
+    ) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        requireStudioManagePermission(context, actor);
+
+        StudioProjectRecord existing = projectRepository.findProjectById(context.studioId(), projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        List<ProjectStyle> styles = projectRepository.findStylesByProjectId(projectId);
+
+        // Idempotency: If already published in PORTFOLIO and READY, return safely without duplicate audit
+        if (existing.visibilityStatus() == VisibilityStatus.PORTFOLIO && existing.projectStatus() == ProjectStatus.READY) {
+            return toDetailResponse(existing, styles);
+        }
+
+        ProjectPublishCheckResponse check = checkPublishability(actor, requestedStudioId, projectId);
+        if (!check.isPublishable()) {
+            throw new BadRequestException("Cannot publish project: " + String.join("; ", check.blockers()));
+        }
+
+        StudioProjectRecord updatedRecord = new StudioProjectRecord(
+                existing.id(),
+                existing.studioId(),
+                existing.slug(),
+                existing.title(),
+                existing.shortDescription(),
+                existing.fullDescription(),
+                existing.categoryCode(),
+                ProjectStatus.READY,
+                VisibilityStatus.PORTFOLIO,
+                existing.featured(),
+                existing.displayOrder(),
+                existing.city(),
+                existing.district(),
+                existing.state(),
+                existing.country(),
+                existing.propertyType(),
+                existing.projectScope(),
+                existing.completionYear(),
+                existing.budgetVisibility(),
+                existing.budgetMin(),
+                existing.budgetMax(),
+                existing.currency(),
+                existing.clientNameVisibility(),
+                existing.clientDisplayName(),
+                existing.areaValue(),
+                existing.areaUnit(),
+                existing.internalNotes(),
+                existing.presentationMode() != null ? existing.presentationMode() : ProjectPresentationMode.STANDARD,
+                existing.version(),
+                existing.createdBy(),
+                existing.createdAt(),
+                Instant.now(),
+                null
+        );
+
+        int rows = projectRepository.updateProject(updatedRecord, styles, expectedVersion);
+        if (rows == 0) {
+            throw new ConflictException("Project was modified concurrently. Please reload and try again.");
+        }
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "PROJECT_PUBLISHED",
+                "PROJECT",
+                projectId.toString(),
+                Map.of("visibilityStatus", "PORTFOLIO", "projectStatus", "READY", "version", existing.version() + 1),
+                null,
+                null
+        );
+
+        StudioProjectRecord reloaded = projectRepository.findProjectById(context.studioId(), projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found after publication"));
+        return toDetailResponse(reloaded, styles);
+    }
+
+    @Transactional
+    public ProjectDetailResponse unpublishProject(
+            ActorContext actor,
+            UUID requestedStudioId,
+            UUID projectId,
+            long expectedVersion
+    ) {
+        authorizationService.requireAuthenticated(actor);
+        validateActiveUser(actor.userId());
+        validateProfessionalRole(actor);
+
+        ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
+        requireStudioManagePermission(context, actor);
+
+        StudioProjectRecord existing = projectRepository.findProjectById(context.studioId(), projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        List<ProjectStyle> styles = projectRepository.findStylesByProjectId(projectId);
+
+        // Idempotency: If already PRIVATE, return safely without duplicate audit
+        if (existing.visibilityStatus() == VisibilityStatus.PRIVATE) {
+            return toDetailResponse(existing, styles);
+        }
+
+        StudioProjectRecord updatedRecord = new StudioProjectRecord(
+                existing.id(),
+                existing.studioId(),
+                existing.slug(),
+                existing.title(),
+                existing.shortDescription(),
+                existing.fullDescription(),
+                existing.categoryCode(),
+                existing.projectStatus(),
+                VisibilityStatus.PRIVATE,
+                existing.featured(),
+                existing.displayOrder(),
+                existing.city(),
+                existing.district(),
+                existing.state(),
+                existing.country(),
+                existing.propertyType(),
+                existing.projectScope(),
+                existing.completionYear(),
+                existing.budgetVisibility(),
+                existing.budgetMin(),
+                existing.budgetMax(),
+                existing.currency(),
+                existing.clientNameVisibility(),
+                existing.clientDisplayName(),
+                existing.areaValue(),
+                existing.areaUnit(),
+                existing.internalNotes(),
+                existing.presentationMode() != null ? existing.presentationMode() : ProjectPresentationMode.STANDARD,
+                existing.version(),
+                existing.createdBy(),
+                existing.createdAt(),
+                Instant.now(),
+                existing.archivedAt()
+        );
+
+        int rows = projectRepository.updateProject(updatedRecord, styles, expectedVersion);
+        if (rows == 0) {
+            throw new ConflictException("Project was modified concurrently. Please reload and try again.");
+        }
+
+        auditService.record(
+                actor.userId(),
+                context.studioId(),
+                "PROJECT_UNPUBLISHED",
+                "PROJECT",
+                projectId.toString(),
+                Map.of("visibilityStatus", "PRIVATE", "version", existing.version() + 1),
+                null,
+                null
+        );
+
+        StudioProjectRecord reloaded = projectRepository.findProjectById(context.studioId(), projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found after unpublish"));
         return toDetailResponse(reloaded, styles);
     }
 

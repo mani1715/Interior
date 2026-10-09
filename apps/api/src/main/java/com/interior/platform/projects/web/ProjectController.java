@@ -8,6 +8,7 @@ import com.interior.platform.projects.dto.CreateRoomRequest;
 import com.interior.platform.projects.dto.ProjectActionRequest;
 import com.interior.platform.projects.dto.ProjectDetailResponse;
 import com.interior.platform.projects.dto.ProjectPresentationDto;
+import com.interior.platform.projects.dto.ProjectPublishCheckResponse;
 import com.interior.platform.projects.dto.ProjectRoomDto;
 import com.interior.platform.projects.dto.ProjectSummaryResponse;
 import com.interior.platform.projects.dto.ReorderProjectsRequest;
@@ -224,6 +225,74 @@ public class ProjectController {
 
         ProjectDetailResponse restored = projectService.restoreProject(actor, requestedStudioId, projectId, actionRequest.version());
         return createPrivateNoCacheResponse(restored, HttpStatus.OK);
+    }
+
+    @GetMapping("/{projectId}/publish-check")
+    @Operation(summary = "Check project publishability", description = "Authoritatively checks if project meets all requirements to be published to portfolio.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Publishability evaluated"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "Project not found")
+    })
+    public ResponseEntity<ProjectPublishCheckResponse> checkPublishability(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+
+        ProjectPublishCheckResponse check = projectService.checkPublishability(actor, requestedStudioId, projectId);
+        return createPrivateNoCacheResponse(check, HttpStatus.OK);
+    }
+
+    @PostMapping("/{projectId}/publish")
+    @Operation(summary = "Publish project", description = "Publishes a project to the studio portfolio. Requires elevated studio role (DESIGNER_ADMIN).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project published"),
+            @ApiResponse(responseCode = "400", description = "Project not ready or missing public media"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "409", description = "Version conflict")
+    })
+    public ResponseEntity<ProjectDetailResponse> publishProject(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @Valid @RequestBody ProjectActionRequest actionRequest
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+
+        ProjectDetailResponse published = projectService.publishProject(actor, requestedStudioId, projectId, actionRequest.version());
+        return createPrivateNoCacheResponse(published, HttpStatus.OK);
+    }
+
+    @PostMapping("/{projectId}/unpublish")
+    @Operation(summary = "Unpublish project", description = "Unpublishes a project from the studio portfolio back to PRIVATE. Requires elevated studio role (DESIGNER_ADMIN).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Project unpublished"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "Project not found"),
+            @ApiResponse(responseCode = "409", description = "Version conflict")
+    })
+    public ResponseEntity<ProjectDetailResponse> unpublishProject(
+            HttpServletRequest request,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam,
+            @PathVariable("projectId") UUID projectId,
+            @Valid @RequestBody ProjectActionRequest actionRequest
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID requestedStudioId = resolveRequestedStudioId(studioIdHeader, studioIdParam);
+
+        ProjectDetailResponse unpublished = projectService.unpublishProject(actor, requestedStudioId, projectId, actionRequest.version());
+        return createPrivateNoCacheResponse(unpublished, HttpStatus.OK);
     }
 
     @GetMapping("/{projectId}/media")
