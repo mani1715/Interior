@@ -79,12 +79,13 @@ export function EditorialProfessionals() {
         <div className={styles.professionalsFallback}>
           <div data-motion-image="left" className={styles.professionalPhoto}>
             <Image
-              src="/images/generated/hall-cabinetry-v2.png"
-              alt="Detailed walnut and bronze glass cabinetry with burgundy cupboards — AI Concept Visualization"
+              src="/images/approved/designer-atelier-craft.jpg"
+              alt="Architectural design atelier with bespoke timber samples, marble swatches, and hand-drawn joinery sketches"
               fill
+              quality={90}
               sizes="(max-width: 1023px) 100vw, 50vw"
             />
-            <span className={styles.aiBadge}>AI Concept Visualization</span>
+            <span className={styles.aiBadge}>Design Atelier & Craft</span>
           </div>
           <div className={styles.professionalCopy}>
             <p>The best spaces begin with the right conversation. Discover designers, architects, and cabinetry craftspeople whose work speaks to you.</p>

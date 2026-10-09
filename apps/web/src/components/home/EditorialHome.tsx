@@ -75,13 +75,14 @@ export function EditorialHome() {
           <div className={styles.cinematicCard} data-motion-image="right">
             <div className={styles.cinematicMedia}>
               <Image
-                src="/images/approved/hall.png"
-                alt="Living room in warm timber with architectural lighting — Cinematic Portfolio presentation"
+                src="/images/approved/cinematic-living-courtyard.jpg"
+                alt="Expansive living room with bespoke walnut TV wall, slatted screen, and sunlit courtyard vista"
                 fill
+                quality={90}
                 sizes="(max-width: 1023px) 100vw, 85vw"
               />
               <div className={styles.cinematicBadge}>
-                <span>LIVING ROOM</span>
+                <span>LIVING ROOM & COURTYARD</span>
                 <span className={styles.badgeDivider}>·</span>
                 <span>CINEMATIC PORTFOLIO</span>
               </div>

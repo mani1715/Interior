@@ -55,6 +55,7 @@ export function BrandHero() {
             alt="Bespoke fluted walnut joinery and illuminated architectural shelving in a residential interior"
             fill
             priority
+            quality={90}
             sizes="(max-width: 1023px) 100vw, 58vw"
             className={styles.heroImage}
           />
