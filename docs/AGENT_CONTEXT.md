@@ -1,6 +1,6 @@
 # AGENT CONTEXT
 
-Last updated: 2026-10-09, FINAL WHOLE-PRODUCT QA & PRODUCTION READINESS REVIEW COMPLETE & PASS. Full regression: backend (485/485 PASS), PostgreSQL RLS (30/30 PASS), frontend vitest (368/368 PASS), typecheck and lint clean, Next.js build clean. Flyway V033 applied. Canonical status: READY FOR CLOSED BETA INFRASTRUCTURE SETUP.
+Last updated: 2026-10-09, RELEASE CANDIDATE CONSISTENCY GATE COMPLETE & PASS. Source truth reconciled: Standard (10 proj/15 photos), Premium (20 proj/25 photos), Pro (20 proj total/30 photos/5 cinematic), daily AI quota, Next.js 16.3.3 Turbopack, 40/60 hero split. Full regression: backend (485/485 PASS), PostgreSQL 18.3 RLS (30/30 PASS), frontend vitest (368/368 PASS), typecheck clean, lint clean, Next.js build clean. Flyway V033 applied. Canonical status: READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP.
 Canonical cross-agent state: maintain this file, never create numbered/replacement handoff files.
 Both agents use the SAME LOCAL workspace: `C:\my projects\interior design`.
 Read repository evidence before acting; no chat history is required or authoritative.

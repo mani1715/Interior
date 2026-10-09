@@ -12,7 +12,7 @@ Branch:
 main
 
 Latest functional baseline:
-Final Whole-Product QA & Production-Readiness Review Complete (READY FOR CLOSED BETA INFRASTRUCTURE SETUP)
+Release Candidate Consistency Gate Complete (READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP)
 
 Flyway:
 V033
@@ -24,10 +24,10 @@ Phase 7 Hardening & Release Tracks:
 - Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery (PASS)
 - Phase 7E: Admin, Moderation, Audit & Operational Controls (PASS)
 - Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (PASS)
-- Final Whole-Product QA: Visual, UX, Accessibility, Performance & Production Readiness (PASS - READY FOR CLOSED BETA)
+- Final Whole-Product QA & Release Candidate Consistency Gate: Visual, UX, Accessibility, Performance & Locked Invariant Source Verification (PASS - READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP)
 
 Production deployment:
-DEFERRED (Ready for Closed Beta Infrastructure Setup)
+DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)
 
 ---
 

@@ -1,40 +1,43 @@
 # PRODUCTION LAUNCH CHECKLIST
 ## Elégance — Interior Designer Platform
 
-**Document Version:** 1.0.0  
+**Document Version:** 1.1.0  
 **Effective Date:** October 9, 2026  
-**Status:** Canonical Operations Guide
+**Status:** Canonical Operations & Infrastructure Blueprint
 
 ---
 
 ## 1. PRE-LAUNCH PRIORITY MATRIX
 
-### P0 — RELEASE BLOCKERS (FOR CLOSED BETA)
-*All code requirements are complete and passing (485 backend tests, 30 PostgreSQL RLS tests, 368 frontend tests). The following infrastructure configurations are required to open the closed beta environment:*
-- [ ] **Production Managed PostgreSQL:** Provision PostgreSQL 15+ with pgvector/trigram extensions, connection pooling (PgBouncer/HikariCP max 30 connections), and automatic daily snapshots.
+### P0 — RELEASE BLOCKERS (FOR PHASE 8 CLOSED-BETA GO-LIVE)
+*All code requirements are complete and verified (485 backend tests, 30 PostgreSQL RLS tests, 368 frontend tests, clean Next.js 16.3.3 build). The following infrastructure provisioning tasks must be completed before the closed beta environment can be declared live:*
+- [ ] **Production Managed PostgreSQL:** Provision managed PostgreSQL (Tested: 18.3, Minimum supported: 15, Recommended: 16 or 17 due to Flyway official support boundary). Include connection pooling (HikariCP / PgBouncer max 25 connections).
+- [ ] **Automated Database Backups:** Configure automated daily snapshots with point-in-time recovery (PITR) where available and execute one test restore drill. *Closed Beta cannot accept real customer data without verified backups.*
 - [ ] **Object Storage Bucket (S3/Cloudflare R2):** Provision dedicated storage bucket with CORS policy restricted to platform domains, private object ACLs, and pre-signed PUT/GET capabilities.
-- [ ] **Production OIDC Provider:** Register OAuth2 application (Google, Auth0, or Supabase Auth) with strict redirect URI allowlists (`https://<domain>/api/auth/callback`).
-- [ ] **TLS Certificate & Domain Configuration:** Configure Apex and wildcard domains with HTTP Strict Transport Security (HSTS) and automatic Let's Encrypt / Cloudflare TLS renewal.
-- [ ] **Environment Secrets Management:** Inject all required environment variables securely via secret manager (AWS Secrets Manager, GCP Secret Manager, or Doppler); zero secrets committed to source control.
+- [ ] **Production OIDC Provider:** Register OAuth2 application (Google, Auth0, or Supabase Auth) with strict redirect URI allowlists (`https://<PRODUCTION_DOMAIN>/api/auth/callback`).
+- [ ] **TLS Certificate & Domain Configuration:** Finalize domain selection (currently: `NOT YET SELECTED`) and configure HTTPS with HSTS and automated certificate renewal. Set `APP_BASE_URL` environment variable accordingly.
+- [ ] **Environment Secrets Management:** Inject all required environment variables securely via secret manager; zero secrets committed to source control.
 
 ---
 
 ### P1 — BEFORE PUBLIC LAUNCH (OPEN ACCESS / PUBLIC BETA)
-- [ ] **Transactional Email Provider:** Configure production email credentials (Resend, AWS SES, or SendGrid) with custom sender domain (`notifications@elegance.design`).
+- [ ] **Admin Step-Up MFA:** Implement and enforce Time-based One-Time Password (TOTP) multi-factor authentication on all `SUPER_ADMIN` and `ADMIN` administrative logins. *Mandatory before open public internet access.*
+- [ ] **Transactional Email Provider:** Configure production email credentials (Resend, AWS SES, or SendGrid) with custom sender domain (`notifications@<PRODUCTION_DOMAIN>`).
 - [ ] **Email Domain Authentication:** Setup valid SPF (`v=spf1 ... ~all`), DKIM (2048-bit CNAME/TXT records), and DMARC (`v=DMARC1; p=quarantine; rua=...`) records to ensure high inbox deliverability.
-- [ ] **Production AI Engine Key:** Configure live API key for image restyling/inpainting (OpenAI / Google Gemini / Replicate) and verify daily quota limits.
+- [ ] **Production AI Engine Key:** Configure live API key for image restyling/inpainting (OpenAI / Google Gemini) and verify daily studio quota ceilings (`dailyStudioLimit`, default 20/day).
 - [ ] **Centralized Logging & APM:** Connect application and Next.js logs to central log aggregator (Datadog, Grafana Loki, or Papertrail) with structured JSON log formatting and PII redaction.
-- [ ] **Application Monitoring & Alerting:** Configure health check monitors (`/actuator/health`, `/api/health`) with PagerDuty / Slack notifications for HTTP 5xx spikes or unhandled exceptions.
-- [ ] **Database Backup & Recovery Drill:** Verify automated daily backups and execute one end-to-end point-in-time recovery (PITR) drill to a secondary staging instance.
-- [ ] **Terms of Service & Privacy Policy:** Publish legally vetted Terms of Service, Privacy Policy, Cookie Policy, and explicit AI Visualizer generation disclosure notices.
+- [ ] **Production Monitoring & Alerting:** Configure external health check monitoring on `/actuator/health` and `/api/health` with PagerDuty / Slack alerts for HTTP 5xx errors.
+- [ ] **Legal Counsel Execution:** Finalize and execute formal Terms of Service, Privacy Policy, and AI generation disclosures (current `/privacy` and `/terms` routes contain platform drafts).
 
 ---
 
 ### P2 — COMMERCIAL PRODUCTION & PAID BILLING
 - [ ] **Payment Gateway Integration:** Configure live payment gateway (Stripe or Razorpay) credentials, register webhook endpoints (`/api/billing/webhook`) with secret signature validation.
-- [ ] **Subscription Plans Activation:** Transition from complimentary beta billing mode to self-serve automated checkout for Standard, Premium, and Pro tiers.
-- [ ] **Admin Step-Up MFA:** Enforce mandatory Time-based One-Time Password (TOTP) multi-factor authentication on all `SUPER_ADMIN` and `ADMIN` administrative logins.
-- [ ] **Automated Antivirus / Malware Scanning:** Deploy ClamAV or AWS GuardDuty S3 bucket malware scanning to scan newly finalized media assets asynchronously.
+- [ ] **Automated Antivirus / Malware Scanning:** Deploy ClamAV or AWS GuardDuty S3 bucket malware scanning to scan newly finalized media assets asynchronously. *(Accepted risk during Closed Beta due to magic-byte, ImageIO decoder probing, and 50MP limits).*
+- [ ] **Subscription Plans Self-Serve Activation:** Transition from complimentary beta billing mode to automated self-serve checkout for locked tiers:
+  - Standard: 10 projects, 15 photos/project, Standard presentation only (0 cinematic)
+  - Premium: 20 projects, 25 photos/project, Standard presentation only (0 cinematic)
+  - Pro: 20 projects total, 30 photos/project, Standard + Cinematic presentation (max 5 cinematic allocations)
 - [ ] **Managed WhatsApp Business API:** Transition from direct sanitized WhatsApp wa.me links to verified Meta Business API integration for automated studio lead notifications.
 
 ---
@@ -51,6 +54,7 @@
 
 ### 2.1 Production Authentication & Sessions
 - **Session Cookie:** `__Host-session` cookie configured with attributes: `Secure; HttpOnly; SameSite=Lax; Path=/`.
+- **Session Timeouts:** Idle timeout: 30 minutes (1,800s); Absolute timeout: 12 hours (43,200s); Last-seen throttled interval: 5 minutes (300s).
 - **Session Eviction:** Database cleanup scheduled task purges expired sessions older than 12 hours every hour.
 - **CSRF Defense:** State verification with PKCE on OIDC login; SameSite cookie restriction on internal APIs.
 
@@ -61,7 +65,7 @@
   - `spring.datasource.hikari.minimum-idle=5`
   - `spring.datasource.hikari.connection-timeout=20000`
   - `spring.datasource.hikari.idle-timeout=300000`
-- **Zero-Downtime Migration Policy:** Backward-compatible schema changes only (expand-contract pattern: add nullable column first, backfill, make non-nullable in subsequent migration).
+- **Zero-Downtime Migration Policy:** Backward-compatible schema changes only (expand-contract pattern).
 
 ### 2.3 Object Storage Architecture
 - **Bucket Layout:**
@@ -69,8 +73,13 @@
   - `media/studios/{studioId}/projects/{projectId}/derivatives/{assetId}_{variant}.webp`
   - `media/quarantine/{uploadIntentId}/{assetId}.{ext}`
 - **Retention Lifecycle:** Automatically delete uncommitted quarantined objects older than 24 hours via storage bucket lifecycle rule.
+- **Media Deletion:** Soft-deletes `media_assets`, hard-deletes derivatives, and immediately releases committed storage byte quota.
 
-### 2.4 Security Headers & CSP
+### 2.4 Data Retention & Archive Policy
+- **Project Archiving:** Projects are soft-archived (`project_status = 'ARCHIVED'`). Archived projects can be restored to `DRAFT`. There is NO 30-day automatic hard purge. **Archived projects continue to count toward the studio's `PROJECT_LIMIT` quota.**
+- **Studio / User Lifecycle:** Managed via account status (`ACTIVE`, `SUSPENDED`) and session revocation. No automated cascading deletion endpoint exists.
+
+### 2.5 Security Headers & CSP
 Ensure the reverse proxy (Nginx, Caddy, or Cloudflare) emits the following security headers:
 ```http
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -89,7 +98,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 
 1. **Public Homepage Sanity:**
    - Request `GET /` -> HTTP 200.
-   - Verify hero images render without visual layout shift (CLS < 0.1).
+   - Verify 40/60 split hero renders without visual layout shift (CLS < 0.1).
    - Test instant search bar: search for city "Mumbai" or style "Modern".
 2. **OIDC Authentication Flow:**
    - Click "Sign In" -> Redirect to identity provider.
@@ -120,7 +129,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
    - Verify smooth scroll-driven presentation and room anchor navigation.
 10. **Administrative Operations:**
     - Login as `SUPER_ADMIN`.
-    - Open `/admin/operations` -> Verify health status is `UP`.
+    - Open `/admin` -> Verify health status is `UP`.
     - Inspect audit logs -> Verify recent authentication and project events are logged.
 11. **Logout & Session Destruction:**
     - Click "Sign Out".
@@ -133,5 +142,5 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 
 - **Rollback Decision Criteria:** Error rate exceeds 2% over 5 minutes, database migration fails, or critical data corruption observed.
 - **Container Rollback:** Revert container image tag to previous stable commit SHA (`docker service update --image ...` or Kubernetes deployment rollback).
-- **Database Rollback:** If Flyway migration cannot be rolled back safely, restore PostgreSQL database from automated pre-deployment snapshot.
+- **Database Rollback:** Restore PostgreSQL database from automated pre-deployment snapshot if Flyway migration cannot be safely rolled back.
 - **Incident Communication:** Internal status notification via operations channel within 15 minutes of severity-1 outage.

@@ -61,25 +61,25 @@ Current completed milestone:
 - Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery Completion (Two-phase commit upload intents, byte/photo quota enforcement, slot-preserving media replacement, SSRF defense service with IP resolution & redirect checks, decompression bomb 50MP limits, asynchronous AI timeout recovery, automated storage reconciliation report, multi-tenant RLS isolation across media & AI tables).
 - Phase 7E: Admin, Moderation, Audit & Operational Controls Completion (Segregated trust domains, Super Admin privilege boundaries, self-suspension/lockout protection, session invalidation on suspension, content moderation with PostgreSQL RLS `public_read_studio_projects` moderation gating, truthful delivery audit with recipient PII masking, operational health diagnostics, storage reconciliation, and stuck AI job recovery).
 - Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (Whole-system release audit, complete API inventory, 34-table RLS verification, quota concurrency verification, secrets hygiene, zero critical/high findings, backend core verified release-ready).
-- Final Whole-Product QA & Production-Readiness Review: Visual, UX, Accessibility, Performance & Infrastructure Readiness complete. 485/485 Backend PASS, 30/30 PostgreSQL RLS PASS, 368/368 Frontend Vitest PASS, Next.js build clean, Zero release-blocking code defects. Canonical release decision: READY FOR CLOSED BETA INFRASTRUCTURE SETUP.
+- Final Whole-Product QA & Production-Readiness Review: Visual, UX, Accessibility, Performance & Infrastructure Readiness complete. 485/485 Backend PASS, 30/30 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, Next.js 16.3.3 Turbopack build clean, Zero release-blocking code defects. Canonical release decision: READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP.
 
 Current Flyway:
 V033 (`V033__admin_operations_and_moderation_controls.sql`)
 
 Whole-Product Release Status:
-READY FOR CLOSED BETA INFRASTRUCTURE SETUP
+READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP
 
 Next planned milestone:
-Closed Beta Infrastructure Setup (PostgreSQL provisioning, S3/R2 storage bucket, production OIDC client, TLS domain).
+Phase 8 Closed Beta Infrastructure Setup (PostgreSQL provisioning, S3/R2 storage bucket, production OIDC client, TLS domain, automated backups).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
 
 Homepage Refinement:
-COMPLETE (Discovery first, approved 11-section order, responsive, accessible, zero regression)
+COMPLETE (Approved 40/60 editorial split, responsive, accessible, zero regression)
 
 Subscriptions & Entitlements:
-COMPLETE (Server-side quota enforcement, Pro 5-cinematic allocation, truthful usage breakdown, disabled-checkout boundary modal)
+COMPLETE (Locked commercial tiers: Standard 10 proj/15 photos, Premium 20 proj/25 photos, Pro 20 proj total/30 photos/5 cinematic, legacy BASE preserved, server-side quota enforcement, disabled-checkout boundary modal)
 
 Security Hardening & Adversarial Audit:
 COMPLETE (100 controls audited, 485 backend tests PASS, 30 PostgreSQL tests PASS, 368 frontend tests PASS, 0 Open Critical/High)
