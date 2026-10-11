@@ -1,11 +1,7 @@
 package com.interior.platform.billing.service;
 
 import com.interior.platform.billing.domain.*;
-import com.interior.platform.billing.dto.BillingPlanDto;
-import com.interior.platform.billing.dto.CheckoutSessionResponse;
-import com.interior.platform.billing.dto.CreateCheckoutRequest;
-import com.interior.platform.billing.dto.StudioBillingSummaryDto;
-import com.interior.platform.billing.dto.StudioUsageBreakdownDto;
+import com.interior.platform.billing.dto.*;
 import com.interior.platform.billing.provider.BillingProvider;
 import com.interior.platform.billing.provider.WebhookEvent;
 import com.interior.platform.billing.repository.BillingRepository;
@@ -22,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -36,6 +33,8 @@ public class BillingService {
     private final com.interior.platform.projects.repository.ProjectRepository projectRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.media.repository.MediaRepository mediaRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.notifications.service.NotificationService notificationService;
 
     @org.springframework.beans.factory.annotation.Autowired
     public BillingService(
@@ -63,7 +62,7 @@ public class BillingService {
 
     /**
      * Retrieves studio billing workspace summary including current plan, entitlements,
-     * provider status, and truthful checkout capability.
+     * provider status, truthful checkout capability, and usage breakdown.
      */
     public StudioBillingSummaryDto getStudioBillingSummary(ActorContext actor, UUID studioId) {
         validateStudioAccess(actor, studioId);
@@ -140,11 +139,12 @@ public class BillingService {
     }
 
     /**
-     * Initiates a hosted checkout session. Enforces server-authoritative price and purchasable flag.
+     * Initiates a hosted checkout session. Enforces server-authoritative price and purchasable flag,
+     * studio admin privileges, and idempotency key protection.
      */
     @Transactional
     public CheckoutSessionResponse initiateCheckout(ActorContext actor, UUID studioId, CreateCheckoutRequest req) {
-        validateStudioAccess(actor, studioId);
+        validateStudioAdminAccess(actor, studioId);
 
         if (!billingProvider.isConfigured()) {
             throw new BadRequestException("Billing provider is not configured. Commercial checkout is currently disabled.");
@@ -160,7 +160,63 @@ public class BillingService {
         StudioDetailRecord studio = studioRepository.findStudioById(studioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Studio not found: " + studioId));
 
-        return billingProvider.createCheckoutSession(studio, plan, req.successUrl(), req.cancelUrl());
+        String idempotencyKey = (req.idempotencyKey() != null && !req.idempotencyKey().isBlank())
+                ? req.idempotencyKey().trim()
+                : UUID.randomUUID().toString();
+
+        // Check for existing pending session with this idempotency key
+        Optional<BillingCheckoutSessionRecord> existingSession = billingRepository.findCheckoutSessionByIdempotencyKey(studioId, idempotencyKey);
+        Instant now = Instant.now();
+        if (existingSession.isPresent()) {
+            BillingCheckoutSessionRecord s = existingSession.get();
+            if ("PENDING".equals(s.status()) && s.expiresAt().isAfter(now)) {
+                return new CheckoutSessionResponse(
+                        s.providerSessionId() != null ? s.providerSessionId() : s.id().toString(),
+                        s.providerSessionId() != null ? ("https://checkout." + s.provider().toLowerCase(Locale.ROOT) + ".local/pay/" + s.providerSessionId()) : "",
+                        s.provider(),
+                        plan.code(),
+                        s.amountMinor(),
+                        s.currency()
+                );
+            }
+        }
+
+        // Server-authoritative amount and currency
+        long amountMinor = plan.priceMinor();
+        String currency = plan.currency();
+        Instant expiresAt = now.plus(30, ChronoUnit.MINUTES);
+
+        BillingCheckoutSessionRecord sessionRecord = new BillingCheckoutSessionRecord(
+                UuidV7.randomUuid(),
+                studioId,
+                plan.id(),
+                billingProvider.getProviderName(),
+                null,
+                idempotencyKey,
+                "PENDING",
+                amountMinor,
+                currency,
+                req.successUrl(),
+                req.cancelUrl(),
+                expiresAt,
+                now,
+                now
+        );
+        billingRepository.saveCheckoutSession(sessionRecord);
+
+        CheckoutSessionResponse response = billingProvider.createCheckoutSession(
+                studio,
+                plan,
+                req.successUrl(),
+                req.cancelUrl(),
+                idempotencyKey
+        );
+
+        if (response.sessionId() != null) {
+            billingRepository.updateCheckoutSessionStatus(sessionRecord.id(), "PENDING", response.sessionId());
+        }
+
+        return response;
     }
 
     /**
@@ -169,7 +225,7 @@ public class BillingService {
      */
     @Transactional
     public void cancelSubscription(ActorContext actor, UUID studioId) {
-        validateStudioAccess(actor, studioId);
+        validateStudioAdminAccess(actor, studioId);
 
         StudioSubscriptionRecord current = billingRepository.findActiveSubscription(studioId)
                 .orElseThrow(() -> new BadRequestException("No active subscription to cancel."));
@@ -193,7 +249,10 @@ public class BillingService {
                 now,
                 current.createdAt(),
                 now,
-                current.version()
+                current.version(),
+                current.sourceType(),
+                current.downgradePlanId(),
+                current.gracePeriodEnd()
         );
 
         billingRepository.saveSubscription(updated);
@@ -205,11 +264,77 @@ public class BillingService {
                 log.warn("External provider cancellation error: {}", e.getMessage());
             }
         }
+
+        notifyStudio(studioId, "Subscription Cancellation Scheduled",
+                "Your subscription is scheduled to cancel at the end of the current billing cycle. All existing assets remain safely preserved.");
+    }
+
+    /**
+     * Schedules a plan downgrade for the end of the current billing period.
+     * Invariant: Over-quota projects, photos, and media are NEVER deleted.
+     */
+    @Transactional
+    public void requestDowngrade(ActorContext actor, UUID studioId, DowngradePlanRequest req) {
+        validateStudioAdminAccess(actor, studioId);
+
+        StudioSubscriptionRecord current = billingRepository.findActiveSubscription(studioId)
+                .orElseThrow(() -> new BadRequestException("No active subscription to downgrade."));
+
+        BillingPlanRecord targetPlan = billingRepository.findPlanByCode(req.targetPlanCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Target plan not found: " + req.targetPlanCode()));
+
+        if (targetPlan.id().equals(current.planId())) {
+            throw new BadRequestException("Studio is already on plan: " + req.targetPlanCode());
+        }
+
+        Instant now = Instant.now();
+        StudioSubscriptionRecord updated = new StudioSubscriptionRecord(
+                current.id(),
+                current.studioId(),
+                current.planId(),
+                SubscriptionStatus.CANCEL_AT_PERIOD_END,
+                current.provider(),
+                current.providerCustomerId(),
+                current.providerSubscriptionId(),
+                current.currentPeriodStart(),
+                current.currentPeriodEnd(),
+                true,
+                now,
+                current.createdAt(),
+                now,
+                current.version(),
+                current.sourceType(),
+                targetPlan.id(),
+                current.gracePeriodEnd()
+        );
+
+        billingRepository.saveSubscription(updated);
+
+        if (billingProvider.isConfigured()) {
+            try {
+                billingProvider.cancelSubscription(updated, true);
+            } catch (Exception e) {
+                log.warn("External provider downgrade cancellation error: {}", e.getMessage());
+            }
+        }
+
+        notifyStudio(studioId, "Plan Downgrade Scheduled",
+                "Downgrade to " + targetPlan.name() + " scheduled for the end of the billing period. Existing projects and photographs remain safely preserved.");
+    }
+
+    /**
+     * Retrieves bounded, paginated billing transaction history for a studio.
+     */
+    public List<BillingTransactionRecord> listTransactions(ActorContext actor, UUID studioId, int limit, int offset) {
+        validateStudioAccess(actor, studioId);
+        int boundedLimit = Math.max(1, Math.min(limit, 50));
+        int boundedOffset = Math.max(0, offset);
+        return billingRepository.listTransactions(studioId, boundedLimit, boundedOffset);
     }
 
     /**
      * Secure webhook processor with cryptographic signature verification,
-     * event deduplication, and out-of-order tolerance.
+     * event deduplication, amount & currency integrity checks, and out-of-order tolerance.
      */
     @Transactional
     public boolean handleWebhook(String providerName, String rawBody, Map<String, String> headers) {
@@ -223,12 +348,17 @@ public class BillingService {
             return false;
         }
 
+        Optional<BillingCheckoutSessionRecord> sessionOpt = findCheckoutSessionFromEvent(event, providerName);
+
         Optional<StudioSubscriptionRecord> subOpt = Optional.empty();
         if (event.providerSubscriptionId() != null) {
             subOpt = billingRepository.findSubscriptionByProviderSubscriptionId(providerName, event.providerSubscriptionId());
+        } else if (sessionOpt.isPresent()) {
+            subOpt = billingRepository.findActiveSubscription(sessionOpt.get().studioId());
         }
 
-        UUID studioId = subOpt.map(StudioSubscriptionRecord::studioId).orElse(null);
+        UUID studioId = subOpt.map(StudioSubscriptionRecord::studioId)
+                .orElseGet(() -> sessionOpt.map(BillingCheckoutSessionRecord::studioId).orElse(null));
 
         BillingEventRecord eventRecord = new BillingEventRecord(
                 UuidV7.randomUuid(),
@@ -247,30 +377,69 @@ public class BillingService {
             return true;
         }
 
-        // Apply state transition if subscription is known
-        if (subOpt.isPresent()) {
-            StudioSubscriptionRecord sub = subOpt.get();
-            applyWebhookToSubscription(sub, event);
-        }
+        // Apply state transition
+        applyWebhookToSubscription(subOpt.orElse(null), event, sessionOpt.orElse(null), studioId, providerName);
 
         return true;
     }
 
-    private void applyWebhookToSubscription(StudioSubscriptionRecord sub, WebhookEvent event) {
+    private Optional<BillingCheckoutSessionRecord> findCheckoutSessionFromEvent(WebhookEvent event, String providerName) {
+        if (event.rawData() != null) {
+            Object sessIdObj = event.rawData().get("checkout_session_id");
+            if (sessIdObj == null) sessIdObj = event.rawData().get("session_id");
+            if (sessIdObj instanceof String sid) {
+                Optional<BillingCheckoutSessionRecord> opt = billingRepository.findCheckoutSessionByProviderSessionId(providerName, sid);
+                if (opt.isPresent()) return opt;
+            }
+        }
+        if (event.providerPaymentId() != null) {
+            Optional<BillingCheckoutSessionRecord> opt = billingRepository.findCheckoutSessionByProviderSessionId(providerName, event.providerPaymentId());
+            if (opt.isPresent()) return opt;
+        }
+        return Optional.empty();
+    }
+
+    private void applyWebhookToSubscription(
+            StudioSubscriptionRecord sub,
+            WebhookEvent event,
+            BillingCheckoutSessionRecord session,
+            UUID studioId,
+            String providerName
+    ) {
         Instant now = Instant.now();
         String evType = event.eventType().toLowerCase(Locale.ROOT);
 
-        if (evType.contains("payment") && (evType.contains("succeeded") || evType.contains("paid"))) {
-            if (event.amountMinor() != null && event.amountMinor() > 0) {
+        if (evType.contains("checkout") && evType.contains("completed")
+                || evType.contains("payment") && (evType.contains("succeeded") || evType.contains("paid"))
+                || evType.contains("subscription") && evType.contains("activated")) {
+
+            // Validate amount and currency integrity against recorded server checkout session
+            if (session != null) {
+                if (event.amountMinor() != null && event.amountMinor() > 0 && !event.amountMinor().equals(session.amountMinor())) {
+                    log.error("Webhook amount mismatch for session {}: expected {}, received {}",
+                            session.id(), session.amountMinor(), event.amountMinor());
+                    throw new SecurityException("Webhook amount mismatch with server checkout session");
+                }
+                billingRepository.updateCheckoutSessionStatus(session.id(), "COMPLETED", event.providerPaymentId());
+            }
+
+            long amount = (event.amountMinor() != null && event.amountMinor() > 0)
+                    ? event.amountMinor()
+                    : (session != null ? session.amountMinor() : 0L);
+            String currency = (session != null) ? session.currency() : "INR";
+
+            UUID targetStudioId = (sub != null) ? sub.studioId() : ((session != null) ? session.studioId() : studioId);
+
+            if (targetStudioId != null && amount > 0) {
                 BillingTransactionRecord tx = new BillingTransactionRecord(
                         UuidV7.randomUuid(),
-                        sub.studioId(),
-                        sub.id(),
-                        sub.provider(),
+                        targetStudioId,
+                        sub != null ? sub.id() : null,
+                        providerName,
                         event.providerPaymentId(),
-                        null,
-                        event.amountMinor(),
-                        "INR",
+                        session != null ? session.id().toString() : null,
+                        amount,
+                        currency,
                         BillingTransactionStatus.SUCCEEDED,
                         "Subscription payment",
                         null,
@@ -279,24 +448,65 @@ public class BillingService {
                 );
                 billingRepository.saveTransaction(tx);
             }
-            if (sub.status() != SubscriptionStatus.ACTIVE) {
+
+            UUID planId = (session != null) ? session.planId() : (sub != null ? sub.planId() : null);
+
+            if (sub != null) {
                 StudioSubscriptionRecord active = new StudioSubscriptionRecord(
-                        sub.id(), sub.studioId(), sub.planId(),
-                        SubscriptionStatus.ACTIVE, sub.provider(),
-                        sub.providerCustomerId(), sub.providerSubscriptionId(),
+                        sub.id(),
+                        sub.studioId(),
+                        planId != null ? planId : sub.planId(),
+                        SubscriptionStatus.ACTIVE,
+                        providerName,
+                        sub.providerCustomerId(),
+                        event.providerSubscriptionId() != null ? event.providerSubscriptionId() : sub.providerSubscriptionId(),
                         sub.currentPeriodStart() != null ? sub.currentPeriodStart() : now,
-                        sub.currentPeriodEnd(), sub.cancelAtPeriodEnd(),
-                        sub.cancelledAt(), sub.createdAt(), now, sub.version()
+                        now.plus(30, ChronoUnit.DAYS),
+                        false,
+                        null,
+                        sub.createdAt(),
+                        now,
+                        sub.version(),
+                        "PAID_PROVIDER",
+                        null,
+                        null
                 );
                 billingRepository.saveSubscription(active);
+            } else if (targetStudioId != null && planId != null) {
+                StudioSubscriptionRecord newSub = new StudioSubscriptionRecord(
+                        UuidV7.randomUuid(),
+                        targetStudioId,
+                        planId,
+                        SubscriptionStatus.ACTIVE,
+                        providerName,
+                        null,
+                        event.providerSubscriptionId(),
+                        now,
+                        now.plus(30, ChronoUnit.DAYS),
+                        false,
+                        null,
+                        now,
+                        now,
+                        1L,
+                        "PAID_PROVIDER",
+                        null,
+                        null
+                );
+                billingRepository.saveSubscription(newSub);
             }
-        } else if (evType.contains("payment") && evType.contains("failed")) {
-            if (event.amountMinor() != null && event.amountMinor() > 0) {
+
+            if (targetStudioId != null) {
+                notifyStudio(targetStudioId, "Subscription Activated", "Your subscription is now active.");
+            }
+
+        } else if (evType.contains("payment") && evType.contains("failed") || evType.contains("payment_failed")) {
+            UUID targetStudioId = (sub != null) ? sub.studioId() : studioId;
+            if (targetStudioId != null && event.amountMinor() != null && event.amountMinor() > 0) {
                 BillingTransactionRecord tx = new BillingTransactionRecord(
                         UuidV7.randomUuid(),
-                        sub.studioId(),
-                        sub.id(),
-                        sub.provider(),
+                        targetStudioId,
+                        sub != null ? sub.id() : null,
+                        providerName,
                         event.providerPaymentId(),
                         null,
                         event.amountMinor(),
@@ -309,24 +519,154 @@ public class BillingService {
                 );
                 billingRepository.saveTransaction(tx);
             }
-            StudioSubscriptionRecord pastDue = new StudioSubscriptionRecord(
-                    sub.id(), sub.studioId(), sub.planId(),
-                    SubscriptionStatus.PAST_DUE, sub.provider(),
-                    sub.providerCustomerId(), sub.providerSubscriptionId(),
-                    sub.currentPeriodStart(), sub.currentPeriodEnd(),
-                    sub.cancelAtPeriodEnd(), sub.cancelledAt(),
-                    sub.createdAt(), now, sub.version()
-            );
-            billingRepository.saveSubscription(pastDue);
-        } else if (evType.contains("cancelled") || evType.contains("canceled")) {
-            StudioSubscriptionRecord cancelled = new StudioSubscriptionRecord(
-                    sub.id(), sub.studioId(), sub.planId(),
-                    SubscriptionStatus.CANCELLED, sub.provider(),
-                    sub.providerCustomerId(), sub.providerSubscriptionId(),
-                    sub.currentPeriodStart(), sub.currentPeriodEnd(),
-                    true, now, sub.createdAt(), now, sub.version()
-            );
-            billingRepository.saveSubscription(cancelled);
+
+            if (sub != null) {
+                StudioSubscriptionRecord pastDue = new StudioSubscriptionRecord(
+                        sub.id(),
+                        sub.studioId(),
+                        sub.planId(),
+                        SubscriptionStatus.PAST_DUE,
+                        sub.provider(),
+                        sub.providerCustomerId(),
+                        sub.providerSubscriptionId(),
+                        sub.currentPeriodStart(),
+                        sub.currentPeriodEnd(),
+                        sub.cancelAtPeriodEnd(),
+                        sub.cancelledAt(),
+                        sub.createdAt(),
+                        now,
+                        sub.version(),
+                        sub.sourceType(),
+                        sub.downgradePlanId(),
+                        now.plus(7, ChronoUnit.DAYS) // 7-day grace period
+                );
+                billingRepository.saveSubscription(pastDue);
+                notifyStudio(sub.studioId(), "Payment Failed",
+                        "Payment for your subscription failed. A 7-day grace period has begun.");
+            }
+
+        } else if (evType.contains("renewed")) {
+            UUID targetStudioId = (sub != null) ? sub.studioId() : studioId;
+            if (targetStudioId != null && event.amountMinor() != null && event.amountMinor() > 0) {
+                BillingTransactionRecord tx = new BillingTransactionRecord(
+                        UuidV7.randomUuid(),
+                        targetStudioId,
+                        sub != null ? sub.id() : null,
+                        providerName,
+                        event.providerPaymentId(),
+                        null,
+                        event.amountMinor(),
+                        "INR",
+                        BillingTransactionStatus.SUCCEEDED,
+                        "Subscription renewal",
+                        null,
+                        event.timestamp() != null ? event.timestamp() : now,
+                        now
+                );
+                billingRepository.saveTransaction(tx);
+            }
+
+            if (sub != null) {
+                Instant newPeriodEnd = (sub.currentPeriodEnd() != null && sub.currentPeriodEnd().isAfter(now))
+                        ? sub.currentPeriodEnd().plus(30, ChronoUnit.DAYS)
+                        : now.plus(30, ChronoUnit.DAYS);
+
+                StudioSubscriptionRecord renewed = new StudioSubscriptionRecord(
+                        sub.id(),
+                        sub.studioId(),
+                        sub.planId(),
+                        SubscriptionStatus.ACTIVE,
+                        sub.provider(),
+                        sub.providerCustomerId(),
+                        sub.providerSubscriptionId(),
+                        sub.currentPeriodStart() != null ? sub.currentPeriodStart() : now,
+                        newPeriodEnd,
+                        false,
+                        null,
+                        sub.createdAt(),
+                        now,
+                        sub.version(),
+                        sub.sourceType(),
+                        null,
+                        null
+                );
+                billingRepository.saveSubscription(renewed);
+                notifyStudio(sub.studioId(), "Subscription Renewed", "Your subscription renewed successfully.");
+            }
+
+        } else if (evType.contains("cancelled") || evType.contains("canceled") || evType.contains("deleted") || evType.contains("expired")) {
+            if (sub != null) {
+                if (sub.downgradePlanId() != null) {
+                    // Downgrade to target plan with zero data loss
+                    StudioSubscriptionRecord downgraded = new StudioSubscriptionRecord(
+                            sub.id(),
+                            sub.studioId(),
+                            sub.downgradePlanId(),
+                            SubscriptionStatus.ACTIVE,
+                            sub.provider(),
+                            sub.providerCustomerId(),
+                            sub.providerSubscriptionId(),
+                            now,
+                            now.plus(30, ChronoUnit.DAYS),
+                            false,
+                            null,
+                            sub.createdAt(),
+                            now,
+                            sub.version(),
+                            "PAID_PROVIDER",
+                            null,
+                            null
+                    );
+                    billingRepository.saveSubscription(downgraded);
+                    notifyStudio(sub.studioId(), "Plan Downgraded",
+                            "Your plan has transitioned to the selected lower tier. All existing projects and photographs remain safely preserved.");
+                } else {
+                    // Cancelled / Expired without downgrade -> fall back to STANDARD via EntitlementService
+                    StudioSubscriptionRecord expired = new StudioSubscriptionRecord(
+                            sub.id(),
+                            sub.studioId(),
+                            sub.planId(),
+                            SubscriptionStatus.EXPIRED,
+                            sub.provider(),
+                            sub.providerCustomerId(),
+                            sub.providerSubscriptionId(),
+                            sub.currentPeriodStart(),
+                            sub.currentPeriodEnd(),
+                            false,
+                            now,
+                            sub.createdAt(),
+                            now,
+                            sub.version(),
+                            sub.sourceType(),
+                            null,
+                            null
+                    );
+                    billingRepository.saveSubscription(expired);
+                    notifyStudio(sub.studioId(), "Subscription Expired",
+                            "Your commercial subscription has expired. Standard access active with zero data loss.");
+                }
+            }
+        }
+    }
+
+    private void notifyStudio(UUID studioId, String title, String message) {
+        if (notificationService == null || studioId == null) return;
+        try {
+            studioRepository.findStudioById(studioId).ifPresent(studio -> {
+                if (studio.ownerId() != null) {
+                    notificationService.dispatchNotification(
+                            studio.ownerId(),
+                            studioId,
+                            com.interior.platform.notifications.domain.NotificationType.SYSTEM_NOTICE,
+                            title,
+                            message,
+                            "/workspace/billing",
+                            null
+                    );
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Failed to dispatch billing notification: {}", e.getMessage());
         }
     }
 
@@ -339,6 +679,21 @@ public class BillingService {
         }
         if (studioId == null || !actor.isStudioMember(studioId)) {
             throw new AccessDeniedException("User is not a member of studio: " + studioId);
+        }
+    }
+
+    private void validateStudioAdminAccess(ActorContext actor, UUID studioId) {
+        if (actor == null || !actor.isAuthenticated()) {
+            throw new AccessDeniedException("Authentication required");
+        }
+        if (actor.hasRole("ADMIN") || actor.hasRole("SUPER_ADMIN")) {
+            return;
+        }
+        if (studioId == null || !actor.isStudioMember(studioId)) {
+            throw new AccessDeniedException("User is not a member of studio: " + studioId);
+        }
+        if (!actor.isStudioOwnerOrAdmin(studioId)) {
+            throw new AccessDeniedException("Only studio owners and administrators can manage subscriptions or checkout");
         }
     }
 }

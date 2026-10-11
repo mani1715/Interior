@@ -20,14 +20,24 @@ public interface BillingProvider {
     boolean isConfigured();
 
     /**
-     * Initiates a hosted checkout session with provider-managed checkout UI.
+     * Initiates a hosted checkout session with provider-managed checkout UI and idempotency tracking.
      */
     CheckoutSessionResponse createCheckoutSession(
             StudioDetailRecord studio,
             BillingPlanRecord plan,
             String successUrl,
-            String cancelUrl
+            String cancelUrl,
+            String idempotencyKey
     );
+
+    default CheckoutSessionResponse createCheckoutSession(
+            StudioDetailRecord studio,
+            BillingPlanRecord plan,
+            String successUrl,
+            String cancelUrl
+    ) {
+        return createCheckoutSession(studio, plan, successUrl, cancelUrl, null);
+    }
 
     /**
      * Cancels an active external subscription at the billing provider.

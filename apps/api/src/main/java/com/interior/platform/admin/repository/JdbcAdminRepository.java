@@ -340,12 +340,12 @@ public class JdbcAdminRepository implements AdminRepository {
         );
         if (planId != null) {
             int updated = jdbcTemplate.update(
-                    "UPDATE studio_subscriptions SET plan_id = ?, updated_at = now() WHERE studio_id = ? AND status = 'ACTIVE'",
+                    "UPDATE studio_subscriptions SET plan_id = ?, source_type = 'MANUAL_ADMIN', updated_at = now() WHERE studio_id = ? AND status = 'ACTIVE'",
                     planId, studioId
             );
             if (updated == 0) {
                 jdbcTemplate.update(
-                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider, created_at, updated_at, version) VALUES (?, ?, ?, 'ACTIVE', 'ADMIN_OVERRIDE', now(), now(), 1)",
+                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider, source_type, created_at, updated_at, version) VALUES (?, ?, ?, 'ACTIVE', 'ADMIN_OVERRIDE', 'MANUAL_ADMIN', now(), now(), 1)",
                         com.interior.platform.common.util.UuidV7.randomUuid(), studioId, planId
                 );
             }

@@ -1,7 +1,9 @@
 package com.interior.platform.billing.web;
 
+import com.interior.platform.billing.domain.BillingTransactionRecord;
 import com.interior.platform.billing.dto.CheckoutSessionResponse;
 import com.interior.platform.billing.dto.CreateCheckoutRequest;
+import com.interior.platform.billing.dto.DowngradePlanRequest;
 import com.interior.platform.billing.dto.StudioBillingSummaryDto;
 import com.interior.platform.billing.service.BillingService;
 import com.interior.platform.security.domain.ActorContext;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -45,7 +48,7 @@ public class StudioBillingController {
     }
 
     @PostMapping("/checkout")
-    @Operation(summary = "Initiate subscription checkout", description = "Creates a secure checkout session with the billing provider.")
+    @Operation(summary = "Initiate subscription checkout", description = "Creates a secure hosted checkout session with the billing provider.")
     public ResponseEntity<CheckoutSessionResponse> initiateCheckout(
             HttpServletRequest request,
             @Valid @RequestBody CreateCheckoutRequest checkoutReq,
@@ -77,6 +80,43 @@ public class StudioBillingController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-cache, no-store, must-revalidate")
                 .build();
+    }
+
+    @PostMapping("/downgrade")
+    @Operation(summary = "Schedule plan downgrade at period end", description = "Schedules transition to a lower plan tier at the end of the billing period with zero data loss.")
+    public ResponseEntity<Void> requestDowngrade(
+            HttpServletRequest request,
+            @Valid @RequestBody DowngradePlanRequest downgradeReq,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam, actor);
+
+        billingService.requestDowngrade(actor, studioId, downgradeReq);
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-cache, no-store, must-revalidate")
+                .build();
+    }
+
+    @GetMapping("/transactions")
+    @Operation(summary = "Get studio billing transactions", description = "Retrieves bounded, paginated billing transaction history without sensitive card numbers.")
+    public ResponseEntity<List<BillingTransactionRecord>> listTransactions(
+            HttpServletRequest request,
+            @RequestParam(value = "limit", defaultValue = "20") int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestHeader(value = "X-Studio-Id", required = false) String studioIdHeader,
+            @RequestParam(value = "studioId", required = false) UUID studioIdParam
+    ) {
+        ActorContext actor = extractActor(request);
+        UUID studioId = resolveRequestedStudioId(studioIdHeader, studioIdParam, actor);
+
+        List<BillingTransactionRecord> transactions = billingService.listTransactions(actor, studioId, limit, offset);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-cache, no-store, must-revalidate")
+                .body(transactions);
     }
 
     private ActorContext extractActor(HttpServletRequest request) {

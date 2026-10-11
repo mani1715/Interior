@@ -30,7 +30,8 @@ public class FakeBillingProvider implements BillingProvider {
             StudioDetailRecord studio,
             BillingPlanRecord plan,
             String successUrl,
-            String cancelUrl
+            String cancelUrl,
+            String idempotencyKey
     ) {
         String sessionId = "fake_sess_" + UUID.randomUUID().toString().substring(0, 8);
         String checkoutUrl = "https://checkout.fake-billing.local/pay/" + sessionId;
@@ -51,9 +52,18 @@ public class FakeBillingProvider implements BillingProvider {
 
     @Override
     public WebhookEvent parseWebhook(String rawPayload, Map<String, String> headers) {
-        // Check simulated signature
-        String sig = headers != null ? headers.get("x-fake-signature") : null;
-        if (sig != null && "invalid-sig".equalsIgnoreCase(sig)) {
+        // Case-insensitive header lookup for signature
+        String sig = null;
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                if ("x-fake-signature".equalsIgnoreCase(entry.getKey())) {
+                    sig = entry.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (sig == null || "invalid-sig".equalsIgnoreCase(sig)) {
             throw new SecurityException("Invalid webhook signature");
         }
 
@@ -78,6 +88,8 @@ public class FakeBillingProvider implements BillingProvider {
                     Instant.now(),
                     map
             );
+        } catch (SecurityException se) {
+            throw se;
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to parse fake webhook: " + e.getMessage(), e);
         }

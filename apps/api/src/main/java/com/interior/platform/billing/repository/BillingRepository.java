@@ -30,5 +30,17 @@ public interface BillingRepository {
 
     List<BillingTransactionRecord> listTransactions(UUID studioId, int limit);
 
+    List<BillingTransactionRecord> listTransactions(UUID studioId, int limit, int offset);
+
     boolean recordBillingEvent(BillingEventRecord event);
+
+    BillingCheckoutSessionRecord saveCheckoutSession(BillingCheckoutSessionRecord session);
+
+    Optional<BillingCheckoutSessionRecord> findCheckoutSessionById(UUID id);
+
+    Optional<BillingCheckoutSessionRecord> findCheckoutSessionByIdempotencyKey(UUID studioId, String idempotencyKey);
+
+    Optional<BillingCheckoutSessionRecord> findCheckoutSessionByProviderSessionId(String provider, String providerSessionId);
+
+    void updateCheckoutSessionStatus(UUID id, String status, String providerSessionId);
 }

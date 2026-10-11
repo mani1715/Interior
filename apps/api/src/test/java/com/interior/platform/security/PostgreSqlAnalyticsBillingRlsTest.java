@@ -15,7 +15,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@DisplayName("Phase 28 — Dedicated PostgreSQL 18 RLS Tenant Isolation for Analytics & Billing")
+@DisplayName("Phase 28 & Phase 9A — Dedicated PostgreSQL 18 RLS Tenant Isolation for Analytics & Commercial Billing")
 class PostgreSqlAnalyticsBillingRlsTest {
 
     private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
@@ -27,6 +27,8 @@ class PostgreSqlAnalyticsBillingRlsTest {
     private UUID studioBId;
     private UUID userAId;
     private UUID userBId;
+    private UUID checkoutSessionAId;
+    private UUID checkoutSessionBId;
 
     @BeforeEach
     void setUpFixtures() {
@@ -42,9 +44,9 @@ class PostgreSqlAnalyticsBillingRlsTest {
                     END
                     $$;
                 """);
-                stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON analytics_events, studio_daily_metrics, studio_subscriptions, billing_transactions, billing_events TO test_phase28_user;");
+                stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON analytics_events, studio_daily_metrics, studio_subscriptions, billing_transactions, billing_events, billing_checkout_sessions TO test_phase28_user;");
 
-                stmt.execute("TRUNCATE TABLE billing_events, billing_transactions, studio_subscriptions, studio_daily_metrics, analytics_events, studio_projects, studio_members, designer_studios, users CASCADE;");
+                stmt.execute("TRUNCATE TABLE billing_checkout_sessions, billing_events, billing_transactions, studio_subscriptions, studio_daily_metrics, analytics_events, studio_projects, studio_members, designer_studios, users CASCADE;");
 
                 userAId = UuidV7.randomUuid();
                 userBId = UuidV7.randomUuid();
@@ -94,11 +96,11 @@ class PostgreSqlAnalyticsBillingRlsTest {
 
                 // Insert Studio Subscriptions
                 stmt.execute(String.format(
-                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider) VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000001', 'ACTIVE', 'NONE');",
+                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider, source_type) VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000001', 'ACTIVE', 'NONE', 'SYSTEM');",
                         UuidV7.randomUuid(), studioAId
                 ));
                 stmt.execute(String.format(
-                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider) VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000001', 'ACTIVE', 'NONE');",
+                        "INSERT INTO studio_subscriptions (id, studio_id, plan_id, status, provider, source_type) VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000001', 'ACTIVE', 'NONE', 'SYSTEM');",
                         UuidV7.randomUuid(), studioBId
                 ));
 
@@ -110,6 +112,20 @@ class PostgreSqlAnalyticsBillingRlsTest {
                 stmt.execute(String.format(
                         "INSERT INTO billing_transactions (id, studio_id, provider, amount_minor, status) VALUES ('%s', '%s', 'NONE', 0, 'SUCCEEDED');",
                         UuidV7.randomUuid(), studioBId
+                ));
+
+                // Insert Commercial Checkout Sessions
+                checkoutSessionAId = UuidV7.randomUuid();
+                checkoutSessionBId = UuidV7.randomUuid();
+                stmt.execute(String.format(
+                        "INSERT INTO billing_checkout_sessions (id, studio_id, plan_id, provider, idempotency_key, status, amount_minor, currency, success_url, cancel_url, expires_at) " +
+                        "VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000002', 'FAKE', 'idem_a_1', 'PENDING', 9900, 'INR', 'https://ok', 'https://cancel', now() + interval '30 minutes');",
+                        checkoutSessionAId, studioAId
+                ));
+                stmt.execute(String.format(
+                        "INSERT INTO billing_checkout_sessions (id, studio_id, plan_id, provider, idempotency_key, status, amount_minor, currency, success_url, cancel_url, expires_at) " +
+                        "VALUES ('%s', '%s', '01923000-0000-7000-8000-000000000003', 'FAKE', 'idem_b_1', 'PENDING', 19900, 'INR', 'https://ok', 'https://cancel', now() + interval '30 minutes');",
+                        checkoutSessionBId, studioBId
                 ));
             }
         } catch (SQLException e) {
@@ -198,6 +214,34 @@ class PostgreSqlAnalyticsBillingRlsTest {
                 }
                 assertEquals(1, count, "Should only see Studio A's transaction");
             }
+        }
+    }
+
+    @Test
+    @DisplayName("PostgreSQL RLS: Studio A cannot view Studio B checkout sessions")
+    void testCheckoutSessionsTenantIsolationRls() throws SQLException {
+        assumeTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 5433, skipping PG-specific RLS test");
+
+        try (Connection conn = getNonSuperUserConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
+
+            try (ResultSet rs = stmt.executeQuery("SELECT id, studio_id, idempotency_key FROM billing_checkout_sessions;")) {
+                int count = 0;
+                while (rs.next()) {
+                    count++;
+                    assertEquals(studioAId, (UUID) rs.getObject("studio_id"));
+                    assertEquals(checkoutSessionAId, (UUID) rs.getObject("id"));
+                    assertEquals("idem_a_1", rs.getString("idempotency_key"));
+                }
+                assertEquals(1, count, "Studio A must strictly see only Studio A's checkout session");
+            }
+
+            // Cross-tenant update attempt by Studio A on Studio B's checkout session is blocked by RLS
+            int updated = stmt.executeUpdate(String.format(
+                    "UPDATE billing_checkout_sessions SET status = 'CANCELLED' WHERE id = '%s';",
+                    checkoutSessionBId
+            ));
+            assertEquals(0, updated, "RLS must prevent Studio A from updating Studio B's checkout session");
         }
     }
 }

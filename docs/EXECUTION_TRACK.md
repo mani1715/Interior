@@ -141,9 +141,30 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Multi-Tenant RLS & Storage Reconciliation: Automated reconciliation (`POST /api/v1/workspace/media/reconcile` and `POST /api/v1/workspace/ai/jobs/reconcile`), Flyway `V032__media_lifecycle_and_upload_hardening.sql`, and PostgreSQL RLS across all tables (`media_upload_intents`, `media_assets`, `ai_generation_jobs`).
   - Comprehensive Verification: 468/468 backend tests PASS (0 failures, 0 errors, 0 skipped), 17/17 PostgreSQL RLS tests PASS (0 failures, 0 skipped), 368/368 frontend Vitest tests PASS, TypeScript typecheck PASS, ESLint PASS.
 
+- **Phase 7E: Admin, Moderation, Audit & Operational Controls Completion (Antigravity)**
+  - Segregated Trust Domains: Admin endpoints restricted to verified platform administrators with rate limiting and immutable audit logging.
+  - Super Admin Privilege Boundaries: Last super admin demotion protection and user role management.
+  - Moderation Controls: Project and review moderation workflows with PostgreSQL RLS `public_read_studio_projects` moderation status enforcement.
+  - Operations & Diagnostics: Health monitoring, storage reconciliation, and stuck AI job recovery endpoints.
+
+- **Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (Antigravity)**
+  - Full system audit, 34-table PostgreSQL RLS isolation validation, quota concurrency validation, secrets hygiene, zero critical findings. Backend core verified release-ready.
+
+- **Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (Antigravity)**
+  - Schema & Idempotency: Flyway `V034__commercial_billing_subscription_lifecycle.sql` introducing `billing_checkout_sessions` with RLS tenant isolation and studio idempotency tracking.
+  - Provider-Neutral Abstraction: Pluggable `BillingProvider` interface with `DisabledBillingProvider` (default `NOT_CONFIGURED`) and `FakeBillingProvider` test harness.
+  - Server-Authoritative Integrity: Checkout session creation enforces server-side plan pricing and currency; client cannot manipulate prices or limits.
+  - Webhook Security: Cryptographic signature verification (401 on bad sig), replay deduplication (`billing_events`), amount and currency integrity validation.
+  - State Machine & Grace Periods: `ACTIVE`, `PAST_DUE` (7-day grace period), `CANCEL_AT_PERIOD_END`, `EXPIRED`, and renewal workflows.
+  - Safe Downgrade Policy: Scheduled period-end downgrade (`downgrade_plan_id`) with zero data loss; over-quota projects and photos are preserved and remain public; new creations are blocked.
+  - Administrative Separation: Super Admin plan overrides record `source_type = 'MANUAL_ADMIN'`, generating zero fake payment records.
+  - Transaction History: Bounded paginated endpoint without exposing sensitive payment card details.
+  - In-App Notifications: Dispatches billing status notifications to studio owners on success, failure, cancellation, and renewal.
+  - Verification: 496/496 backend tests PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 frontend Vitest PASS, Next.js build PASS.
+
 ## Current Next Step:
 
-- Backend Core Phase 7E — Admin, Moderation, Audit & Operational Controls Completion.
+- Pricing Decision & Live Commercial Provider Selection (Stakeholder approval required before commercial checkout activation).
 
 ---
 
@@ -155,5 +176,5 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
 - Photogrammetry / NeRF / Gaussian splats
 - WebGL room reconstruction
 - Deployment
-- Live payments / commercial checkout
 - Production external provider configuration
+

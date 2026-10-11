@@ -6,7 +6,6 @@ import com.interior.platform.billing.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -102,7 +101,10 @@ public class JdbcBillingRepository implements BillingRepository {
             toInstant(rs.getTimestamp("cancelled_at")),
             toInstant(rs.getTimestamp("created_at")),
             toInstant(rs.getTimestamp("updated_at")),
-            rs.getLong("version")
+            rs.getLong("version"),
+            hasColumn(rs, "source_type") && rs.getString("source_type") != null ? rs.getString("source_type") : "PAID_PROVIDER",
+            hasColumn(rs, "downgrade_plan_id") ? getUuid(rs, "downgrade_plan_id") : null,
+            hasColumn(rs, "grace_period_end") ? toInstant(rs.getTimestamp("grace_period_end")) : null
     );
 
     private final RowMapper<BillingTransactionRecord> transactionMapper = (rs, rowNum) -> new BillingTransactionRecord(
@@ -119,6 +121,23 @@ public class JdbcBillingRepository implements BillingRepository {
             rs.getString("receipt_url"),
             toInstant(rs.getTimestamp("occurred_at")),
             toInstant(rs.getTimestamp("created_at"))
+    );
+
+    private final RowMapper<BillingCheckoutSessionRecord> checkoutSessionMapper = (rs, rowNum) -> new BillingCheckoutSessionRecord(
+            getUuid(rs, "id"),
+            getUuid(rs, "studio_id"),
+            getUuid(rs, "plan_id"),
+            rs.getString("provider"),
+            rs.getString("provider_session_id"),
+            rs.getString("idempotency_key"),
+            rs.getString("status"),
+            rs.getLong("amount_minor"),
+            rs.getString("currency"),
+            rs.getString("success_url"),
+            rs.getString("cancel_url"),
+            toInstant(rs.getTimestamp("expires_at")),
+            toInstant(rs.getTimestamp("created_at")),
+            toInstant(rs.getTimestamp("updated_at"))
     );
 
     @Override
@@ -204,7 +223,10 @@ public class JdbcBillingRepository implements BillingRepository {
                     cancel_at_period_end = ?,
                     cancelled_at = ?,
                     updated_at = ?,
-                    version = version + 1
+                    version = version + 1,
+                    source_type = ?,
+                    downgrade_plan_id = ?,
+                    grace_period_end = ?
                 WHERE id = ? AND version = ?
             """;
             int rows = jdbcTemplate.update(updateSql,
@@ -218,6 +240,9 @@ public class JdbcBillingRepository implements BillingRepository {
                     sub.cancelAtPeriodEnd(),
                     sub.cancelledAt() != null ? Timestamp.from(sub.cancelledAt()) : null,
                     Timestamp.from(now),
+                    sub.sourceType() != null ? sub.sourceType() : "PAID_PROVIDER",
+                    sub.downgradePlanId(),
+                    sub.gracePeriodEnd() != null ? Timestamp.from(sub.gracePeriodEnd()) : null,
                     sub.id(),
                     current.version()
             );
@@ -231,8 +256,9 @@ public class JdbcBillingRepository implements BillingRepository {
                     id, studio_id, plan_id, status, provider,
                     provider_customer_id, provider_subscription_id,
                     current_period_start, current_period_end,
-                    cancel_at_period_end, cancelled_at, created_at, updated_at, version
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    cancel_at_period_end, cancelled_at, created_at, updated_at, version,
+                    source_type, downgrade_plan_id, grace_period_end
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
             """;
             jdbcTemplate.update(insertSql,
                     sub.id(),
@@ -247,7 +273,10 @@ public class JdbcBillingRepository implements BillingRepository {
                     sub.cancelAtPeriodEnd(),
                     sub.cancelledAt() != null ? Timestamp.from(sub.cancelledAt()) : null,
                     Timestamp.from(sub.createdAt() != null ? sub.createdAt() : now),
-                    Timestamp.from(now)
+                    Timestamp.from(now),
+                    sub.sourceType() != null ? sub.sourceType() : "PAID_PROVIDER",
+                    sub.downgradePlanId(),
+                    sub.gracePeriodEnd() != null ? Timestamp.from(sub.gracePeriodEnd()) : null
             );
             return findSubscriptionById(sub.id()).orElse(sub);
         }
@@ -282,8 +311,13 @@ public class JdbcBillingRepository implements BillingRepository {
 
     @Override
     public List<BillingTransactionRecord> listTransactions(UUID studioId, int limit) {
-        String sql = "SELECT * FROM billing_transactions WHERE studio_id = ? ORDER BY occurred_at DESC LIMIT ?";
-        return jdbcTemplate.query(sql, transactionMapper, studioId, limit);
+        return listTransactions(studioId, limit, 0);
+    }
+
+    @Override
+    public List<BillingTransactionRecord> listTransactions(UUID studioId, int limit, int offset) {
+        String sql = "SELECT * FROM billing_transactions WHERE studio_id = ? ORDER BY occurred_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, transactionMapper, studioId, limit, offset);
     }
 
     @Override
@@ -317,6 +351,75 @@ public class JdbcBillingRepository implements BillingRepository {
             return true;
         } catch (DataIntegrityViolationException e) {
             log.info("Billing event deduplicated for provider={}, eventId={}", event.provider(), event.providerEventId());
+            return false;
+        }
+    }
+
+    @Override
+    public BillingCheckoutSessionRecord saveCheckoutSession(BillingCheckoutSessionRecord s) {
+        String sql = """
+            INSERT INTO billing_checkout_sessions (
+                id, studio_id, plan_id, provider, provider_session_id,
+                idempotency_key, status, amount_minor, currency,
+                success_url, cancel_url, expires_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+        jdbcTemplate.update(sql,
+                s.id(),
+                s.studioId(),
+                s.planId(),
+                s.provider(),
+                s.providerSessionId(),
+                s.idempotencyKey(),
+                s.status(),
+                s.amountMinor(),
+                s.currency(),
+                s.successUrl(),
+                s.cancelUrl(),
+                Timestamp.from(s.expiresAt()),
+                Timestamp.from(s.createdAt()),
+                Timestamp.from(s.updatedAt())
+        );
+        return s;
+    }
+
+    @Override
+    public Optional<BillingCheckoutSessionRecord> findCheckoutSessionById(UUID id) {
+        String sql = "SELECT * FROM billing_checkout_sessions WHERE id = ?";
+        List<BillingCheckoutSessionRecord> list = jdbcTemplate.query(sql, checkoutSessionMapper, id);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    @Override
+    public Optional<BillingCheckoutSessionRecord> findCheckoutSessionByIdempotencyKey(UUID studioId, String idempotencyKey) {
+        String sql = "SELECT * FROM billing_checkout_sessions WHERE studio_id = ? AND idempotency_key = ?";
+        List<BillingCheckoutSessionRecord> list = jdbcTemplate.query(sql, checkoutSessionMapper, studioId, idempotencyKey);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    @Override
+    public Optional<BillingCheckoutSessionRecord> findCheckoutSessionByProviderSessionId(String provider, String providerSessionId) {
+        String sql = "SELECT * FROM billing_checkout_sessions WHERE provider = ? AND provider_session_id = ?";
+        List<BillingCheckoutSessionRecord> list = jdbcTemplate.query(sql, checkoutSessionMapper, provider, providerSessionId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    @Override
+    public void updateCheckoutSessionStatus(UUID id, String status, String providerSessionId) {
+        if (providerSessionId != null) {
+            String sql = "UPDATE billing_checkout_sessions SET status = ?, provider_session_id = ?, updated_at = now() WHERE id = ?";
+            jdbcTemplate.update(sql, status, providerSessionId, id);
+        } else {
+            String sql = "UPDATE billing_checkout_sessions SET status = ?, updated_at = now() WHERE id = ?";
+            jdbcTemplate.update(sql, status, id);
+        }
+    }
+
+    private static boolean hasColumn(ResultSet rs, String columnName) {
+        try {
+            rs.findColumn(columnName);
+            return true;
+        } catch (SQLException ignored) {
             return false;
         }
     }

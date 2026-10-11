@@ -62,15 +62,16 @@ Current completed milestone:
 - Phase 7E: Admin, Moderation, Audit & Operational Controls Completion (Segregated trust domains, Super Admin privilege boundaries, self-suspension/lockout protection, session invalidation on suspension, content moderation with PostgreSQL RLS `public_read_studio_projects` moderation gating, truthful delivery audit with recipient PII masking, operational health diagnostics, storage reconciliation, and stuck AI job recovery).
 - Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (Whole-system release audit, complete API inventory, 34-table RLS verification, quota concurrency verification, secrets hygiene, zero critical/high findings, backend core verified release-ready).
 - Final Whole-Product QA & Production-Readiness Review: Visual, UX, Accessibility, Performance & Infrastructure Readiness complete. 485/485 Backend PASS, 30/30 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, Next.js 16.3.3 Turbopack build clean, Zero release-blocking code defects. Canonical release decision: READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP.
+- Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (Flyway V034, `billing_checkout_sessions` table with RLS tenant isolation, provider-neutral abstraction, server-authoritative checkout sessions, idempotency protection, cryptographic webhook signature verification, replay deduplication, tamper-resistant amount/currency checks, 7-day grace period `PAST_DUE` state, period-end cancellation, safe scheduled downgrade with zero data loss, admin manual override source separation, bounded transaction history endpoint, in-app billing notifications, 496/496 Backend PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 build).
 
 Current Flyway:
-V033 (`V033__admin_operations_and_moderation_controls.sql`)
+V034 (`V034__commercial_billing_subscription_lifecycle.sql`)
 
 Whole-Product Release Status:
-READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP
+COMMERCIAL BILLING ARCHITECTURE COMPLETE (PRICING & LIVE PROVIDER SELECTION PENDING)
 
 Next planned milestone:
-Phase 8 Closed Beta Infrastructure Setup (PostgreSQL provisioning, S3/R2 storage bucket, production OIDC client, TLS domain, automated backups).
+Phase 9B Commercial Activation / Production Infrastructure (when payment provider & pricing decided).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

@@ -28,7 +28,8 @@ public class DisabledBillingProvider implements BillingProvider {
             StudioDetailRecord studio,
             BillingPlanRecord plan,
             String successUrl,
-            String cancelUrl
+            String cancelUrl,
+            String idempotencyKey
     ) {
         throw new IllegalStateException("Billing provider is not configured. Commercial checkout is disabled.");
     }
