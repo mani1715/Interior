@@ -129,7 +129,7 @@ public class MediaSecurityScanService {
             );
 
             log.warn("MALWARE DETECTED in intent {}: threat={}", intent.id(), threat);
-            throw new BadRequestException("MALWARE_DETECTED: The uploaded file was flagged as malicious (" + threat + ") and rejected.");
+            throw new BadRequestException("This file could not be accepted because it failed a security check.");
         }
 
         // Handle errors or unavailable
@@ -150,7 +150,7 @@ public class MediaSecurityScanService {
         );
 
         if (requireClean) {
-            throw new IllegalStateException("UPLOAD_SECURITY_SCAN_FAILED: Unable to verify upload safety with security scanner. (" + result.errorMessage() + ")");
+            throw new IllegalStateException("This file could not be accepted because it failed a security check.");
         }
 
         return result;
@@ -158,6 +158,10 @@ public class MediaSecurityScanService {
 
     private void recordScanLedger(UploadIntentRecord intent, ScanResult result) {
         try {
+            String safeErrorMessage = result.errorMessage();
+            if (safeErrorMessage != null && safeErrorMessage.length() > 255) {
+                safeErrorMessage = safeErrorMessage.substring(0, 255);
+            }
             String metadataJson = objectMapper.writeValueAsString(result.details() != null ? result.details() : Map.of());
             MediaSecurityScanRecord scanRecord = new MediaSecurityScanRecord(
                     UuidV7.randomUuid(),
@@ -170,7 +174,7 @@ public class MediaSecurityScanService {
                     result.threatClassification(),
                     result.durationMs(),
                     Instant.now(),
-                    result.errorMessage(),
+                    safeErrorMessage,
                     metadataJson
             );
             mediaRepository.recordMediaSecurityScan(scanRecord);

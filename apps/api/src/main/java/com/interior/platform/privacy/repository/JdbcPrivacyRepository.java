@@ -303,6 +303,8 @@ public class JdbcPrivacyRepository implements PrivacyRepository {
                 phone = NULL,
                 avatar_url = NULL,
                 status = 'DELETED',
+                deactivated_at = now(),
+                deactivated_reason = 'USER_REQUESTED_CLOSURE',
                 updated_at = now()
             WHERE id = ?
         """;

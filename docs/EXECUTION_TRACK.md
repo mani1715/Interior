@@ -12,10 +12,10 @@ Branch:
 main
 
 Latest functional baseline:
-Phase 9F Malware Scanning + Production Upload Security Complete (READY FOR PHASE 9G SUPPORT & OPERATIONS)
+Phase 9G Support + Operations + Incident Controls Complete (FEATURE FREEZE ACTIVE FOR PHASE 10 AUDIT)
 
 Flyway:
-V039
+V040
 
 Phase 7 & 9 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
@@ -31,9 +31,10 @@ Phase 7 & 9 Hardening & Release Tracks:
 - Phase 9D: Admin MFA + Account Security + Recovery Architecture (PASS)
 - Phase 9E: Privacy + Data Export + Account Closure + Deletion + Retention (PASS)
 - Phase 9F: Malware Scanning + Production Upload Security + Quarantine Hardening (PASS)
+- Phase 9G: Support + Operations + Incident Controls + Commercial Admin Completion (PASS)
 
 Production deployment:
-DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)
+DEFERRED (Ready for Phase 10 Audit -> Phase 11 Go-Live)
 
 ---
 

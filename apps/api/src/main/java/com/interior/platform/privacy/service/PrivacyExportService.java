@@ -212,12 +212,30 @@ public class PrivacyExportService {
             }
             addZipEntry(zos, "customer_inquiries.csv", inquiryCsv.toString().getBytes(StandardCharsets.UTF_8));
 
-            // 4. Manifest JSON
+            // 4. Support Requests & Messages JSON (Non-internal messages only)
+            List<Map<String, Object>> supportRequests = jdbcTemplate.queryForList(
+                    "SELECT id, studio_id, category, subject, status, priority, created_at, updated_at, resolved_at FROM support_requests WHERE user_id = ? ORDER BY created_at DESC",
+                    userId
+            );
+            List<Map<String, Object>> supportData = new ArrayList<>();
+            for (Map<String, Object> reqRow : supportRequests) {
+                UUID rId = (UUID) reqRow.get("id");
+                List<Map<String, Object>> messages = jdbcTemplate.queryForList(
+                        "SELECT id, author_type, body, created_at FROM support_messages WHERE request_id = ? AND is_internal = false ORDER BY created_at ASC",
+                        rId
+                );
+                Map<String, Object> reqWithMsgs = new HashMap<>(reqRow);
+                reqWithMsgs.put("messages", messages);
+                supportData.add(reqWithMsgs);
+            }
+            addZipEntry(zos, "support_requests.json", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(supportData));
+
+            // 5. Manifest JSON
             Map<String, Object> manifest = Map.of(
                     "export_type", "USER_DATA_EXPORT",
                     "user_id", userId.toString(),
                     "generated_at", Instant.now().toString(),
-                    "contents", List.of("profile.json", "collections.json", "customer_inquiries.csv"),
+                    "contents", List.of("profile.json", "collections.json", "customer_inquiries.csv", "support_requests.json"),
                     "redacted_fields", List.of("passwords", "tokens", "mfa_secrets", "recovery_codes", "admin_internal_notes")
             );
             addZipEntry(zos, "manifest.json", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(manifest));

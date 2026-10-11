@@ -47,6 +47,12 @@ public class MediaService {
     private com.interior.platform.billing.service.EntitlementService entitlementService;
     @Autowired(required = false)
     private MediaSecurityScanService mediaSecurityScanService;
+    @Autowired(required = false)
+    private com.interior.platform.operations.service.PlatformOperationsService platformOperationsService;
+
+    public void setPlatformOperationsService(com.interior.platform.operations.service.PlatformOperationsService platformOperationsService) {
+        this.platformOperationsService = platformOperationsService;
+    }
 
     @Autowired
     public MediaService(
@@ -128,6 +134,10 @@ public class MediaService {
         authorizationService.requireAuthenticated(actor);
         validateActiveUser(actor.userId());
         validateProfessionalRole(actor);
+
+        if (platformOperationsService != null && !platformOperationsService.isUploadsEnabled()) {
+            throw new BadRequestException("Media uploads are temporarily disabled by platform administration.");
+        }
 
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
         StudioProjectRecord project = projectRepository.findProjectById(context.studioId(), request.projectId())

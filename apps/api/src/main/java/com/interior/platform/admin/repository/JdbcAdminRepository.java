@@ -198,8 +198,9 @@ public class JdbcAdminRepository implements AdminRepository {
 
     @Override
     public void updateUserStatus(UUID userId, String status, String reason) {
-        String sql = "UPDATE users SET status = ?, suspension_reason = ?, updated_at = now() WHERE id = ?";
-        jdbcTemplate.update(sql, status, reason, userId);
+        String deactivatedReason = "SUSPENDED".equalsIgnoreCase(status) ? "ADMIN_SUSPENSION" : null;
+        String sql = "UPDATE users SET status = ?, suspension_reason = ?, deactivated_reason = ?, updated_at = now() WHERE id = ?";
+        jdbcTemplate.update(sql, status, reason, deactivatedReason, userId);
     }
 
     @Override

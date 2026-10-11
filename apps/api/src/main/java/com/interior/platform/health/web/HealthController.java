@@ -16,9 +16,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> getHealth() {
         return ResponseEntity.ok(Map.of(
             "status", "UP",
-            "phase", "Phase 03 — Security Foundation",
-            "timestamp", Instant.now().toString(),
-            "database", "PostgreSQL 18"
+            "timestamp", Instant.now().toString()
         ));
     }
 }

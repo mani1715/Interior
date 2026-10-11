@@ -73,14 +73,16 @@ Current completed milestone:
 
 - Phase 9F: Media Malware Scanning, Quarantining & Production Upload Security (Flyway V039, `media_security_scans` audit ledger table with RLS tenant isolation, `upload_intents` scan status state machine, provider-agnostic `MalwareScanner` abstraction with `DisabledMalwareScanner` and `FakeMalwareScanner`, fail-closed production commit gate with clean-only invariant, slot-preserving media replacement protection, quota release on infection, 516/516 Backend PASS, 41/41 PostgreSQL 18.3 RLS PASS across 12 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 9G: Support + Operations + Incident Controls + Commercial Admin Completion (Flyway V040, `support_requests`, `support_messages` with internal admin notes & in-app user reply dispatch, `platform_operational_state` with `NORMAL` vs `READ_ONLY` maintenance mode and HTTP 503 `MAINTENANCE_MODE_ACTIVE` fail-closed interceptor, granular kill switches `uploads_enabled`, `ai_enabled`, `registrations_enabled`, `operational_job_runs` with PostgreSQL advisory locking across 6 core tasks, RFC-compliant `X-Request-Id` correlation with MDC propagation, truthful provider matrix reporting, 537/537 Backend PASS, 45/45 PostgreSQL 18.3 RLS PASS across 13 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
+
 Current Flyway:
-V039 (`V039__media_malware_scanning_and_upload_security.sql`)
+V040 (`V040__support_and_operations_foundation.sql`)
 
 Whole-Product Release Status:
-MEDIA MALWARE SCANNING & PRODUCTION UPLOAD SECURITY COMPLETED (PHASE 9F VERIFIED)
+ALL PRODUCT-DEVELOPMENT PHASES COMPLETE (PHASE 9G VERIFIED). FEATURE DEVELOPMENT IS FROZEN FOR PHASE 10 RELEASE AUDIT.
 
 Next planned milestone:
-Phase 9G Support + Operations + Commercial Admin Controls.
+PHASE 10 FINAL 100% PRODUCTION RELEASE AUDIT (Defect fixes and audit verification only; no new features).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

@@ -81,6 +81,9 @@ public class AiVisualizerService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.notifications.service.NotificationService notificationService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.operations.service.PlatformOperationsService platformOperationsService;
+
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
@@ -89,6 +92,10 @@ public class AiVisualizerService {
 
     public void setNotificationService(com.interior.platform.notifications.service.NotificationService notificationService) {
         this.notificationService = notificationService;
+    }
+
+    public void setPlatformOperationsService(com.interior.platform.operations.service.PlatformOperationsService platformOperationsService) {
+        this.platformOperationsService = platformOperationsService;
     }
 
     private void emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent event) {
@@ -205,7 +212,7 @@ public class AiVisualizerService {
         UUID studioId = context.studioId();
 
         // 1. Global kill switch & truthful provider check
-        if (!properties.isEnabled()) {
+        if (!properties.isEnabled() || (platformOperationsService != null && !platformOperationsService.isAiEnabled())) {
             throw new BadRequestException("AI Visualizer is currently disabled by administrator.");
         }
         if (!aiImageProvider.isConfigured()) {

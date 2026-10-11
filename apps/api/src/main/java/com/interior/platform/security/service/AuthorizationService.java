@@ -31,6 +31,20 @@ public class AuthorizationService {
         }
     }
 
+    public void requireAnyPlatformRole(ActorContext actor, String... roles) {
+        requireAuthenticated(actor);
+        requireActiveUser(actor);
+        if (actor.hasRole("SUPER_ADMIN")) {
+            return;
+        }
+        for (String r : roles) {
+            if (actor.hasRole(r)) {
+                return;
+            }
+        }
+        throw new AccessDeniedException("Required platform role missing: " + java.util.Arrays.toString(roles));
+    }
+
     public void requireSuperAdmin(ActorContext actor) {
         requireAuthenticated(actor);
         requireActiveUser(actor);
