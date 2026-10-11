@@ -12,10 +12,10 @@ Branch:
 main
 
 Latest functional baseline:
-Phase 9B Transactional Email & Communication Delivery Complete (READY FOR PHASE 9C PRODUCTION AI PROVIDER & COST CONTROLS)
+Phase 9C Production AI Provider, Usage, Cost Controls & Privacy Complete (READY FOR PHASE 9D ADMIN MFA + ACCOUNT SECURITY)
 
 Flyway:
-V035
+V036
 
 Phase 7 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
@@ -27,6 +27,7 @@ Phase 7 Hardening & Release Tracks:
 - Final Whole-Product QA & Release Candidate Consistency Gate: Visual, UX, Accessibility, Performance & Locked Invariant Source Verification (PASS)
 - Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (PASS)
 - Phase 9B: Transactional Email & Communication Delivery Productionization (PASS)
+- Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy (PASS)
 
 Production deployment:
 DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)
@@ -162,11 +163,17 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Administrative Separation: Super Admin plan overrides record `source_type = 'MANUAL_ADMIN'`, generating zero fake payment records.
   - Transaction History: Bounded paginated endpoint without exposing sensitive payment card details.
   - In-App Notifications: Dispatches billing status notifications to studio owners on success, failure, cancellation, and renewal.
-  - Verification: 496/496 backend tests PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 frontend Vitest PASS, Next.js build PASS.
+- **Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy Hardening (Antigravity)**
+  - Schema & Ledger: Flyway `V036__ai_cost_ledger_and_production_controls.sql` introducing `ai_cost_ledger` table with PostgreSQL RLS tenant isolation (`tenant_isolation_ai_cost_ledger`), multi-currency tracking, and `TIMED_OUT` job status.
+  - Provider Abstraction: Robust capability matrix and allowed-model whitelisting across Google Imagen 3, Stability AI, OpenAI, and Mock.
+  - Concurrency & Quotas: Concurrency-safe atomic reservations with `GENERATION_RESERVED` and `RESERVATION_REFUNDED`, enforcing the locked 20 generations/studio/day limit reset at 00:00 UTC.
+  - Cost Controls & Budgets: Four-tier budget guards including global kill switch (`app.ai.enabled`), global daily budget, per-studio kill switch, and per-studio monthly spend ceilings.
+  - Operational Diagnostics & Reconciler: Stuck-job reconciler transitioning overdue processing jobs to `TIMED_OUT` after 5 minutes and refunding reservations.
+  - Verification: 505/505 backend tests PASS (0 failures, 0 errors, 0 skipped), 33/33 PostgreSQL RLS tests across 9 classes PASS, 368/368 frontend tests PASS, TypeScript PASS, ESLint PASS, Next.js build PASS.
 
 ## Current Next Step:
 
-- Pricing Decision & Live Commercial Provider Selection (Stakeholder approval required before commercial checkout activation).
+- Phase 9D: Admin MFA + Account Security + Recovery Architecture.
 
 ---
 

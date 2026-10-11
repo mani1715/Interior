@@ -204,7 +204,10 @@ public class AiVisualizerService {
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
         UUID studioId = context.studioId();
 
-        // 1. Truthful provider check: Mock-free, fail-fast if unconfigured
+        // 1. Global kill switch & truthful provider check
+        if (!properties.isEnabled()) {
+            throw new BadRequestException("AI Visualizer is currently disabled by administrator.");
+        }
         if (!aiImageProvider.isConfigured()) {
             throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
         }
@@ -212,13 +215,27 @@ public class AiVisualizerService {
         // 2. Short-term rate limit protection (10 submissions per minute per studio)
         rateLimiterService.acquire("ai_generate:" + studioId, 10, Duration.ofMinutes(1));
 
-        // 3. Daily quota check
+        // 3. Concurrency-safe daily quota reservation check
         int usedToday = aiJobRepository.countTodayUsage(studioId);
-        if (usedToday >= properties.getDailyStudioLimit()) {
+        int activeToday = aiJobRepository.countTodayActiveReservations(studioId);
+        int effectiveToday = Math.max(usedToday, activeToday);
+        if (effectiveToday >= properties.getDailyStudioLimit()) {
             throw new RateLimitExceededException("Daily AI concept generation quota reached (" + properties.getDailyStudioLimit() + " per day). Please try again tomorrow.");
         }
 
-        // 4. Idempotency deduplication
+        // 4. Studio AI Cost Budget Cap check
+        long currentStudioSpend = aiJobRepository.sumStudioSpendSince(studioId, Instant.now().minus(30, ChronoUnit.DAYS));
+        if (properties.getDefaultStudioMonthlyBudgetMinor() > 0 && currentStudioSpend >= properties.getDefaultStudioMonthlyBudgetMinor()) {
+            throw new BadRequestException("Studio monthly AI spend budget ceiling reached.");
+        }
+
+        // 5. Global daily cost budget check
+        long globalTodaySpend = aiJobRepository.sumGlobalSpendSince(Instant.now().truncatedTo(ChronoUnit.DAYS));
+        if (properties.getGlobalDailyBudgetMinor() > 0 && globalTodaySpend >= properties.getGlobalDailyBudgetMinor()) {
+            throw new BadRequestException("Global daily AI spend budget cap reached.");
+        }
+
+        // 6. Idempotency deduplication
         if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
             String trimmedKey = request.idempotencyKey().trim();
             Optional<AiJobRecord> existing = aiJobRepository.findByIdempotencyKey(studioId, trimmedKey);
@@ -333,6 +350,15 @@ public class AiVisualizerService {
         );
 
         aiJobRepository.createJob(job);
+        aiJobRepository.recordUsageEvent(new AiUsageEventRecord(
+                UuidV7.randomUuid(),
+                studioId,
+                jobId,
+                "GENERATION_RESERVED",
+                aiImageProvider.getProviderKey(),
+                1,
+                now
+        ));
 
         // 10. Persist immutable reference snapshots
         if (!refInputs.isEmpty()) {
@@ -897,7 +923,7 @@ public class AiVisualizerService {
                     currentVersion
             );
 
-            // Record usage & audit
+            // Record usage, cost & audit
             aiJobRepository.recordUsageEvent(new AiUsageEventRecord(
                     UuidV7.randomUuid(),
                     job.studioId(),
@@ -905,6 +931,32 @@ public class AiVisualizerService {
                     "GENERATION_SUCCESS",
                     aiImageProvider.getProviderKey(),
                     1,
+                    now
+            ));
+
+            long amountMinor = providerResponse.amountMinor() != null
+                    ? providerResponse.amountMinor()
+                    : properties.getEstimatedCostPerGenerationMinor();
+            String currency = providerResponse.currency() != null
+                    ? providerResponse.currency()
+                    : properties.getPricingCurrency();
+            com.interior.platform.ai.domain.CostSource costSource = providerResponse.costSource() != null
+                    ? providerResponse.costSource()
+                    : com.interior.platform.ai.domain.CostSource.CALCULATED;
+
+            aiJobRepository.recordCost(new com.interior.platform.ai.domain.AiCostLedgerRecord(
+                    UuidV7.randomUuid(),
+                    job.studioId(),
+                    jobId,
+                    aiImageProvider.getProviderKey(),
+                    properties.getModel() != null ? properties.getModel() : "unknown",
+                    "IMAGE_GENERATION",
+                    1,
+                    1,
+                    amountMinor,
+                    currency,
+                    costSource,
+                    properties.getPricingVersion(),
                     now
             ));
 
@@ -1224,14 +1276,30 @@ public class AiVisualizerService {
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
         UUID studioId = context.studioId();
 
+        if (!properties.isEnabled()) {
+            throw new BadRequestException("AI Visualizer is currently disabled by administrator.");
+        }
         if (!aiImageProvider.isConfigured()) {
             throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
         }
 
         rateLimiterService.acquire("ai_generate:" + studioId, 10, Duration.ofMinutes(1));
+
         int usedToday = aiJobRepository.countTodayUsage(studioId);
-        if (usedToday >= properties.getDailyStudioLimit()) {
+        int activeToday = aiJobRepository.countTodayActiveReservations(studioId);
+        int effectiveToday = Math.max(usedToday, activeToday);
+        if (effectiveToday >= properties.getDailyStudioLimit()) {
             throw new RateLimitExceededException("Daily AI concept generation quota reached (" + properties.getDailyStudioLimit() + " per day). Please try again tomorrow.");
+        }
+
+        long currentStudioSpend = aiJobRepository.sumStudioSpendSince(studioId, Instant.now().minus(30, ChronoUnit.DAYS));
+        if (properties.getDefaultStudioMonthlyBudgetMinor() > 0 && currentStudioSpend >= properties.getDefaultStudioMonthlyBudgetMinor()) {
+            throw new BadRequestException("Studio monthly AI spend budget ceiling reached.");
+        }
+
+        long globalTodaySpend = aiJobRepository.sumGlobalSpendSince(Instant.now().truncatedTo(ChronoUnit.DAYS));
+        if (properties.getGlobalDailyBudgetMinor() > 0 && globalTodaySpend >= properties.getGlobalDailyBudgetMinor()) {
+            throw new BadRequestException("Global daily AI spend budget cap reached.");
         }
 
         if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
@@ -1386,6 +1454,15 @@ public class AiVisualizerService {
         );
 
         aiJobRepository.createJob(job);
+        aiJobRepository.recordUsageEvent(new AiUsageEventRecord(
+                UuidV7.randomUuid(),
+                studioId,
+                job.id(),
+                "GENERATION_RESERVED",
+                aiImageProvider.getProviderKey(),
+                1,
+                now
+        ));
         if (!refsToSnapshot.isEmpty()) {
             aiReferenceRepository.createJobReferences(refsToSnapshot);
         }

@@ -5,9 +5,10 @@ public enum AiJobStatus {
     PROCESSING,
     SUCCEEDED,
     FAILED,
-    CANCELLED;
+    CANCELLED,
+    TIMED_OUT;
 
     public boolean isTerminal() {
-        return this == SUCCEEDED || this == FAILED || this == CANCELLED;
+        return this == SUCCEEDED || this == FAILED || this == CANCELLED || this == TIMED_OUT;
     }
 }

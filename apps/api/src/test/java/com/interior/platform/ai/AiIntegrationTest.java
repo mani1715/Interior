@@ -165,9 +165,9 @@ class AiIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertFalse(response.getBody().isConfigured());
-        assertEquals(50, response.getBody().dailyQuota());
+        assertEquals(20, response.getBody().dailyQuota());
         assertEquals(0, response.getBody().usedToday());
-        assertEquals(50, response.getBody().remainingToday());
+        assertEquals(20, response.getBody().remainingToday());
     }
 
     @Test

@@ -553,14 +553,14 @@ public class JdbcAdminRepository implements AdminRepository {
 
     @Override
     public AdminAiDiagnosticsDto getAiDiagnostics() {
-        long totalJobs = countQuery("SELECT COUNT(*) FROM ai_generation_jobs");
-        long queuedJobs = countQuery("SELECT COUNT(*) FROM ai_generation_jobs WHERE status = 'QUEUED'");
-        long processingJobs = countQuery("SELECT COUNT(*) FROM ai_generation_jobs WHERE status = 'PROCESSING'");
-        long completedJobs = countQuery("SELECT COUNT(*) FROM ai_generation_jobs WHERE status = 'COMPLETED'");
-        long failedJobs = countQuery("SELECT COUNT(*) FROM ai_generation_jobs WHERE status = 'FAILED'");
+        long totalJobs = countQuery("SELECT COUNT(*) FROM ai_visualization_jobs");
+        long queuedJobs = countQuery("SELECT COUNT(*) FROM ai_visualization_jobs WHERE status = 'QUEUED'");
+        long processingJobs = countQuery("SELECT COUNT(*) FROM ai_visualization_jobs WHERE status = 'PROCESSING'");
+        long completedJobs = countQuery("SELECT COUNT(*) FROM ai_visualization_jobs WHERE status = 'SUCCEEDED'");
+        long failedJobs = countQuery("SELECT COUNT(*) FROM ai_visualization_jobs WHERE status = 'FAILED'");
 
         Instant tenMinutesAgo = Instant.now().minus(java.time.Duration.ofMinutes(10));
-        String stuckSql = "SELECT COUNT(*) FROM ai_generation_jobs WHERE status = 'PROCESSING' AND created_at < ?";
+        String stuckSql = "SELECT COUNT(*) FROM ai_visualization_jobs WHERE status = 'PROCESSING' AND created_at < ?";
         Long stuck = jdbcTemplate.queryForObject(stuckSql, Long.class, Timestamp.from(tenMinutesAgo));
         long stuckJobs = stuck != null ? stuck : 0L;
 

@@ -65,5 +65,13 @@ public interface AiJobRepository {
 
     int countTodayUsage(UUID studioId);
 
+    int countTodayActiveReservations(UUID studioId);
+
+    void recordCost(com.interior.platform.ai.domain.AiCostLedgerRecord record);
+
+    long sumStudioSpendSince(UUID studioId, Instant since);
+
+    long sumGlobalSpendSince(Instant since);
+
     List<AiJobRecord> findStuckJobs(AiJobStatus status, Instant startedBefore);
 }

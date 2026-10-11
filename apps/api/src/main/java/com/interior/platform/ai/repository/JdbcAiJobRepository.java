@@ -296,8 +296,53 @@ public class JdbcAiJobRepository implements AiJobRepository {
     }
 
     @Override
+    public int countTodayActiveReservations(UUID studioId) {
+        Instant startOfDay = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        String sql = "SELECT count(*) FROM ai_visualization_jobs WHERE studio_id = ? AND created_at >= ? AND status IN ('QUEUED', 'PROCESSING', 'SUCCEEDED')";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, studioId, Timestamp.from(startOfDay));
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public void recordCost(com.interior.platform.ai.domain.AiCostLedgerRecord record) {
+        String sql = "INSERT INTO ai_cost_ledger (id, studio_id, job_id, provider_key, model_name, operation, " +
+                "input_units, output_units, amount_minor, currency, cost_source, pricing_version, created_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(
+                sql,
+                record.id(),
+                record.studioId(),
+                record.jobId(),
+                record.providerKey(),
+                record.modelName(),
+                record.operation(),
+                record.inputUnits(),
+                record.outputUnits(),
+                record.amountMinor(),
+                record.currency(),
+                record.costSource().name(),
+                record.pricingVersion(),
+                Timestamp.from(record.createdAt())
+        );
+    }
+
+    @Override
+    public long sumStudioSpendSince(UUID studioId, Instant since) {
+        String sql = "SELECT COALESCE(SUM(amount_minor), 0) FROM ai_cost_ledger WHERE studio_id = ? AND created_at >= ?";
+        Long sum = jdbcTemplate.queryForObject(sql, Long.class, studioId, Timestamp.from(since));
+        return sum != null ? sum : 0L;
+    }
+
+    @Override
+    public long sumGlobalSpendSince(Instant since) {
+        String sql = "SELECT COALESCE(SUM(amount_minor), 0) FROM ai_cost_ledger WHERE created_at >= ?";
+        Long sum = jdbcTemplate.queryForObject(sql, Long.class, Timestamp.from(since));
+        return sum != null ? sum : 0L;
+    }
+
+    @Override
     public List<AiJobRecord> findStuckJobs(AiJobStatus status, Instant startedBefore) {
-        String sql = "SELECT * FROM ai_jobs WHERE status = ? AND started_at < ? ORDER BY started_at ASC LIMIT 100";
+        String sql = "SELECT * FROM ai_visualization_jobs WHERE status = ? AND started_at < ? ORDER BY started_at ASC LIMIT 100";
         return jdbcTemplate.query(sql, jobMapper, status.name(), Timestamp.from(startedBefore));
     }
 

@@ -65,14 +65,16 @@ Current completed milestone:
 - Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (Flyway V034, `billing_checkout_sessions` table with RLS tenant isolation, provider-neutral abstraction, server-authoritative checkout sessions, idempotency protection, cryptographic webhook signature verification, replay deduplication, tamper-resistant amount/currency checks, period-end cancellation, safe scheduled downgrade with zero data loss, admin manual override source separation, bounded transaction history endpoint, in-app billing notifications, 496/496 Backend PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 build).
 - Phase 9B: Transactional Email & Communication Delivery Productionization (Flyway V035, `communication_deliveries` status expansion to `BOUNCED` and `COMPLAINT`, `EmailProvider` neutral abstraction with `DisabledEmailProvider` and deterministic `FakeEmailProvider`, bounded exponential backoff retry scheduler with PostgreSQL `FOR UPDATE SKIP LOCKED` concurrency protection, public webhook reconciliation endpoint `/public/webhooks/email/{provider}` with HMAC-SHA256 signature verification, CRLF header injection rejection, server-configurable billing grace period via `app.billing.grace-period-days`, transactional email wiring for team invitations, review invitations, billing activations, renewals, cancellations, payment failures, and account security notices, 503/503 Backend PASS, 22/22 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy Hardening (Flyway V036, `ai_cost_ledger` table with RLS tenant isolation, multi-currency provider accounting, `TIMED_OUT` job state, atomic quota reservation with `GENERATION_RESERVED` and `RESERVATION_REFUNDED`, locked 20 generations/studio/day limit reset at 00:00 UTC, four-tier budget guards with global/studio kill switches and monthly spend ceilings, autonomous stuck-job recovery, 505/505 Backend PASS, 33/33 PostgreSQL 18.3 RLS PASS across 9 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
+
 Current Flyway:
-V035 (`V035__transactional_email_productionization.sql`)
+V036 (`V036__ai_cost_ledger_and_production_controls.sql`)
 
 Whole-Product Release Status:
-COMMUNICATION DELIVERY & TRANSACTIONAL EMAIL PRODUCTIONIZED (LIVE EMAIL PROVIDER SELECTION & COMMERCIAL DECISIONS PENDING)
+PRODUCTION AI USAGE, COST CONTROLS & PRIVACY PRODUCTIONIZED (AI PROVIDER & BUDGET DECISIONS PENDING)
 
 Next planned milestone:
-Phase 9C Production AI Provider & Cost Controls.
+Phase 9D Admin MFA + Account Security + Recovery Architecture.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

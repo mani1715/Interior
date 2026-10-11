@@ -28,6 +28,11 @@ public class AiVisualizerProperties {
     private String model = "interior-diffusion-v1";
 
     /**
+     * Global kill switch: when false, rejects all new generation requests immediately.
+     */
+    private boolean enabled = true;
+
+    /**
      * Timeout for provider requests in seconds.
      */
     private int timeoutSeconds = 60;
@@ -43,9 +48,39 @@ public class AiVisualizerProperties {
     private int maxPromptLength = 500;
 
     /**
-     * Daily generation limit per studio.
+     * Daily generation limit per studio (default: 20 generations per studio per day).
      */
-    private int dailyStudioLimit = 50;
+    private int dailyStudioLimit = 20;
+
+    /**
+     * Global daily spend budget cap in minor units (e.g. 50000 = $500.00). 0 means unconstrained.
+     */
+    private long globalDailyBudgetMinor = 0L;
+
+    /**
+     * Default per-studio monthly spend budget cap in minor units (0 = unconstrained).
+     */
+    private long defaultStudioMonthlyBudgetMinor = 0L;
+
+    /**
+     * Base estimated cost per generation in minor units (default: 4 = $0.04).
+     */
+    private long estimatedCostPerGenerationMinor = 4L;
+
+    /**
+     * Pricing currency code.
+     */
+    private String pricingCurrency = "USD";
+
+    /**
+     * Pricing table version tag.
+     */
+    private String pricingVersion = "v1-default";
+
+    /**
+     * Allowed models allowlist.
+     */
+    private java.util.List<String> allowedModels = java.util.List.of("interior-diffusion-v1", "gemini-imagen-3", "dall-e-3", "mock-model");
 
     /**
      * Whether the active provider supports multi-modal reference image conditioning.
@@ -56,6 +91,62 @@ public class AiVisualizerProperties {
      * Maximum number of reference images allowed per generation job.
      */
     private int maxReferenceImages = 4;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public long getGlobalDailyBudgetMinor() {
+        return globalDailyBudgetMinor;
+    }
+
+    public void setGlobalDailyBudgetMinor(long globalDailyBudgetMinor) {
+        this.globalDailyBudgetMinor = globalDailyBudgetMinor;
+    }
+
+    public long getDefaultStudioMonthlyBudgetMinor() {
+        return defaultStudioMonthlyBudgetMinor;
+    }
+
+    public void setDefaultStudioMonthlyBudgetMinor(long defaultStudioMonthlyBudgetMinor) {
+        this.defaultStudioMonthlyBudgetMinor = defaultStudioMonthlyBudgetMinor;
+    }
+
+    public long getEstimatedCostPerGenerationMinor() {
+        return estimatedCostPerGenerationMinor;
+    }
+
+    public void setEstimatedCostPerGenerationMinor(long estimatedCostPerGenerationMinor) {
+        this.estimatedCostPerGenerationMinor = estimatedCostPerGenerationMinor;
+    }
+
+    public String getPricingCurrency() {
+        return pricingCurrency;
+    }
+
+    public void setPricingCurrency(String pricingCurrency) {
+        this.pricingCurrency = pricingCurrency;
+    }
+
+    public String getPricingVersion() {
+        return pricingVersion;
+    }
+
+    public void setPricingVersion(String pricingVersion) {
+        this.pricingVersion = pricingVersion;
+    }
+
+    public java.util.List<String> getAllowedModels() {
+        return allowedModels;
+    }
+
+    public void setAllowedModels(java.util.List<String> allowedModels) {
+        this.allowedModels = allowedModels;
+    }
 
     public String getProvider() {
         return provider;

@@ -97,6 +97,13 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
             throw new AiProviderNotConfiguredException("AI generation provider endpoint is missing or invalid.");
         }
 
+        // Validate model allowlist
+        String configuredModel = properties.getModel();
+        if (properties.getAllowedModels() != null && !properties.getAllowedModels().isEmpty()
+                && !properties.getAllowedModels().contains(configuredModel)) {
+            return ProviderGenerationResponse.failure("MODEL_NOT_PERMITTED", "Configured model '" + configuredModel + "' is not on the permitted models allowlist.");
+        }
+
         boolean hasMask = (maskBytes != null && maskBytes.length > 0);
 
         try {
@@ -112,10 +119,19 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 String ct = response.headers().firstValue("Content-Type").orElse("image/jpeg");
+                long costMinor = properties.getEstimatedCostPerGenerationMinor();
+                String currency = properties.getPricingCurrency();
                 if (ct.startsWith("image/")) {
-                    return ProviderGenerationResponse.immediateSuccess(response.body(), ct, "{}");
+                    return ProviderGenerationResponse.immediateSuccess(
+                            response.body(),
+                            ct,
+                            "{\"model\":\"" + escapeJson(configuredModel) + "\"}",
+                            costMinor,
+                            currency,
+                            com.interior.platform.ai.domain.CostSource.CALCULATED
+                    );
                 }
-                return ProviderGenerationResponse.asyncStarted("job-" + job.id(), "{}");
+                return ProviderGenerationResponse.asyncStarted("job-" + job.id(), "{\"model\":\"" + escapeJson(configuredModel) + "\"}");
             } else if (response.statusCode() == 429) {
                 return ProviderGenerationResponse.failure("PROVIDER_QUOTA_REACHED", "AI generation provider quota reached. Please try again later.");
             } else if (response.statusCode() >= 500) {
