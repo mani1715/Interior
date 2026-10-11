@@ -14,14 +14,30 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Download,
+  AlertTriangle,
 } from 'lucide-react';
 import { fetchBusinessProfile } from '@/lib/workspace/api';
 import { BusinessProfile } from '@/lib/workspace/types';
+import {
+  triggerStudioDataExport,
+  closeStudioSelfService,
+  getExportDownloadUrl,
+  DataExportDto,
+} from '@/lib/privacy/api';
+import { Button } from '@/components/ui/Button';
 
 export default function BusinessProfilePage() {
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Studio Privacy and Export states
+  const [isExportingStudio, setIsExportingStudio] = useState(false);
+  const [studioExportResult, setStudioExportResult] = useState<DataExportDto | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [isClosingStudio, setIsClosingStudio] = useState(false);
+  const [studioClosed, setStudioClosed] = useState(false);
 
   useEffect(() => {
     fetchBusinessProfile()
@@ -332,6 +348,126 @@ export default function BusinessProfilePage() {
         ) : (
           <p className="text-xs text-charcoal-400 italic">No contact channels recorded.</p>
         )}
+      </div>
+
+      {/* 5. Studio Data Governance, Portability & Closure */}
+      <div className="bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-sand-200">
+          <div className="w-9 h-9 rounded-xl bg-sand-100 text-bronze-700 flex items-center justify-center">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg font-semibold text-charcoal-900">
+              Studio Privacy, Data Export & Closure
+            </h2>
+            <p className="text-xs text-charcoal-500">
+              Governance rights and data portability for studio administrator.
+            </p>
+          </div>
+        </div>
+
+        {exportError && (
+          <div className="p-4 bg-terracotta-50 border border-terracotta-200 rounded-xl flex items-start gap-3 text-terracotta-800 text-xs">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-terracotta-600" />
+            <div>
+              <span className="font-semibold block">Action Blocked</span>
+              <span>{exportError}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Studio Data Export */}
+        <div className="space-y-3">
+          <h3 className="font-serif text-base text-charcoal-900">
+            Studio Data Export
+          </h3>
+          <p className="text-xs text-charcoal-600 leading-relaxed">
+            Download a comprehensive archive of your studio profile, public and draft projects, and team membership manifests.
+          </p>
+
+          {studioExportResult ? (
+            <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl space-y-3">
+              <span className="text-xs font-semibold text-forest-800 block">Studio Archive Generated</span>
+              <p className="text-[11px] text-forest-700">
+                Archive size: {studioExportResult.fileSizeBytes ? `${Math.round(studioExportResult.fileSizeBytes / 1024)} KB` : 'Ready'}. Link expires in 7 days.
+              </p>
+              {studioExportResult.downloadToken && (
+                <a
+                  href={getExportDownloadUrl(studioExportResult.jobId, studioExportResult.downloadToken)}
+                  download
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-forest-700 text-white rounded-xl text-xs font-medium hover:bg-forest-800 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Studio Archive (.ZIP)</span>
+                </a>
+              )}
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                if (!profile?.id) return;
+                setIsExportingStudio(true);
+                setExportError(null);
+                try {
+                  const res = await triggerStudioDataExport(profile.id);
+                  setStudioExportResult(res);
+                } catch (err: any) {
+                  setExportError(err.message || 'Failed to export studio data.');
+                } finally {
+                  setIsExportingStudio(false);
+                }
+              }}
+              disabled={isExportingStudio}
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              {isExportingStudio ? 'Generating Studio Export...' : 'Export Studio Data'}
+            </Button>
+          )}
+        </div>
+
+        {/* Studio Closure */}
+        <div className="pt-4 border-t border-sand-200 space-y-3">
+          <h3 className="font-serif text-base text-charcoal-900">
+            Studio Closure
+          </h3>
+          <p className="text-xs text-charcoal-600 leading-relaxed">
+            Closing the studio will immediately unpublish your public portfolio directory listing, archive active projects, and suspend new client inquiries.
+          </p>
+
+          {studioClosed ? (
+            <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-800 text-xs">
+              Studio has been closed. Status updated to SUSPENDED.
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={async () => {
+                if (!profile?.id) return;
+                if (!window.confirm('Are you sure you want to close this studio? Your public portfolio will be unpublished.')) {
+                  return;
+                }
+                setIsClosingStudio(true);
+                setExportError(null);
+                try {
+                  await closeStudioSelfService(profile.id);
+                  setStudioClosed(true);
+                } catch (err: any) {
+                  setExportError(err.message || 'Studio closure blocked.');
+                } finally {
+                  setIsClosingStudio(false);
+                }
+              }}
+              disabled={isClosingStudio}
+            >
+              {isClosingStudio ? 'Closing Studio...' : 'Close Studio'}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

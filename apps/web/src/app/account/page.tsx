@@ -18,6 +18,9 @@ import {
   Sliders,
   Send,
   Building2,
+  Download,
+  FileText,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -29,6 +32,15 @@ import {
   updateAccountProfile,
   requestAccountErasure,
 } from '@/lib/account/api';
+import {
+  fetchMyPrivacyRequests,
+  triggerUserDataExport,
+  closeAccountSelfService,
+  deleteAccountSelfService,
+  getExportDownloadUrl,
+  PrivacyRequestDto,
+  DataExportDto,
+} from '@/lib/privacy/api';
 import {
   fetchMfaStatus,
   startMfaEnrollment,
@@ -107,10 +119,6 @@ export default function AccountPage() {
   });
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [prefsSuccess, setPrefsSuccess] = useState<string | null>(null);
-
-  // Privacy requests state
-  const [isDeactivating, setIsDeactivating] = useState(false);
-  const [deletionSuccess, setDeletionSuccess] = useState(false);
 
   // MFA state
   const [mfaStatus, setMfaStatus] = useState<MfaStatusDto | null>(null);
@@ -309,15 +317,81 @@ export default function AccountPage() {
     }
   };
 
-  const handleRequestDeletion = async () => {
-    if (!window.confirm('Are you sure you want to request account deletion? Our team will review and process your request.')) {
+  // Privacy requests state
+  const [privacyRequests, setPrivacyRequests] = useState<PrivacyRequestDto[]>([]);
+  const [loadingPrivacy, setLoadingPrivacy] = useState(false);
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [exportDataResult, setExportDataResult] = useState<DataExportDto | null>(null);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
+  const [isClosingAccount, setIsClosingAccount] = useState(false);
+  const [accountClosed, setAccountClosed] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletionSuccess, setDeletionSuccess] = useState(false);
+
+  // Load privacy requests when switching to privacy tab
+  useEffect(() => {
+    if (activeTab === 'privacy' && isAuthenticated) {
+      setLoadingPrivacy(true);
+      setPrivacyError(null);
+      fetchMyPrivacyRequests()
+        .then(data => setPrivacyRequests(data))
+        .catch(() => {})
+        .finally(() => setLoadingPrivacy(false));
+    }
+  }, [activeTab, isAuthenticated]);
+
+  const handleTriggerUserDataExport = async () => {
+    setIsExportingData(true);
+    setPrivacyError(null);
+    try {
+      const res = await triggerUserDataExport();
+      setExportDataResult(res);
+      const updated = await fetchMyPrivacyRequests();
+      setPrivacyRequests(updated);
+    } catch (err: any) {
+      setPrivacyError(err.message || 'Failed to generate data export.');
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleCloseAccount = async () => {
+    if (!window.confirm('Are you sure you want to close your account? Your active sessions will be terminated and your account status will be set to suspended.')) {
       return;
     }
+    setIsClosingAccount(true);
+    setPrivacyError(null);
     try {
-      await requestAccountErasure();
+      await closeAccountSelfService();
+      setAccountClosed(true);
+      setTimeout(() => {
+        logout();
+        router.push('/');
+      }, 3000);
+    } catch (err: any) {
+      setPrivacyError(err.message || 'Account closure blocked.');
+    } finally {
+      setIsClosingAccount(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (!window.confirm('DANGER: Are you sure you want to permanently delete and anonymize your account? This action cannot be reversed.')) {
+      return;
+    }
+    setIsDeletingAccount(true);
+    setPrivacyError(null);
+    try {
+      await deleteAccountSelfService();
       setDeletionSuccess(true);
-    } catch {
-      // Ignore
+      setTimeout(() => {
+        logout();
+        router.push('/');
+      }, 3000);
+    } catch (err: any) {
+      setPrivacyError(err.message || 'Account deletion failed.');
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -1087,11 +1161,22 @@ export default function AccountPage() {
 
       {/* 5. PRIVACY & DATA RIGHTS */}
       {activeTab === 'privacy' && (
-        <div className="bg-white border border-sand-200 rounded-2xl p-6 shadow-sm space-y-6">
+        <div className="bg-white border border-sand-200 rounded-2xl p-6 shadow-sm space-y-8">
           <div>
             <h2 className="font-serif text-lg text-charcoal-900 pb-2 border-b border-sand-200">
               Privacy, Collections & Data Rights
             </h2>
+
+            {privacyError && (
+              <div className="mt-4 p-4 bg-terracotta-50 border border-terracotta-200 rounded-xl flex items-start gap-3 text-terracotta-800 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-terracotta-600" />
+                <div>
+                  <span className="font-semibold block">Action Blocked</span>
+                  <span>{privacyError}</span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4 mt-4 text-xs text-charcoal-700 leading-relaxed">
               <div className="p-4 bg-sand-50 rounded-xl border border-sand-200 space-y-2">
                 <h3 className="font-semibold text-charcoal-900">Private Collections & Moodboards</h3>
@@ -1116,36 +1201,142 @@ export default function AccountPage() {
             </div>
           </div>
 
+          {/* Data Portability / Export */}
           <div className="pt-4 border-t border-sand-200 space-y-4">
-            <h3 className="font-serif text-base text-charcoal-900">
-              Account Deactivation & Erasure Requests
-            </h3>
-            <p className="text-xs text-charcoal-500">
-              Privacy and account-deletion controls designed to support data-rights workflows. (Policies require qualified legal review prior to public production launch).
-            </p>
+            <div>
+              <h3 className="font-serif text-base text-charcoal-900">
+                Data Portability & Export
+              </h3>
+              <p className="text-xs text-charcoal-500 mt-0.5">
+                Download a machine-readable archive (JSON & sanitized CSV) of your personal profile, collections, and inquiries. Authentication tokens, passwords, and encryption secrets are strictly excluded.
+              </p>
+            </div>
 
-            {deletionSuccess ? (
-              <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-800 text-xs">
-                Your request for account deletion has been recorded. Our platform compliance team will process the erasure within regulatory guidelines.
+            {exportDataResult ? (
+              <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 text-forest-800 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-forest-600" />
+                  <span>Data Export Package Ready</span>
+                </div>
+                <p className="text-[11px] text-forest-700">
+                  Your archive is compiled ({exportDataResult.fileSizeBytes ? `${Math.round(exportDataResult.fileSizeBytes / 1024)} KB` : 'Archive generated'}). The secure one-time download link expires in 7 days.
+                </p>
+                {exportDataResult.downloadToken && (
+                  <a
+                    href={getExportDownloadUrl(exportDataResult.jobId, exportDataResult.downloadToken)}
+                    download
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-forest-700 text-white rounded-xl text-xs font-medium hover:bg-forest-800 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Archive (.ZIP)</span>
+                  </a>
+                )}
               </div>
             ) : (
-              <div className="p-4 bg-terracotta-50/60 border border-terracotta-200 rounded-xl space-y-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-terracotta-700 shrink-0 mt-0.5" />
+              <div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleTriggerUserDataExport}
+                  disabled={isExportingData}
+                >
+                  <Download className="w-3.5 h-3.5 mr-1.5" />
+                  {isExportingData ? 'Generating Archive...' : 'Request Data Export'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Privacy Requests History */}
+          <div className="pt-4 border-t border-sand-200 space-y-4">
+            <h3 className="font-serif text-base text-charcoal-900">
+              Privacy Request History
+            </h3>
+            {loadingPrivacy ? (
+              <p className="text-xs text-charcoal-400">Loading request status...</p>
+            ) : privacyRequests.length === 0 ? (
+              <p className="text-xs text-charcoal-400 italic">No formal data requests recorded.</p>
+            ) : (
+              <div className="divide-y divide-sand-100 border border-sand-200 rounded-xl overflow-hidden">
+                {privacyRequests.map((req) => (
+                  <div key={req.id} className="p-3 bg-sand-50/40 flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-mono font-medium text-charcoal-900 block">
+                        {req.requestType.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-[10px] text-charcoal-400">
+                        {new Date(req.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        req.status === 'COMPLETED' ? 'bg-forest-50 text-forest-700 border border-forest-200' :
+                        req.status === 'FAILED' ? 'bg-terracotta-50 text-terracotta-700 border border-terracotta-200' :
+                        'bg-sand-200 text-charcoal-700'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Account Closure & Deletion Controls */}
+          <div className="pt-4 border-t border-sand-200 space-y-6">
+            <h3 className="font-serif text-base text-charcoal-900">
+              Account Closure & Permanent Deletion
+            </h3>
+
+            {accountClosed ? (
+              <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-800 text-xs">
+                Your account has been closed and sessions terminated. Redirecting...
+              </div>
+            ) : deletionSuccess ? (
+              <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-800 text-xs">
+                Your account identity has been permanently deleted and personal data purged. Redirecting...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Deactivation / Closure */}
+                <div className="p-4 bg-sand-50 rounded-xl border border-sand-200 space-y-3">
                   <div>
-                    <h4 className="text-xs font-semibold text-charcoal-900">Request Account Deletion</h4>
-                    <p className="text-[11px] text-charcoal-600 mt-0.5">
-                      Requesting deletion initiates platform data erasure across sessions, private moodboards, and account profiles.
+                    <h4 className="text-xs font-semibold text-charcoal-900">Close Account</h4>
+                    <p className="text-[11px] text-charcoal-500 mt-0.5">
+                      Suspends your account, terminates all active sessions, and hides your profile.
                     </p>
                   </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCloseAccount}
+                    disabled={isClosingAccount}
+                  >
+                    {isClosingAccount ? 'Closing...' : 'Close Account'}
+                  </Button>
                 </div>
 
-                <div className="pt-2">
+                {/* Permanent Erasure / Anonymization */}
+                <div className="p-4 bg-terracotta-50/60 border border-terracotta-200 rounded-xl space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-terracotta-700 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-semibold text-charcoal-900">Permanent Deletion</h4>
+                      <p className="text-[11px] text-charcoal-600 mt-0.5">
+                        Irreversibly anonymizes personal details, deletes credentials, MFA secrets, and private collections.
+                      </p>
+                    </div>
+                  </div>
                   <button
+                    type="button"
                     onClick={handleRequestDeletion}
-                    className="px-3.5 py-2 bg-terracotta-700 text-white rounded-xl text-xs font-medium hover:bg-terracotta-800 transition-colors"
+                    disabled={isDeletingAccount}
+                    className="px-3.5 py-1.5 bg-terracotta-700 text-white rounded-xl text-xs font-medium hover:bg-terracotta-800 transition-colors disabled:opacity-50"
                   >
-                    Request Account Erasure
+                    {isDeletingAccount ? 'Deleting...' : 'Permanently Delete Account'}
                   </button>
                 </div>
               </div>

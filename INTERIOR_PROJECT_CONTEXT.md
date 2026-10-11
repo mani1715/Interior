@@ -69,14 +69,16 @@ Current completed milestone:
 
 - Phase 9D: Admin MFA, Account Security, Session Assurance & Recovery Architecture (Flyway V037, `identity_mfa_methods` and `identity_recovery_codes` tables with strict uniqueness & RLS user isolation, RFC 6238 TOTP with AES-256-GCM encrypted secrets at rest and key versioning, 10 one-time SHA-256 hashed recovery codes with atomic single-use redemption, session `mfa_verified_at` elevation to `MFA_VERIFIED`, 15-minute step-up freshness requirement on privileged actions, Super Admin emergency reset with audit & session termination, self-bypass defense, user self-service TOTP enrollment and backup code regeneration, revoke all other active sessions endpoint, 508/508 Backend PASS, 36/36 PostgreSQL 18.3 RLS PASS across 10 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 9E: Privacy, Data Export, Account Closure, Anonymization & Retention Architecture (Flyway V038, `privacy_requests`, `data_export_jobs`, `privacy_legal_holds` with PostgreSQL 18 RLS isolation, sanitized ZIP archive generator for personal and studio data with CSV formula injection defense, sole-admin studio blocker preventing orphaned active studios, privileged legal hold defense blocking destructive erasure during litigation/audit, self-service account closure and permanent anonymization, studio closure unpublishing and archiving, accounting and audit ledgers preserved in pseudonymized state, 39/39 PostgreSQL 18.3 RLS PASS across 11 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
+
 Current Flyway:
-V037 (`V037__admin_mfa_and_account_security.sql`)
+V038 (`V038__privacy_data_export_and_deletion.sql`)
 
 Whole-Product Release Status:
-ADMIN MFA, ACCOUNT SECURITY & RECOVERY COMPLETED (PHASE 9D VERIFIED)
+PRIVACY, DATA EXPORT, ACCOUNT CLOSURE & DELETION COMPLETED (PHASE 9E VERIFIED)
 
 Next planned milestone:
-Phase 9D Admin MFA + Account Security + Recovery Architecture.
+Phase 9F Malware Scanning + Production Upload Security.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

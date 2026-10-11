@@ -23,9 +23,66 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final com.interior.platform.security.service.AuthorizationService authorizationService;
+    private final com.interior.platform.privacy.service.PrivacyService privacyService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(
+            AdminService adminService,
+            com.interior.platform.security.service.AuthorizationService authorizationService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.interior.platform.privacy.service.PrivacyService privacyService
+    ) {
         this.adminService = adminService;
+        this.authorizationService = authorizationService;
+        this.privacyService = privacyService;
+    }
+
+    private void requireAdmin(ActorContext actor, com.interior.platform.security.domain.SessionRecord session) {
+        authorizationService.requirePlatformRole(actor, "ADMIN");
+    }
+
+    // --- Privacy Legal Holds ---
+
+    @GetMapping("/privacy/legal-holds")
+    @Operation(summary = "List active legal holds", description = "Retrieves active legal holds for a user or studio subject")
+    public ResponseEntity<List<com.interior.platform.privacy.dto.LegalHoldDto>> listLegalHolds(
+            @RequestParam String subjectType,
+            @RequestParam UUID subjectId,
+            HttpServletRequest request
+    ) {
+        ActorContext actor = extractActor(request);
+        requireAdmin(actor, extractSession(request));
+        if (privacyService == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(privacyService.getActiveLegalHolds(subjectType, subjectId));
+    }
+
+    @PostMapping("/privacy/legal-holds")
+    @Operation(summary = "Place a legal hold", description = "Freezes subject from erasure or account destruction during litigation or audit")
+    public ResponseEntity<com.interior.platform.privacy.dto.LegalHoldDto> createLegalHold(
+            @Valid @RequestBody com.interior.platform.privacy.dto.CreateLegalHoldRequest req,
+            HttpServletRequest request
+    ) {
+        ActorContext actor = extractActor(request);
+        requireAdmin(actor, extractSession(request));
+        if (privacyService == null) {
+            throw new IllegalStateException("PrivacyService not configured");
+        }
+        return ResponseEntity.ok(privacyService.placeLegalHold(req.subjectType(), req.subjectId(), req.reason(), actor.userId()));
+    }
+
+    @DeleteMapping("/privacy/legal-holds/{holdId}")
+    @Operation(summary = "Release a legal hold", description = "Releases active legal hold allowing normal privacy rights lifecycle")
+    public ResponseEntity<Map<String, Boolean>> releaseLegalHold(
+            @PathVariable UUID holdId,
+            HttpServletRequest request
+    ) {
+        ActorContext actor = extractActor(request);
+        requireAdmin(actor, extractSession(request));
+        if (privacyService != null) {
+            privacyService.releaseLegalHold(holdId, actor.userId());
+        }
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     private ActorContext extractActor(HttpServletRequest request) {
