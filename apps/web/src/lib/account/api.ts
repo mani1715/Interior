@@ -42,6 +42,12 @@ export async function revokeActiveSession(sessionId: string): Promise<void> {
   });
 }
 
+export async function revokeAllOtherSessions(): Promise<void> {
+  await apiFetch<void>('/account/sessions/revoke-others', {
+    method: 'POST',
+  });
+}
+
 export async function fetchCustomerInquiries(limit: number = 30, offset: number = 0): Promise<CustomerInquiryDto[]> {
   return apiFetch<CustomerInquiryDto[]>(`/account/inquiries?limit=${limit}&offset=${offset}`);
 }

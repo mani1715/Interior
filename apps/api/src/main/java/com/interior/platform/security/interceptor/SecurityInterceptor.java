@@ -84,7 +84,8 @@ public class SecurityInterceptor implements HandlerInterceptor {
                         studioId,
                         studioRole,
                         session.assurance(),
-                        true
+                        true,
+                        session.mfaVerifiedAt()
                 );
             }
         }

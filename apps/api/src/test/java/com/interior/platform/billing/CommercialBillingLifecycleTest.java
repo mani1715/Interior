@@ -103,6 +103,10 @@ class CommercialBillingLifecycleTest {
         jdbcTemplate.update("INSERT INTO users (id, display_name, email, status) VALUES (?, 'Staff A', 'staff.a@example.com', 'ACTIVE')", staffUserAId);
         jdbcTemplate.update("INSERT INTO users (id, display_name, email, status) VALUES (?, 'Owner B', 'owner.b@example.com', 'ACTIVE')", ownerUserBId);
         jdbcTemplate.update("INSERT INTO users (id, display_name, email, status) VALUES (?, 'Platform Admin', 'admin@example.com', 'ACTIVE')", adminUserId);
+        jdbcTemplate.update("""
+            INSERT INTO identity_mfa_methods (id, user_id, method_type, encrypted_secret, key_version, status, pending_expires_at, confirmed_at, created_at, updated_at)
+            VALUES (?, ?, 'TOTP', 'v1:AES256GCM:testsecret', 1, 'ACTIVE', TIMESTAMPADD(MINUTE, 10, now()), now(), now(), now())
+        """, UuidV7.randomUuid(), adminUserId);
 
         jdbcTemplate.update("""
             INSERT INTO designer_studios (id, name, slug, owner_id, status, publication_status, city, state, country, created_at, updated_at)
@@ -124,7 +128,7 @@ class CommercialBillingLifecycleTest {
         ownerActorA = new ActorContext(ownerUserAId, "Owner A", "owner.a@example.com", Set.of("DESIGNER"), Set.of(), studioAId, "OWNER", "PASSKEY", true);
         staffActorA = new ActorContext(staffUserAId, "Staff A", "staff.a@example.com", Set.of("DESIGNER"), Set.of(), studioAId, "DESIGNER_MEMBER", "PASSKEY", true);
         ownerActorB = new ActorContext(ownerUserBId, "Owner B", "owner.b@example.com", Set.of("DESIGNER"), Set.of(), studioBId, "OWNER", "PASSKEY", true);
-        superAdminActor = new ActorContext(adminUserId, "Platform Admin", "admin@example.com", Set.of("SUPER_ADMIN"), Set.of(), null, null, "PASSKEY", true);
+        superAdminActor = new ActorContext(adminUserId, "Platform Admin", "admin@example.com", "ACTIVE", Set.of("SUPER_ADMIN"), Set.of("*"), null, null, "MFA_VERIFIED", true, java.time.Instant.now());
 
         fakeProvider = new FakeBillingProvider();
         testBillingService = new BillingService(
@@ -146,6 +150,7 @@ class CommercialBillingLifecycleTest {
         jdbcTemplate.execute("DELETE FROM studio_members");
         jdbcTemplate.execute("DELETE FROM audit_events");
         jdbcTemplate.execute("DELETE FROM designer_studios");
+        jdbcTemplate.execute("DELETE FROM identity_mfa_methods");
         jdbcTemplate.execute("DELETE FROM users");
     }
 

@@ -12,10 +12,10 @@ Branch:
 main
 
 Latest functional baseline:
-Phase 9C Production AI Provider, Usage, Cost Controls & Privacy Complete (READY FOR PHASE 9D ADMIN MFA + ACCOUNT SECURITY)
+Phase 9D Admin MFA + Account Security + Recovery Architecture Complete (READY FOR PHASE 9E PRIVACY & DATA EXPORT)
 
 Flyway:
-V036
+V037
 
 Phase 7 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
@@ -28,6 +28,7 @@ Phase 7 Hardening & Release Tracks:
 - Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (PASS)
 - Phase 9B: Transactional Email & Communication Delivery Productionization (PASS)
 - Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy (PASS)
+- Phase 9D: Admin MFA + Account Security + Recovery Architecture (PASS)
 
 Production deployment:
 DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)

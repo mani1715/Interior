@@ -33,6 +33,10 @@ public class AdminController {
         return actor != null ? actor : ActorContext.anonymous();
     }
 
+    private com.interior.platform.security.domain.SessionRecord extractSession(HttpServletRequest request) {
+        return (com.interior.platform.security.domain.SessionRecord) request.getAttribute(SecurityInterceptor.SESSION_ATTRIBUTE);
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
@@ -93,7 +97,7 @@ public class AdminController {
             @Valid @RequestBody UpdateUserRoleRequest req
     ) {
         ActorContext actor = extractActor(request);
-        adminService.updateUserRole(actor, userId, req, getClientIp(request), request.getHeader("User-Agent"));
+        adminService.updateUserRole(actor, userId, req, getClientIp(request), request.getHeader("User-Agent"), extractSession(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -104,7 +108,19 @@ public class AdminController {
             @PathVariable("userId") UUID userId
     ) {
         ActorContext actor = extractActor(request);
-        adminService.revokeUserSessions(actor, userId, getClientIp(request), request.getHeader("User-Agent"));
+        adminService.revokeUserSessions(actor, userId, getClientIp(request), request.getHeader("User-Agent"), extractSession(request));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/users/{userId}/mfa/reset")
+    @Operation(summary = "Reset MFA for compromised user (SUPER_ADMIN only)")
+    public ResponseEntity<Void> resetUserMfa(
+            HttpServletRequest request,
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody com.interior.platform.security.mfa.dto.AdminResetMfaRequest req
+    ) {
+        ActorContext actor = extractActor(request);
+        adminService.adminResetMfa(actor, userId, req.reason(), extractSession(request));
         return ResponseEntity.noContent().build();
     }
 

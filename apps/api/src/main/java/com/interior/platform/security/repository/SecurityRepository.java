@@ -43,4 +43,19 @@ public interface SecurityRepository {
 
     void recordAuditEvent(UUID id, UUID studioId, UUID actorId, String action, String resourceType,
                           UUID resourceId, String requestId, String details, Instant timestamp);
+
+    void updateSessionMfaVerified(UUID sessionId, Instant mfaVerifiedAt, String assurance);
+    void revokeAllOtherUserSessions(UUID userId, UUID currentSessionId, Instant revokedAt);
+
+    Optional<com.interior.platform.security.mfa.MfaMethodRecord> findMfaMethodByUserId(UUID userId, String methodType);
+    void saveMfaMethod(com.interior.platform.security.mfa.MfaMethodRecord record);
+    void confirmMfaMethod(UUID userId, String methodType, Instant confirmedAt);
+    void disableMfaMethod(UUID userId, String methodType);
+    void recordFailedMfaAttempt(UUID userId, String methodType, int failedAttempts, Instant lockedUntil);
+    void resetFailedMfaAttempts(UUID userId, String methodType, long lastUsedCounter);
+
+    void saveRecoveryCodes(UUID userId, List<String> codeHashes);
+    int countUnusedRecoveryCodes(UUID userId);
+    boolean redeemRecoveryCode(UUID userId, String codeHash, Instant usedAt);
+    void deleteRecoveryCodes(UUID userId);
 }

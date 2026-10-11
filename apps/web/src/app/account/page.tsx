@@ -24,10 +24,20 @@ import { useAuth } from '@/lib/auth/auth-context';
 import {
   fetchActiveSessions,
   revokeActiveSession,
+  revokeAllOtherSessions,
   fetchCustomerInquiries,
   updateAccountProfile,
   requestAccountErasure,
 } from '@/lib/account/api';
+import {
+  fetchMfaStatus,
+  startMfaEnrollment,
+  confirmMfaEnrollment,
+  regenerateRecoveryCodes,
+  disableMfa,
+  MfaStatusDto,
+  MfaEnrollmentDto,
+} from '@/lib/auth/mfa-api';
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
@@ -102,6 +112,20 @@ export default function AccountPage() {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deletionSuccess, setDeletionSuccess] = useState(false);
 
+  // MFA state
+  const [mfaStatus, setMfaStatus] = useState<MfaStatusDto | null>(null);
+  const [loadingMfa, setLoadingMfa] = useState(false);
+  const [enrollmentData, setEnrollmentData] = useState<MfaEnrollmentDto | null>(null);
+  const [enrollmentCode, setEnrollmentCode] = useState('');
+  const [mfaError, setMfaError] = useState<string | null>(null);
+  const [mfaSuccess, setMfaSuccess] = useState<string | null>(null);
+  const [newRecoveryCodes, setNewRecoveryCodes] = useState<string[] | null>(null);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isConfirmingMfa, setIsConfirmingMfa] = useState(false);
+  const [isDisablingMfa, setIsDisablingMfa] = useState(false);
+  const [isRegeneratingCodes, setIsRegeneratingCodes] = useState(false);
+  const [revokingOtherSessions, setRevokingOtherSessions] = useState(false);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/sign-in?returnUrl=/account');
@@ -115,7 +139,7 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  // Load sessions when switching to security
+  // Load sessions and MFA when switching to security
   useEffect(() => {
     if (activeTab === 'security' && isAuthenticated) {
       setLoadingSessions(true);
@@ -123,8 +147,109 @@ export default function AccountPage() {
         .then(data => setSessions(data))
         .catch(() => {})
         .finally(() => setLoadingSessions(false));
+
+      setLoadingMfa(true);
+      fetchMfaStatus()
+        .then(status => setMfaStatus(status))
+        .catch(() => {})
+        .finally(() => setLoadingMfa(false));
     }
   }, [activeTab, isAuthenticated]);
+
+  const loadMfaStatus = async () => {
+    try {
+      const status = await fetchMfaStatus();
+      setMfaStatus(status);
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleStartEnrollment = async () => {
+    setMfaError(null);
+    setMfaSuccess(null);
+    setIsEnrolling(true);
+    try {
+      const res = await startMfaEnrollment();
+      setEnrollmentData(res);
+      setEnrollmentCode('');
+    } catch (err: any) {
+      setMfaError(err.message || 'Failed to start MFA enrollment');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const handleConfirmEnrollment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enrollmentCode.trim()) return;
+    setMfaError(null);
+    setIsConfirmingMfa(true);
+    try {
+      const res = await confirmMfaEnrollment(enrollmentCode.trim());
+      setNewRecoveryCodes(res.recoveryCodes);
+      setEnrollmentData(null);
+      setEnrollmentCode('');
+      setMfaSuccess('Multi-factor authentication enabled successfully.');
+      await loadMfaStatus();
+    } catch (err: any) {
+      setMfaError(err.message || 'Invalid verification code. Please check your authenticator application.');
+    } finally {
+      setIsConfirmingMfa(false);
+    }
+  };
+
+  const handleRegenerateCodes = async () => {
+    if (!window.confirm('Regenerating recovery codes will invalidate all existing unused recovery codes. Continue?')) {
+      return;
+    }
+    setMfaError(null);
+    setIsRegeneratingCodes(true);
+    try {
+      const res = await regenerateRecoveryCodes();
+      setNewRecoveryCodes(res.recoveryCodes);
+      setMfaSuccess('Backup recovery codes regenerated successfully.');
+      await loadMfaStatus();
+    } catch (err: any) {
+      setMfaError(err.message || 'Failed to regenerate recovery codes');
+    } finally {
+      setIsRegeneratingCodes(false);
+    }
+  };
+
+  const handleDisableMfa = async () => {
+    if (!window.confirm('Are you sure you want to disable multi-factor authentication? Elevated administrative capabilities will be blocked until re-enabled.')) {
+      return;
+    }
+    setMfaError(null);
+    setIsDisablingMfa(true);
+    try {
+      await disableMfa();
+      setNewRecoveryCodes(null);
+      setMfaSuccess('Multi-factor authentication disabled.');
+      await loadMfaStatus();
+    } catch (err: any) {
+      setMfaError(err.message || 'Failed to disable multi-factor authentication');
+    } finally {
+      setIsDisablingMfa(false);
+    }
+  };
+
+  const handleRevokeOtherSessions = async () => {
+    if (!window.confirm('Terminate all other active sessions across devices?')) {
+      return;
+    }
+    setRevokingOtherSessions(true);
+    try {
+      await revokeAllOtherSessions();
+      const updated = await fetchActiveSessions();
+      setSessions(updated);
+    } catch {
+      // Ignore
+    } finally {
+      setRevokingOtherSessions(false);
+    }
+  };
 
   // Load customer inquiries when switching to inquiries
   useEffect(() => {
@@ -497,6 +622,199 @@ export default function AccountPage() {
       {/* 2. SECURITY & SESSIONS */}
       {activeTab === 'security' && (
         <div className="space-y-6">
+          {/* Notifications / Alerts */}
+          {mfaError && (
+            <div className="p-4 bg-terracotta-50 border border-terracotta-200 rounded-xl text-xs text-terracotta-800 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-terracotta-600 shrink-0 mt-0.5" />
+              <span>{mfaError}</span>
+            </div>
+          )}
+          {mfaSuccess && (
+            <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl text-xs text-forest-800 flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-forest-600 shrink-0 mt-0.5" />
+              <span>{mfaSuccess}</span>
+            </div>
+          )}
+
+          {/* New Recovery Codes Modal / Banner */}
+          {newRecoveryCodes && (
+            <div className="p-5 bg-sand-50 border-2 border-bronze-400 rounded-2xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-bronze-700" />
+                <h3 className="font-serif text-base font-bold text-charcoal-900">
+                  Save Your One-Time Backup Recovery Codes
+                </h3>
+              </div>
+              <p className="text-xs text-charcoal-700">
+                These recovery codes are your emergency key if you lose access to your authenticator app. Store them safely. Each code can be used exactly once.
+              </p>
+              <div className="p-4 bg-white rounded-xl border border-sand-300 font-mono text-xs grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-charcoal-900 select-all">
+                {newRecoveryCodes.map((c, i) => (
+                  <span key={i} className="p-1.5 bg-sand-100 rounded">
+                    {c}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(newRecoveryCodes.join('\n'));
+                    alert('Recovery codes copied to clipboard');
+                  }}
+                  className="px-3 py-1.5 bg-charcoal-900 text-white rounded-lg text-xs font-medium hover:bg-charcoal-800 transition-colors"
+                >
+                  Copy Codes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewRecoveryCodes(null)}
+                  className="px-3 py-1.5 border border-sand-300 text-charcoal-700 rounded-lg text-xs font-medium hover:bg-sand-50 transition-colors"
+                >
+                  I Have Saved These Codes
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MFA Management Card */}
+          <div className="bg-white border border-sand-200 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-sand-200">
+              <div>
+                <h2 className="font-serif text-lg text-charcoal-900">
+                  Multi-Factor Authentication (MFA)
+                </h2>
+                <p className="text-xs text-charcoal-600 mt-1">
+                  Protect privileged actions with time-based one-time passwords (TOTP, RFC 6238).
+                </p>
+              </div>
+
+              {mfaStatus?.mfaEnabled ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
+                    <CheckCircle className="w-3.5 h-3.5 text-forest-700" />
+                    <span>Active (Authenticator App)</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDisableMfa}
+                    disabled={isDisablingMfa}
+                    className="px-3 py-1 border border-sand-300 text-charcoal-700 hover:bg-terracotta-50 hover:text-terracotta-700 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    {isDisablingMfa ? 'Disabling...' : 'Disable'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleStartEnrollment}
+                    disabled={isEnrolling || !!enrollmentData}
+                    className="px-4 py-2 bg-charcoal-900 text-white rounded-xl text-xs font-medium hover:bg-charcoal-800 transition-colors"
+                  >
+                    {isEnrolling ? 'Generating Secret...' : 'Set Up Two-Factor Auth'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Pending Enrollment Setup Form */}
+            {enrollmentData && (
+              <div className="p-5 bg-sand-50 rounded-xl border border-sand-300 space-y-4">
+                <div>
+                  <h3 className="font-serif text-sm font-bold text-charcoal-900">
+                    Step 1: Scan Authenticator QR / Enter Secret
+                  </h3>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    Open Google Authenticator, 1Password, or any RFC 6238 compatible app and configure your token:
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[11px] font-medium text-charcoal-500 uppercase tracking-wider block">
+                    Base32 Manual Entry Key
+                  </span>
+                  <div className="p-3 bg-white border border-sand-300 rounded-lg font-mono text-xs tracking-wider text-charcoal-900 select-all">
+                    {enrollmentData.secretBase32}
+                  </div>
+                  <span className="text-[10px] text-charcoal-500 block">
+                    Account: {user.email} | Issuer: Elégance
+                  </span>
+                </div>
+
+                <form onSubmit={handleConfirmEnrollment} className="space-y-3 pt-2 border-t border-sand-200">
+                  <label className="text-xs font-semibold text-charcoal-900 block">
+                    Step 2: Enter 6-digit confirmation code from your app
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={enrollmentCode}
+                      onChange={(e) => setEnrollmentCode(e.target.value.replace(/\D/g, ''))}
+                      className="px-3.5 py-2 border border-sand-300 rounded-lg font-mono text-base tracking-widest text-center w-36 focus:outline-none focus:ring-1 focus:ring-bronze-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isConfirmingMfa || enrollmentCode.length !== 6}
+                      className="px-4 py-2 bg-charcoal-900 text-white rounded-lg text-xs font-medium hover:bg-charcoal-800 disabled:opacity-50 transition-colors"
+                    >
+                      {isConfirmingMfa ? 'Verifying...' : 'Confirm & Activate'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnrollmentData(null)}
+                      className="px-3 py-2 border border-sand-300 text-charcoal-600 rounded-lg text-xs font-medium hover:bg-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Active MFA Details */}
+            {mfaStatus?.mfaEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="p-3 bg-sand-50 rounded-xl border border-sand-200">
+                  <span className="text-[11px] text-charcoal-500 block">Unused Backup Codes</span>
+                  <span className="font-mono text-sm font-bold text-charcoal-900">
+                    {mfaStatus.unusedRecoveryCodesCount} remaining
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateCodes}
+                    disabled={isRegeneratingCodes}
+                    className="text-[11px] font-medium text-bronze-700 hover:text-bronze-900 mt-2 block"
+                  >
+                    {isRegeneratingCodes ? 'Regenerating...' : 'Regenerate New Codes'}
+                  </button>
+                </div>
+
+                <div className="p-3 bg-sand-50 rounded-xl border border-sand-200">
+                  <span className="text-[11px] text-charcoal-500 block">Session Assurance</span>
+                  <span className="font-mono text-sm font-bold text-forest-700">
+                    {mfaStatus.sessionMfaVerified ? 'MFA_VERIFIED' : 'PRIMARY_AUTHENTICATED'}
+                  </span>
+                  <span className="text-[10px] text-charcoal-500 block mt-1">
+                    {mfaStatus.stepUpValidUntil ? `Step-up active until ${new Date(mfaStatus.stepUpValidUntil).toLocaleTimeString()}` : 'Standard session'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-sand-50 rounded-xl border border-sand-200">
+                  <span className="text-[11px] text-charcoal-500 block">Role MFA Policy</span>
+                  <span className="font-mono text-sm font-bold text-charcoal-900">
+                    {mfaStatus.mfaRequiredForRole ? 'MANDATORY (ADMIN)' : 'OPTIONAL'}
+                  </span>
+                  <span className="text-[10px] text-charcoal-500 block mt-1">
+                    Enforced on privileged operations
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white border border-sand-200 rounded-2xl p-6 shadow-sm space-y-6">
             <div>
               <h2 className="font-serif text-lg text-charcoal-900 pb-2 border-b border-sand-200">
@@ -504,20 +822,26 @@ export default function AccountPage() {
               </h2>
               <div className="p-4 bg-sand-50 rounded-xl border border-sand-200 mt-4 text-xs text-charcoal-700 leading-relaxed">
                 <p className="font-semibold text-charcoal-900 mb-1">Managed via External Identity Provider</p>
-                Platform authentication and password management are handled securely through your configured Single Sign-On (Google / OIDC) identity provider. Password changes and multi-factor credentials must be managed directly on your provider account.
+                Platform primary authentication is handled securely through your configured Single Sign-On (Google / OIDC PKCE) identity provider. Multi-factor authentication adds an independent cryptographic layer with encrypted TOTP secrets and backup recovery codes.
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-sand-200">
-                <h3 className="font-serif text-base text-charcoal-900">
-                  Active Cryptographic Sessions
-                </h3>
+                <div>
+                  <h3 className="font-serif text-base text-charcoal-900">
+                    Active Cryptographic Sessions
+                  </h3>
+                  <p className="text-[11px] text-charcoal-500">
+                    30-minute idle sliding expiration / 12-hour maximum lifetime
+                  </p>
+                </div>
                 <button
-                  onClick={revokeAllSessions}
+                  onClick={handleRevokeOtherSessions}
+                  disabled={revokingOtherSessions}
                   className="px-3 py-1.5 border border-terracotta-300 text-terracotta-700 hover:bg-terracotta-50 rounded-xl text-xs font-medium transition-colors"
                 >
-                  Revoke All Other Sessions
+                  {revokingOtherSessions ? 'Terminating...' : 'Revoke All Other Sessions'}
                 </button>
               </div>
 

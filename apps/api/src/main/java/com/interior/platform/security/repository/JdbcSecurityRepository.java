@@ -38,8 +38,18 @@ public class JdbcSecurityRepository implements SecurityRepository {
             rs.getTimestamp("idle_expires_at").toInstant(),
             rs.getTimestamp("absolute_expires_at").toInstant(),
             rs.getTimestamp("revoked_at") != null ? rs.getTimestamp("revoked_at").toInstant() : null,
-            rs.getString("device_label")
+            rs.getString("device_label"),
+            getTimestampOrNull(rs, "mfa_verified_at")
     );
+
+    private static Instant getTimestampOrNull(ResultSet rs, String column) {
+        try {
+            Timestamp ts = rs.getTimestamp(column);
+            return ts != null ? ts.toInstant() : null;
+        } catch (SQLException e) {
+            return null;
+        }
+    }
 
     private final RowMapper<UserRecord> userRowMapper = (rs, rowNum) -> new UserRecord(
             getUuid(rs, "id"),
@@ -68,8 +78,8 @@ public class JdbcSecurityRepository implements SecurityRepository {
 
     @Override
     public void createSession(SessionRecord session) {
-        String sql = "INSERT INTO identity_sessions (id, user_id, token_hash, csrf_hash, auth_time, assurance, last_seen_at, idle_expires_at, absolute_expires_at, revoked_at, device_label) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO identity_sessions (id, user_id, token_hash, csrf_hash, auth_time, assurance, last_seen_at, idle_expires_at, absolute_expires_at, revoked_at, device_label, mfa_verified_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
                 session.id(),
                 session.userId(),
@@ -81,7 +91,8 @@ public class JdbcSecurityRepository implements SecurityRepository {
                 Timestamp.from(session.idleExpiresAt()),
                 Timestamp.from(session.absoluteExpiresAt()),
                 session.revokedAt() != null ? Timestamp.from(session.revokedAt()) : null,
-                session.deviceLabel()
+                session.deviceLabel(),
+                session.mfaVerifiedAt() != null ? Timestamp.from(session.mfaVerifiedAt()) : null
         );
     }
 
@@ -330,5 +341,142 @@ public class JdbcSecurityRepository implements SecurityRepository {
         String sql = "INSERT INTO audit_events (id, studio_id, actor_id, action, resource_type, resource_id, request_id, details, timestamp) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql, id, studioId, actorId, action, resourceType, resourceId, requestId, details, Timestamp.from(timestamp));
+    }
+
+    private final RowMapper<com.interior.platform.security.mfa.MfaMethodRecord> mfaMethodRowMapper = (rs, rowNum) -> new com.interior.platform.security.mfa.MfaMethodRecord(
+            getUuid(rs, "id"),
+            getUuid(rs, "user_id"),
+            rs.getString("method_type"),
+            rs.getString("encrypted_secret"),
+            rs.getInt("key_version"),
+            rs.getString("status"),
+            getTimestampOrNull(rs, "pending_expires_at"),
+            getTimestampOrNull(rs, "confirmed_at"),
+            rs.getObject("last_used_counter") != null ? rs.getLong("last_used_counter") : null,
+            rs.getInt("failed_attempts"),
+            getTimestampOrNull(rs, "locked_until"),
+            rs.getTimestamp("created_at").toInstant(),
+            rs.getTimestamp("updated_at").toInstant()
+    );
+
+    @Override
+    public void updateSessionMfaVerified(UUID sessionId, Instant mfaVerifiedAt, String assurance) {
+        String sql = "UPDATE identity_sessions SET mfa_verified_at = ?, assurance = ? WHERE id = ?";
+        jdbcTemplate.update(sql, Timestamp.from(mfaVerifiedAt), assurance, sessionId);
+    }
+
+    @Override
+    public void revokeAllOtherUserSessions(UUID userId, UUID currentSessionId, Instant revokedAt) {
+        String sql = "UPDATE identity_sessions SET revoked_at = ? WHERE user_id = ? AND id != ? AND revoked_at IS NULL";
+        jdbcTemplate.update(sql, Timestamp.from(revokedAt), userId, currentSessionId);
+    }
+
+    @Override
+    public Optional<com.interior.platform.security.mfa.MfaMethodRecord> findMfaMethodByUserId(UUID userId, String methodType) {
+        String sql = "SELECT * FROM identity_mfa_methods WHERE user_id = ? AND method_type = ?";
+        try {
+            return Optional.ofNullable(jdbcTemplate.queryForObject(sql, mfaMethodRowMapper, userId, methodType));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void saveMfaMethod(com.interior.platform.security.mfa.MfaMethodRecord record) {
+        Optional<com.interior.platform.security.mfa.MfaMethodRecord> existing = findMfaMethodByUserId(record.userId(), record.methodType());
+        if (existing.isPresent()) {
+            String updateSql = """
+                UPDATE identity_mfa_methods
+                SET encrypted_secret = ?, key_version = ?, status = ?, pending_expires_at = ?,
+                    confirmed_at = ?, last_used_counter = ?, failed_attempts = 0, locked_until = NULL, updated_at = ?
+                WHERE user_id = ? AND method_type = ?
+            """;
+            jdbcTemplate.update(updateSql,
+                    record.encryptedSecret(),
+                    record.keyVersion(),
+                    record.status(),
+                    record.pendingExpiresAt() != null ? Timestamp.from(record.pendingExpiresAt()) : null,
+                    record.confirmedAt() != null ? Timestamp.from(record.confirmedAt()) : null,
+                    record.lastUsedCounter(),
+                    Timestamp.from(record.updatedAt()),
+                    record.userId(),
+                    record.methodType()
+            );
+        } else {
+            String insertSql = """
+                INSERT INTO identity_mfa_methods (id, user_id, method_type, encrypted_secret, key_version, status,
+                                                  pending_expires_at, confirmed_at, last_used_counter, failed_attempts,
+                                                  locked_until, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+            jdbcTemplate.update(insertSql,
+                    record.id(),
+                    record.userId(),
+                    record.methodType(),
+                    record.encryptedSecret(),
+                    record.keyVersion(),
+                    record.status(),
+                    record.pendingExpiresAt() != null ? Timestamp.from(record.pendingExpiresAt()) : null,
+                    record.confirmedAt() != null ? Timestamp.from(record.confirmedAt()) : null,
+                    record.lastUsedCounter(),
+                    record.failedAttempts(),
+                    record.lockedUntil() != null ? Timestamp.from(record.lockedUntil()) : null,
+                    Timestamp.from(record.createdAt()),
+                    Timestamp.from(record.updatedAt())
+            );
+        }
+    }
+
+    @Override
+    public void confirmMfaMethod(UUID userId, String methodType, Instant confirmedAt) {
+        String sql = "UPDATE identity_mfa_methods SET status = 'ACTIVE', confirmed_at = ?, pending_expires_at = NULL, failed_attempts = 0, locked_until = NULL, updated_at = ? WHERE user_id = ? AND method_type = ?";
+        jdbcTemplate.update(sql, Timestamp.from(confirmedAt), Timestamp.from(confirmedAt), userId, methodType);
+    }
+
+    @Override
+    public void disableMfaMethod(UUID userId, String methodType) {
+        String sql = "UPDATE identity_mfa_methods SET status = 'DISABLED', updated_at = ? WHERE user_id = ? AND method_type = ?";
+        jdbcTemplate.update(sql, Timestamp.from(Instant.now()), userId, methodType);
+    }
+
+    @Override
+    public void recordFailedMfaAttempt(UUID userId, String methodType, int failedAttempts, Instant lockedUntil) {
+        String sql = "UPDATE identity_mfa_methods SET failed_attempts = ?, locked_until = ?, updated_at = ? WHERE user_id = ? AND method_type = ?";
+        jdbcTemplate.update(sql, failedAttempts, lockedUntil != null ? Timestamp.from(lockedUntil) : null, Timestamp.from(Instant.now()), userId, methodType);
+    }
+
+    @Override
+    public void resetFailedMfaAttempts(UUID userId, String methodType, long lastUsedCounter) {
+        String sql = "UPDATE identity_mfa_methods SET failed_attempts = 0, locked_until = NULL, last_used_counter = ?, updated_at = ? WHERE user_id = ? AND method_type = ?";
+        jdbcTemplate.update(sql, lastUsedCounter, Timestamp.from(Instant.now()), userId, methodType);
+    }
+
+    @Override
+    public void saveRecoveryCodes(UUID userId, List<String> codeHashes) {
+        jdbcTemplate.update("DELETE FROM identity_recovery_codes WHERE user_id = ?", userId);
+        String sql = "INSERT INTO identity_recovery_codes (id, user_id, code_hash, used_at, created_at) VALUES (?, ?, ?, NULL, ?)";
+        Instant now = Instant.now();
+        for (String hash : codeHashes) {
+            jdbcTemplate.update(sql, com.interior.platform.common.util.UuidV7.randomUuid(), userId, hash, Timestamp.from(now));
+        }
+    }
+
+    @Override
+    public int countUnusedRecoveryCodes(UUID userId) {
+        String sql = "SELECT count(*) FROM identity_recovery_codes WHERE user_id = ? AND used_at IS NULL";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public boolean redeemRecoveryCode(UUID userId, String codeHash, Instant usedAt) {
+        String sql = "UPDATE identity_recovery_codes SET used_at = ? WHERE user_id = ? AND code_hash = ? AND used_at IS NULL";
+        int updated = jdbcTemplate.update(sql, Timestamp.from(usedAt), userId, codeHash);
+        return updated > 0;
+    }
+
+    @Override
+    public void deleteRecoveryCodes(UUID userId) {
+        jdbcTemplate.update("DELETE FROM identity_recovery_codes WHERE user_id = ?", userId);
     }
 }

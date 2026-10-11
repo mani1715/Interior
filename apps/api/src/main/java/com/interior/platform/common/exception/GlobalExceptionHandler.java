@@ -28,6 +28,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    @ExceptionHandler(com.interior.platform.security.mfa.MfaStepUpRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleMfaStepUpRequired(com.interior.platform.security.mfa.MfaStepUpRequiredException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("MFA_STEP_UP_REQUIRED", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(com.interior.platform.security.mfa.MfaRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleMfaRequired(com.interior.platform.security.mfa.MfaRequiredException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("MFA_REQUIRED", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(com.interior.platform.security.mfa.MfaEnrollmentRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleMfaEnrollmentRequired(com.interior.platform.security.mfa.MfaEnrollmentRequiredException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("MFA_ENROLLMENT_REQUIRED", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(com.interior.platform.security.mfa.MfaLockedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMfaLocked(com.interior.platform.security.mfa.MfaLockedException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ApiErrorResponse body = ApiErrorResponse.of("MFA_LOCKED_TEMPORARILY", ex.getMessage(), requestId);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         String requestId = getRequestId(request);

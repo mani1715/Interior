@@ -147,6 +147,118 @@ public class AuthSecurityProperties {
         this.devAuthEnabled = devAuthEnabled;
     }
 
+    private MfaProperties mfa = new MfaProperties();
+
+    public static class MfaProperties {
+        private boolean enabled = true;
+        private String encryptionKey = "elegance-default-dev-mfa-key-32b!"; // 32 bytes for dev/test
+        private int currentKeyVersion = 1;
+        private String issuer = "Elégance";
+        private int pendingEnrollmentTtlSeconds = 600; // 10 minutes
+        private int stepUpFreshnessSeconds = 900; // 15 minutes
+        private int allowedClockSkewSteps = 1; // ±1 step = ±30s
+        private int maxFailedAttempts = 5;
+        private int lockoutDurationSeconds = 900; // 15 minutes
+        private int recoveryCodesCount = 10;
+        private boolean moderatorMfaRequired = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+
+        public int getCurrentKeyVersion() {
+            return currentKeyVersion;
+        }
+
+        public void setCurrentKeyVersion(int currentKeyVersion) {
+            this.currentKeyVersion = currentKeyVersion;
+        }
+
+        public String getIssuer() {
+            return issuer;
+        }
+
+        public void setIssuer(String issuer) {
+            this.issuer = issuer;
+        }
+
+        public int getPendingEnrollmentTtlSeconds() {
+            return pendingEnrollmentTtlSeconds;
+        }
+
+        public void setPendingEnrollmentTtlSeconds(int pendingEnrollmentTtlSeconds) {
+            this.pendingEnrollmentTtlSeconds = pendingEnrollmentTtlSeconds;
+        }
+
+        public int getStepUpFreshnessSeconds() {
+            return stepUpFreshnessSeconds;
+        }
+
+        public void setStepUpFreshnessSeconds(int stepUpFreshnessSeconds) {
+            this.stepUpFreshnessSeconds = stepUpFreshnessSeconds;
+        }
+
+        public int getAllowedClockSkewSteps() {
+            return allowedClockSkewSteps;
+        }
+
+        public void setAllowedClockSkewSteps(int allowedClockSkewSteps) {
+            this.allowedClockSkewSteps = allowedClockSkewSteps;
+        }
+
+        public int getMaxFailedAttempts() {
+            return maxFailedAttempts;
+        }
+
+        public void setMaxFailedAttempts(int maxFailedAttempts) {
+            this.maxFailedAttempts = maxFailedAttempts;
+        }
+
+        public int getLockoutDurationSeconds() {
+            return lockoutDurationSeconds;
+        }
+
+        public void setLockoutDurationSeconds(int lockoutDurationSeconds) {
+            this.lockoutDurationSeconds = lockoutDurationSeconds;
+        }
+
+        public int getRecoveryCodesCount() {
+            return recoveryCodesCount;
+        }
+
+        public void setRecoveryCodesCount(int recoveryCodesCount) {
+            this.recoveryCodesCount = recoveryCodesCount;
+        }
+
+        public boolean isModeratorMfaRequired() {
+            return moderatorMfaRequired;
+        }
+
+        public void setModeratorMfaRequired(boolean moderatorMfaRequired) {
+            this.moderatorMfaRequired = moderatorMfaRequired;
+        }
+    }
+
+    public MfaProperties getMfa() {
+        return mfa;
+    }
+
+    public void setMfa(MfaProperties mfa) {
+        this.mfa = mfa;
+    }
+
     public OidcProperties getOidc() {
         return oidc;
     }

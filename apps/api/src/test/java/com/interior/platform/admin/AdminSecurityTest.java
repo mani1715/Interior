@@ -154,7 +154,7 @@ class AdminSecurityTest {
     void adminCanSuspendUserWithAudit() {
         UUID targetUserId = UUID.randomUUID();
         when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetUserId, "Normal User", "user@test.local", null, "ACTIVE", null, Instant.now(), Set.of("CUSTOMER"), List.of(), 1
+                targetUserId, "Normal User", "user@test.local", null, "ACTIVE", null, Instant.now(), Set.of("CUSTOMER"), List.of(), 1, false
         )));
 
         UpdateUserStatusRequest req = new UpdateUserStatusRequest("SUSPENDED", "Policy violation");
@@ -180,7 +180,7 @@ class AdminSecurityTest {
     void adminCannotSuspendSelf() {
         UpdateUserStatusRequest req = new UpdateUserStatusRequest("SUSPENDED", "Self suspension attempt");
         when(adminRepository.getUserDetail(adminActor.userId())).thenReturn(Optional.of(new AdminUserDetailDto(
-                adminActor.userId(), "Admin User", "admin@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("ADMIN"), List.of(), 1
+                adminActor.userId(), "Admin User", "admin@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("ADMIN"), List.of(), 1, true
         )));
 
         assertThrows(IllegalArgumentException.class, () ->
@@ -192,7 +192,7 @@ class AdminSecurityTest {
     void normalAdminCannotSuspendSuperAdmin() {
         UUID targetId = superAdminActor.userId();
         when(adminRepository.getUserDetail(targetId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetId, "Super Admin", "super@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1
+                targetId, "Super Admin", "super@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1, true
         )));
 
         assertThrows(AccessDeniedException.class, () ->
@@ -204,7 +204,7 @@ class AdminSecurityTest {
     void cannotSuspendLastSuperAdmin() {
         UUID targetId = UUID.randomUUID();
         when(adminRepository.getUserDetail(targetId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetId, "Super Admin 1", "super1@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1
+                targetId, "Super Admin 1", "super1@platform.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1, true
         )));
         when(adminRepository.countActiveSuperAdmins()).thenReturn(1L);
 
@@ -242,7 +242,7 @@ class AdminSecurityTest {
     void superAdminCanUpdateUserRole() {
         UUID targetUserId = UUID.randomUUID();
         when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetUserId, "User B", "b@test.local", null, "ACTIVE", null, Instant.now(), Set.of("DESIGNER"), List.of(), 1
+                targetUserId, "User B", "b@test.local", null, "ACTIVE", null, Instant.now(), Set.of("DESIGNER"), List.of(), 1, false
         )));
 
         UpdateUserRoleRequest req = new UpdateUserRoleRequest("ADMIN");
@@ -282,7 +282,7 @@ class AdminSecurityTest {
     void cannotDemoteLastSuperAdmin() {
         UUID targetUserId = UUID.randomUUID();
         when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetUserId, "Sole Super Admin", "sole@test.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1
+                targetUserId, "Sole Super Admin", "sole@test.local", null, "ACTIVE", null, Instant.now(), Set.of("SUPER_ADMIN"), List.of(), 1, true
         )));
         when(adminRepository.countActiveSuperAdmins()).thenReturn(1L);
 
@@ -295,7 +295,7 @@ class AdminSecurityTest {
     void superAdminCanRevokeUserSessions() {
         UUID targetUserId = UUID.randomUUID();
         when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
-                targetUserId, "User C", "c@test.local", null, "ACTIVE", null, Instant.now(), Set.of("CUSTOMER"), List.of(), 2
+                targetUserId, "User C", "c@test.local", null, "ACTIVE", null, Instant.now(), Set.of("CUSTOMER"), List.of(), 2, false
         )));
 
         adminService.revokeUserSessions(superAdminActor, targetUserId, "127.0.0.1", "TestAgent");

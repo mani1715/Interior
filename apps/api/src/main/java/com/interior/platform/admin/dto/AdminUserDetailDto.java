@@ -15,5 +15,6 @@ public record AdminUserDetailDto(
         Instant createdAt,
         Set<String> roles,
         List<String> studioMemberships,
-        int activeSessionsCount
+        int activeSessionsCount,
+        boolean mfaEnabled
 ) {}

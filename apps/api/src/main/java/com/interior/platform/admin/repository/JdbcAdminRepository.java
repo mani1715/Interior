@@ -168,6 +168,10 @@ public class JdbcAdminRepository implements AdminRepository {
                 String sessionsSql = "SELECT COUNT(*) FROM identity_sessions WHERE user_id = ? AND revoked_at IS NULL AND idle_expires_at > now() AND absolute_expires_at > now()";
                 Long activeSessions = jdbcTemplate.queryForObject(sessionsSql, Long.class, userId);
 
+                String mfaSql = "SELECT COUNT(*) FROM identity_mfa_methods WHERE user_id = ? AND status = 'ACTIVE'";
+                Long activeMfa = jdbcTemplate.queryForObject(mfaSql, Long.class, userId);
+                boolean mfaEnabled = activeMfa != null && activeMfa > 0;
+
                 return new AdminUserDetailDto(
                         userId,
                         displayName,
@@ -178,7 +182,8 @@ public class JdbcAdminRepository implements AdminRepository {
                         createdAt,
                         roles,
                         studioNames,
-                        activeSessions != null ? activeSessions.intValue() : 0
+                        activeSessions != null ? activeSessions.intValue() : 0,
+                        mfaEnabled
                 );
             }, userId));
         } catch (EmptyResultDataAccessException e) {

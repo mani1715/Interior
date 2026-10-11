@@ -67,11 +67,13 @@ Current completed milestone:
 
 - Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy Hardening (Flyway V036, `ai_cost_ledger` table with RLS tenant isolation, multi-currency provider accounting, `TIMED_OUT` job state, atomic quota reservation with `GENERATION_RESERVED` and `RESERVATION_REFUNDED`, locked 20 generations/studio/day limit reset at 00:00 UTC, four-tier budget guards with global/studio kill switches and monthly spend ceilings, autonomous stuck-job recovery, 505/505 Backend PASS, 33/33 PostgreSQL 18.3 RLS PASS across 9 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 9D: Admin MFA, Account Security, Session Assurance & Recovery Architecture (Flyway V037, `identity_mfa_methods` and `identity_recovery_codes` tables with strict uniqueness & RLS user isolation, RFC 6238 TOTP with AES-256-GCM encrypted secrets at rest and key versioning, 10 one-time SHA-256 hashed recovery codes with atomic single-use redemption, session `mfa_verified_at` elevation to `MFA_VERIFIED`, 15-minute step-up freshness requirement on privileged actions, Super Admin emergency reset with audit & session termination, self-bypass defense, user self-service TOTP enrollment and backup code regeneration, revoke all other active sessions endpoint, 508/508 Backend PASS, 36/36 PostgreSQL 18.3 RLS PASS across 10 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
+
 Current Flyway:
-V036 (`V036__ai_cost_ledger_and_production_controls.sql`)
+V037 (`V037__admin_mfa_and_account_security.sql`)
 
 Whole-Product Release Status:
-PRODUCTION AI USAGE, COST CONTROLS & PRIVACY PRODUCTIONIZED (AI PROVIDER & BUDGET DECISIONS PENDING)
+ADMIN MFA, ACCOUNT SECURITY & RECOVERY COMPLETED (PHASE 9D VERIFIED)
 
 Next planned milestone:
 Phase 9D Admin MFA + Account Security + Recovery Architecture.

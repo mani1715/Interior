@@ -171,6 +171,31 @@ public class AccountController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
+    @PostMapping("/sessions/revoke-others")
+    @Operation(summary = "Revoke all other active sessions", description = "Terminates all active sessions except the current session")
+    public ResponseEntity<Map<String, Boolean>> revokeOtherSessions(HttpServletRequest request) {
+        ActorContext actor = getActor(request);
+        SessionRecord currentSession = getSession(request);
+        if (currentSession != null) {
+            securityRepository.revokeAllOtherUserSessions(actor.userId(), currentSession.id(), Instant.now());
+        }
+
+        auditService.record(
+                actor.userId(),
+                actor.activeStudioId(),
+                "OTHER_SESSIONS_REVOKED",
+                "USER",
+                actor.userId().toString(),
+                Map.of(),
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+
+        sendSecurityEmail(actor.userId(), "Other Sessions Revoked", "All other active sessions on your account were terminated.", "/account");
+
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
     @PostMapping("/deactivate")
     @Operation(summary = "Deactivate account", description = "Deactivates account and terminates all active sessions")
     public ResponseEntity<Map<String, Boolean>> deactivateAccount(

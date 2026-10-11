@@ -41,6 +41,7 @@ public class AdminService {
     private final CommunicationDeliveryRepository communicationDeliveryRepository;
     private final TransactionalEmailService transactionalEmailService;
     private final JdbcTemplate jdbcTemplate;
+    private final com.interior.platform.security.mfa.MfaService mfaService;
 
     @org.springframework.beans.factory.annotation.Autowired
     public AdminService(
@@ -53,7 +54,8 @@ public class AdminService {
             AiVisualizerService aiVisualizerService,
             CommunicationDeliveryRepository communicationDeliveryRepository,
             TransactionalEmailService transactionalEmailService,
-            JdbcTemplate jdbcTemplate
+            JdbcTemplate jdbcTemplate,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) com.interior.platform.security.mfa.MfaService mfaService
     ) {
         this.adminRepository = adminRepository;
         this.authorizationService = authorizationService;
@@ -65,6 +67,22 @@ public class AdminService {
         this.communicationDeliveryRepository = communicationDeliveryRepository;
         this.transactionalEmailService = transactionalEmailService;
         this.jdbcTemplate = jdbcTemplate;
+        this.mfaService = mfaService;
+    }
+
+    public AdminService(
+            AdminRepository adminRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            RateLimiterService rateLimiterService,
+            SecurityRepository securityRepository,
+            MediaService mediaService,
+            AiVisualizerService aiVisualizerService,
+            CommunicationDeliveryRepository communicationDeliveryRepository,
+            TransactionalEmailService transactionalEmailService,
+            JdbcTemplate jdbcTemplate
+    ) {
+        this(adminRepository, authorizationService, auditService, rateLimiterService, securityRepository, mediaService, aiVisualizerService, communicationDeliveryRepository, transactionalEmailService, jdbcTemplate, null);
     }
 
     public AdminService(
@@ -73,23 +91,44 @@ public class AdminService {
             AuditService auditService,
             RateLimiterService rateLimiterService
     ) {
-        this(adminRepository, authorizationService, auditService, rateLimiterService, null, null, null, null, null, null);
+        this(adminRepository, authorizationService, auditService, rateLimiterService, null, null, null, null, null, null, null);
     }
 
-    private void requireAdmin(ActorContext actor) {
+    private void requireAdmin(ActorContext actor, com.interior.platform.security.domain.SessionRecord session) {
         authorizationService.requirePlatformRole(actor, "ADMIN");
+        if (mfaService != null) {
+            mfaService.requireMfaVerifiedForAdmin(actor, session);
+        }
     }
 
-    private void requireSuperAdmin(ActorContext actor) {
+    private void requireSuperAdmin(ActorContext actor, com.interior.platform.security.domain.SessionRecord session) {
         authorizationService.requireSuperAdmin(actor);
+        if (mfaService != null) {
+            mfaService.requireMfaVerifiedForAdmin(actor, session);
+        }
     }
 
-    private void requireModeratorOrAdmin(ActorContext actor) {
+    private void requireModeratorOrAdmin(ActorContext actor, com.interior.platform.security.domain.SessionRecord session) {
         authorizationService.requireAuthenticated(actor);
         authorizationService.requireActiveUser(actor);
         if (!actor.hasRole("ADMIN") && !actor.hasRole("SUPER_ADMIN") && !actor.hasRole("MODERATOR")) {
             throw new AccessDeniedException("Platform administrator or moderator privileges required");
         }
+        if (mfaService != null) {
+            mfaService.requireMfaVerifiedForAdmin(actor, session);
+        }
+    }
+
+    private void requireAdmin(ActorContext actor) {
+        requireAdmin(actor, null);
+    }
+
+    private void requireSuperAdmin(ActorContext actor) {
+        requireSuperAdmin(actor, null);
+    }
+
+    private void requireModeratorOrAdmin(ActorContext actor) {
+        requireModeratorOrAdmin(actor, null);
     }
 
     // 1. Dashboard
@@ -158,8 +197,11 @@ public class AdminService {
     }
 
     @Transactional
-    public void updateUserRole(ActorContext actor, UUID userId, UpdateUserRoleRequest req, String ip, String ua) {
-        requireSuperAdmin(actor);
+    public void updateUserRole(ActorContext actor, UUID userId, UpdateUserRoleRequest req, String ip, String ua, com.interior.platform.security.domain.SessionRecord session) {
+        requireSuperAdmin(actor, session);
+        if (mfaService != null) {
+            mfaService.requireFreshStepUp(actor, session);
+        }
         rateLimiterService.acquire("admin:user_role:" + actor.userId(), 20, Duration.ofMinutes(1));
 
         // Self-role modification protection
@@ -193,12 +235,21 @@ public class AdminService {
         );
     }
 
-    @Transactional
-    public void revokeUserSessions(ActorContext actor, UUID userId, String ip, String ua) {
-        requireSuperAdmin(actor);
-        rateLimiterService.acquire("admin:revoke_sessions:" + actor.userId(), 20, Duration.ofMinutes(1));
+    public void updateUserRole(ActorContext actor, UUID userId, UpdateUserRoleRequest req, String ip, String ua) {
+        updateUserRole(actor, userId, req, ip, ua, null);
+    }
 
-        getUserDetail(actor, userId); // validates existence
+    @Transactional
+    public void revokeUserSessions(ActorContext actor, UUID userId, String ip, String ua, com.interior.platform.security.domain.SessionRecord session) {
+        requireSuperAdmin(actor, session);
+        AdminUserDetailDto target = getUserDetail(actor, userId); // validates existence
+
+        // If target is an admin, require fresh step-up
+        if (mfaService != null && (target.roles().contains("ADMIN") || target.roles().contains("SUPER_ADMIN"))) {
+            mfaService.requireFreshStepUp(actor, session);
+        }
+
+        rateLimiterService.acquire("admin:revoke_sessions:" + actor.userId(), 20, Duration.ofMinutes(1));
 
         securityRepository.revokeAllUserSessions(userId, Instant.now());
 
@@ -212,6 +263,19 @@ public class AdminService {
                 ip,
                 ua
         );
+    }
+
+    public void revokeUserSessions(ActorContext actor, UUID userId, String ip, String ua) {
+        revokeUserSessions(actor, userId, ip, ua, null);
+    }
+
+    @Transactional
+    public void adminResetMfa(ActorContext actor, UUID targetUserId, String reason, com.interior.platform.security.domain.SessionRecord session) {
+        requireSuperAdmin(actor, session);
+        if (mfaService != null) {
+            mfaService.requireFreshStepUp(actor, session);
+            mfaService.adminResetMfa(actor, targetUserId, reason);
+        }
     }
 
     // 3. Studios
