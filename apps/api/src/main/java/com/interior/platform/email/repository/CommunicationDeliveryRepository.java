@@ -12,6 +12,8 @@ public interface CommunicationDeliveryRepository {
     void save(CommunicationDeliveryRecord record);
     Optional<CommunicationDeliveryRecord> findById(UUID id);
     Optional<CommunicationDeliveryRecord> findByIdempotencyKey(String idempotencyKey);
+    Optional<CommunicationDeliveryRecord> findByProviderMessageId(String providerMessageId);
     List<CommunicationDeliveryRecord> findByStudioId(UUID studioId, int limit, int offset);
     void updateStatus(UUID id, DeliveryStatus status, String providerMessageId, int attemptCount, String lastError, Instant nextRetryAt, Instant deliveredAt);
+    List<CommunicationDeliveryRecord> claimNextRetryBatch(int batchSize, Instant now);
 }

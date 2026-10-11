@@ -138,4 +138,159 @@ public class EmailTemplateService {
 
         return new RenderedEmail(subject, textBody, htmlBody);
     }
+
+    public RenderedEmail renderSubscriptionActivated(String studioName, String planName, String relativeBillingUrl) {
+        String safeStudio = HtmlUtils.htmlEscape(studioName != null ? studioName : "Studio");
+        String safePlan = HtmlUtils.htmlEscape(planName != null ? planName : "Commercial Plan");
+        String fullUrl = baseUrl + (relativeBillingUrl.startsWith("/") ? relativeBillingUrl : "/" + relativeBillingUrl);
+
+        String subject = "Subscription activated for " + (studioName != null ? studioName : "your studio");
+        String textBody = String.format(
+                "Your subscription to %s has been activated for %s.\n\n" +
+                "Manage your subscription and view entitlements:\n%s",
+                planName, studioName, fullUrl
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Subscription Activated</h2>
+              <p>Your subscription to <strong>%s</strong> is now active for <strong>%s</strong>.</p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View Plan & Usage</a>
+              </div>
+            </body>
+            </html>
+            """, safePlan, safeStudio, fullUrl);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
+
+    public RenderedEmail renderPaymentFailed(String studioName, String planName, String graceEndDateFormatted, String relativeBillingUrl) {
+        String safeStudio = HtmlUtils.htmlEscape(studioName != null ? studioName : "Studio");
+        String safePlan = HtmlUtils.htmlEscape(planName != null ? planName : "Commercial Plan");
+        String safeGraceDate = HtmlUtils.htmlEscape(graceEndDateFormatted != null ? graceEndDateFormatted : "the grace period deadline");
+        String fullUrl = baseUrl + (relativeBillingUrl.startsWith("/") ? relativeBillingUrl : "/" + relativeBillingUrl);
+
+        String subject = "Payment action required: Subscription payment failed for " + (studioName != null ? studioName : "your studio");
+        String textBody = String.format(
+                "Payment for your %s subscription (%s) could not be processed.\n\n" +
+                "A grace period has begun until %s. To prevent service disruption, please update your payment method:\n%s",
+                planName, studioName, graceEndDateFormatted, fullUrl
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #c53030;">Payment Action Required</h2>
+              <p>Payment for your <strong>%s</strong> subscription (%s) could not be processed.</p>
+              <p>A grace period is active until <strong>%s</strong>. Your portfolio and projects remain fully intact.</p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #c53030; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Update Payment Method</a>
+              </div>
+            </body>
+            </html>
+            """, safePlan, safeStudio, safeGraceDate, fullUrl);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
+
+    public RenderedEmail renderSubscriptionRenewed(String studioName, String planName, String nextPeriodFormatted, String relativeBillingUrl) {
+        String safeStudio = HtmlUtils.htmlEscape(studioName != null ? studioName : "Studio");
+        String safePlan = HtmlUtils.htmlEscape(planName != null ? planName : "Commercial Plan");
+        String safePeriod = HtmlUtils.htmlEscape(nextPeriodFormatted != null ? nextPeriodFormatted : "");
+        String fullUrl = baseUrl + (relativeBillingUrl.startsWith("/") ? relativeBillingUrl : "/" + relativeBillingUrl);
+
+        String subject = "Subscription renewed: " + (studioName != null ? studioName : "your studio");
+        String textBody = String.format(
+                "Your subscription to %s for %s has been renewed successfully.\n" +
+                "Next renewal: %s\n\n" +
+                "View invoices and usage:\n%s",
+                planName, studioName, nextPeriodFormatted, fullUrl
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Subscription Renewed</h2>
+              <p>Your subscription to <strong>%s</strong> for <strong>%s</strong> has renewed.</p>
+              <p>Next period ends: <strong>%s</strong></p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View Billing Details</a>
+              </div>
+            </body>
+            </html>
+            """, safePlan, safeStudio, safePeriod, fullUrl);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
+
+    public RenderedEmail renderCancelAtPeriodEnd(String studioName, String planName, String accessUntilFormatted, String relativeBillingUrl) {
+        String safeStudio = HtmlUtils.htmlEscape(studioName != null ? studioName : "Studio");
+        String safePlan = HtmlUtils.htmlEscape(planName != null ? planName : "Commercial Plan");
+        String safeDate = HtmlUtils.htmlEscape(accessUntilFormatted != null ? accessUntilFormatted : "end of billing cycle");
+        String fullUrl = baseUrl + (relativeBillingUrl.startsWith("/") ? relativeBillingUrl : "/" + relativeBillingUrl);
+
+        String subject = "Subscription scheduled for cancellation: " + (studioName != null ? studioName : "your studio");
+        String textBody = String.format(
+                "Your subscription to %s for %s is scheduled to end on %s.\n\n" +
+                "You have full access to your plan until this date. All project data and photos remain permanently preserved.\n\n" +
+                "Manage your subscription:\n%s",
+                planName, studioName, accessUntilFormatted, fullUrl
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Cancellation Scheduled</h2>
+              <p>Your <strong>%s</strong> subscription for <strong>%s</strong> will end on <strong>%s</strong>.</p>
+              <p>You retain full premium features until that date. All your studio data remains intact.</p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Manage Subscription</a>
+              </div>
+            </body>
+            </html>
+            """, safePlan, safeStudio, safeDate, fullUrl);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
+
+    public RenderedEmail renderSecurityAlert(String userName, String eventTitle, String eventDetails, String relativeSecurityUrl) {
+        String safeUser = HtmlUtils.htmlEscape(userName != null ? userName : "User");
+        String safeTitle = HtmlUtils.htmlEscape(eventTitle != null ? eventTitle : "Security Alert");
+        String safeDetails = HtmlUtils.htmlEscape(eventDetails != null ? eventDetails : "");
+        String fullUrl = baseUrl + (relativeSecurityUrl.startsWith("/") ? relativeSecurityUrl : "/" + relativeSecurityUrl);
+
+        String subject = "Security notification: " + (eventTitle != null ? eventTitle : "Account update");
+        String textBody = String.format(
+                "Hello %s,\n\n" +
+                "A security action was performed on your account: %s\n" +
+                "%s\n\n" +
+                "If this was not you, please review your active sessions immediately:\n%s",
+                userName, eventTitle, eventDetails != null ? eventDetails : "", fullUrl
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Security Alert: %s</h2>
+              <p>Hello <strong>%s</strong>,</p>
+              <p>A security event occurred on your account: <em>%s</em></p>
+              %s
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Review Account Security</a>
+              </div>
+            </body>
+            </html>
+            """, safeTitle, safeUser, safeTitle,
+                !safeDetails.isBlank() ? "<p style=\"color: #555;\">" + safeDetails + "</p>" : "",
+                fullUrl);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
 }

@@ -19,6 +19,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.interior.platform.email.service.CommunicationDeliveryService;
+import com.interior.platform.email.service.EmailTemplateService;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,19 +37,25 @@ public class AccountController {
     private final AuthorizationService authorizationService;
     private final LeadRepository leadRepository;
     private final AuditService auditService;
+    private final CommunicationDeliveryService communicationDeliveryService;
+    private final EmailTemplateService emailTemplateService;
 
     public AccountController(
             SecurityRepository securityRepository,
             SessionSecurityService sessionSecurityService,
             AuthorizationService authorizationService,
             LeadRepository leadRepository,
-            AuditService auditService
+            AuditService auditService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) CommunicationDeliveryService communicationDeliveryService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false) EmailTemplateService emailTemplateService
     ) {
         this.securityRepository = securityRepository;
         this.sessionSecurityService = sessionSecurityService;
         this.authorizationService = authorizationService;
         this.leadRepository = leadRepository;
         this.auditService = auditService;
+        this.communicationDeliveryService = communicationDeliveryService;
+        this.emailTemplateService = emailTemplateService;
     }
 
     private ActorContext getActor(HttpServletRequest request) {
@@ -157,6 +165,9 @@ public class AccountController {
         }
 
         sessionSecurityService.revokeSession(id);
+
+        sendSecurityEmail(actor.userId(), "Session Revoked", "An active session on your account was revoked.", "/account");
+
         return ResponseEntity.ok(Map.of("success", true));
     }
 
@@ -170,6 +181,8 @@ public class AccountController {
         securityRepository.deactivateUser(actor.userId(), Instant.now());
         sessionSecurityService.revokeAllUserSessions(actor.userId());
         sessionSecurityService.clearSessionCookie(response);
+
+        sendSecurityEmail(actor.userId(), "Account Deactivated", "Your account has been deactivated and all active sessions terminated.", "/help");
 
         return ResponseEntity.ok(Map.of("success", true));
     }
@@ -229,5 +242,30 @@ public class AccountController {
         );
 
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    private void sendSecurityEmail(UUID userId, String eventTitle, String eventDetails, String relativeUrl) {
+        if (communicationDeliveryService == null || emailTemplateService == null || userId == null) {
+            return;
+        }
+        try {
+            securityRepository.findUserById(userId).ifPresent(user -> {
+                if (user.email() != null && !user.email().isBlank()) {
+                    EmailTemplateService.RenderedEmail rendered = emailTemplateService.renderSecurityAlert(
+                            user.displayName(), eventTitle, eventDetails, relativeUrl
+                    );
+                    communicationDeliveryService.attemptEmailDelivery(
+                            null,
+                            userId,
+                            "SECURITY_NOTICE",
+                            user.email(),
+                            rendered.subject(),
+                            rendered.textBody(),
+                            rendered.htmlBody(),
+                            "sec_notice:" + userId + ":" + Instant.now().toEpochMilli()
+                    );
+                }
+            });
+        } catch (Exception ignored) {}
     }
 }

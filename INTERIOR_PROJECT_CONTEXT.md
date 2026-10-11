@@ -62,16 +62,17 @@ Current completed milestone:
 - Phase 7E: Admin, Moderation, Audit & Operational Controls Completion (Segregated trust domains, Super Admin privilege boundaries, self-suspension/lockout protection, session invalidation on suspension, content moderation with PostgreSQL RLS `public_read_studio_projects` moderation gating, truthful delivery audit with recipient PII masking, operational health diagnostics, storage reconciliation, and stuck AI job recovery).
 - Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (Whole-system release audit, complete API inventory, 34-table RLS verification, quota concurrency verification, secrets hygiene, zero critical/high findings, backend core verified release-ready).
 - Final Whole-Product QA & Production-Readiness Review: Visual, UX, Accessibility, Performance & Infrastructure Readiness complete. 485/485 Backend PASS, 30/30 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, Next.js 16.3.3 Turbopack build clean, Zero release-blocking code defects. Canonical release decision: READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP.
-- Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (Flyway V034, `billing_checkout_sessions` table with RLS tenant isolation, provider-neutral abstraction, server-authoritative checkout sessions, idempotency protection, cryptographic webhook signature verification, replay deduplication, tamper-resistant amount/currency checks, 7-day grace period `PAST_DUE` state, period-end cancellation, safe scheduled downgrade with zero data loss, admin manual override source separation, bounded transaction history endpoint, in-app billing notifications, 496/496 Backend PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 build).
+- Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (Flyway V034, `billing_checkout_sessions` table with RLS tenant isolation, provider-neutral abstraction, server-authoritative checkout sessions, idempotency protection, cryptographic webhook signature verification, replay deduplication, tamper-resistant amount/currency checks, period-end cancellation, safe scheduled downgrade with zero data loss, admin manual override source separation, bounded transaction history endpoint, in-app billing notifications, 496/496 Backend PASS, 34/34 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 build).
+- Phase 9B: Transactional Email & Communication Delivery Productionization (Flyway V035, `communication_deliveries` status expansion to `BOUNCED` and `COMPLAINT`, `EmailProvider` neutral abstraction with `DisabledEmailProvider` and deterministic `FakeEmailProvider`, bounded exponential backoff retry scheduler with PostgreSQL `FOR UPDATE SKIP LOCKED` concurrency protection, public webhook reconciliation endpoint `/public/webhooks/email/{provider}` with HMAC-SHA256 signature verification, CRLF header injection rejection, server-configurable billing grace period via `app.billing.grace-period-days`, transactional email wiring for team invitations, review invitations, billing activations, renewals, cancellations, payment failures, and account security notices, 503/503 Backend PASS, 22/22 PostgreSQL 18.3 RLS PASS, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
 Current Flyway:
-V034 (`V034__commercial_billing_subscription_lifecycle.sql`)
+V035 (`V035__transactional_email_productionization.sql`)
 
 Whole-Product Release Status:
-COMMERCIAL BILLING ARCHITECTURE COMPLETE (PRICING & LIVE PROVIDER SELECTION PENDING)
+COMMUNICATION DELIVERY & TRANSACTIONAL EMAIL PRODUCTIONIZED (LIVE EMAIL PROVIDER SELECTION & COMMERCIAL DECISIONS PENDING)
 
 Next planned milestone:
-Phase 9B Commercial Activation / Production Infrastructure (when payment provider & pricing decided).
+Phase 9C Production AI Provider & Cost Controls.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

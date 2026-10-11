@@ -12,12 +12,18 @@ import com.interior.platform.common.util.UuidV7;
 import com.interior.platform.designers.domain.StudioDetailRecord;
 import com.interior.platform.designers.repository.StudioRepository;
 import com.interior.platform.security.domain.ActorContext;
+import com.interior.platform.email.service.CommunicationDeliveryService;
+import com.interior.platform.email.service.EmailTemplateService;
+import com.interior.platform.security.repository.SecurityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -25,16 +31,31 @@ import java.util.*;
 public class BillingService {
 
     private static final Logger log = LoggerFactory.getLogger(BillingService.class);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy").withZone(ZoneId.of("UTC"));
 
     private final BillingRepository billingRepository;
     private final EntitlementService entitlementService;
     private final StudioRepository studioRepository;
     private final BillingProvider billingProvider;
     private final com.interior.platform.projects.repository.ProjectRepository projectRepository;
+
+    @Value("${app.billing.grace-period-days:7}")
+    private int gracePeriodDays = 7;
+
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.media.repository.MediaRepository mediaRepository;
+
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.notifications.service.NotificationService notificationService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CommunicationDeliveryService communicationDeliveryService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private EmailTemplateService emailTemplateService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private SecurityRepository securityRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
     public BillingService(
@@ -58,6 +79,10 @@ public class BillingService {
             BillingProvider billingProvider
     ) {
         this(billingRepository, entitlementService, studioRepository, billingProvider, null);
+    }
+
+    public void setGracePeriodDays(int gracePeriodDays) {
+        this.gracePeriodDays = gracePeriodDays;
     }
 
     /**
@@ -267,6 +292,12 @@ public class BillingService {
 
         notifyStudio(studioId, "Subscription Cancellation Scheduled",
                 "Your subscription is scheduled to cancel at the end of the current billing cycle. All existing assets remain safely preserved.");
+
+        String accessUntil = updated.currentPeriodEnd() != null ? DATE_FORMATTER.format(updated.currentPeriodEnd()) : "the end of the current cycle";
+        sendBillingEmail(studioId, "CANCEL_AT_PERIOD_END", (studio, user, plan) ->
+                emailTemplateService.renderCancelAtPeriodEnd(studio.name(), plan != null ? plan.name() : "Commercial Plan", accessUntil, "/workspace/billing"),
+                "cancel_scheduled:" + updated.id() + ":" + now.toEpochMilli()
+        );
     }
 
     /**
@@ -497,6 +528,10 @@ public class BillingService {
 
             if (targetStudioId != null) {
                 notifyStudio(targetStudioId, "Subscription Activated", "Your subscription is now active.");
+                sendBillingEmail(targetStudioId, "SUBSCRIPTION_ACTIVATED", (studio, user, plan) ->
+                        emailTemplateService.renderSubscriptionActivated(studio.name(), plan != null ? plan.name() : "Commercial Plan", "/workspace/billing"),
+                        "sub_activated:" + (event.providerSubscriptionId() != null ? event.providerSubscriptionId() : event.eventId())
+                );
             }
 
         } else if (evType.contains("payment") && evType.contains("failed") || evType.contains("payment_failed")) {
@@ -521,6 +556,7 @@ public class BillingService {
             }
 
             if (sub != null) {
+                Instant gracePeriodEnd = now.plus(gracePeriodDays, ChronoUnit.DAYS);
                 StudioSubscriptionRecord pastDue = new StudioSubscriptionRecord(
                         sub.id(),
                         sub.studioId(),
@@ -538,11 +574,18 @@ public class BillingService {
                         sub.version(),
                         sub.sourceType(),
                         sub.downgradePlanId(),
-                        now.plus(7, ChronoUnit.DAYS) // 7-day grace period
+                        gracePeriodEnd
                 );
                 billingRepository.saveSubscription(pastDue);
+
+                String formattedGraceDate = DATE_FORMATTER.format(gracePeriodEnd);
                 notifyStudio(sub.studioId(), "Payment Failed",
-                        "Payment for your subscription failed. A 7-day grace period has begun.");
+                        "Payment for your subscription failed. A grace period is active until " + formattedGraceDate + ".");
+
+                sendBillingEmail(sub.studioId(), "PAYMENT_FAILED", (studio, user, plan) ->
+                        emailTemplateService.renderPaymentFailed(studio.name(), plan != null ? plan.name() : "Commercial Plan", formattedGraceDate, "/workspace/billing"),
+                        "payment_failed:" + event.eventId()
+                );
             }
 
         } else if (evType.contains("renewed")) {
@@ -591,7 +634,12 @@ public class BillingService {
                         null
                 );
                 billingRepository.saveSubscription(renewed);
+                String formattedPeriod = DATE_FORMATTER.format(newPeriodEnd);
                 notifyStudio(sub.studioId(), "Subscription Renewed", "Your subscription renewed successfully.");
+                sendBillingEmail(sub.studioId(), "SUBSCRIPTION_RENEWED", (studio, user, plan) ->
+                        emailTemplateService.renderSubscriptionRenewed(studio.name(), plan != null ? plan.name() : "Commercial Plan", formattedPeriod, "/workspace/billing"),
+                        "sub_renewed:" + (event.providerPaymentId() != null ? event.providerPaymentId() : event.eventId())
+                );
             }
 
         } else if (evType.contains("cancelled") || evType.contains("canceled") || evType.contains("deleted") || evType.contains("expired")) {
@@ -667,6 +715,49 @@ public class BillingService {
             });
         } catch (Exception e) {
             log.warn("Failed to dispatch billing notification: {}", e.getMessage());
+        }
+    }
+
+    @FunctionalInterface
+    private interface EmailRenderFunction {
+        EmailTemplateService.RenderedEmail render(StudioDetailRecord studio, com.interior.platform.security.domain.UserRecord user, BillingPlanRecord plan);
+    }
+
+    private void sendBillingEmail(UUID studioId, String eventType, EmailRenderFunction renderFunction, String idempotencyKey) {
+        if (communicationDeliveryService == null || emailTemplateService == null || studioId == null) {
+            return;
+        }
+        try {
+            studioRepository.findStudioById(studioId).ifPresent(studio -> {
+                if (studio.ownerId() != null) {
+                    com.interior.platform.security.domain.UserRecord owner = (securityRepository != null)
+                            ? securityRepository.findUserById(studio.ownerId()).orElse(null)
+                            : null;
+                    String recipientEmail = (owner != null && owner.email() != null && !owner.email().isBlank())
+                            ? owner.email()
+                            : (studio.contacts() != null ? studio.contacts().stream()
+                                    .filter(c -> "EMAIL".equalsIgnoreCase(c.kind()))
+                                    .map(StudioDetailRecord.StudioContactItem::value)
+                                    .findFirst().orElse(null) : null);
+
+                    if (recipientEmail != null && !recipientEmail.isBlank()) {
+                        BillingPlanRecord plan = entitlementService.getActivePlan(studioId);
+                        EmailTemplateService.RenderedEmail rendered = renderFunction.render(studio, owner, plan);
+                        communicationDeliveryService.attemptEmailDelivery(
+                                studioId,
+                                studio.ownerId(),
+                                eventType,
+                                recipientEmail,
+                                rendered.subject(),
+                                rendered.textBody(),
+                                rendered.htmlBody(),
+                                idempotencyKey
+                        );
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Failed to dispatch billing transactional email for event {}: {}", eventType, e.getMessage());
         }
     }
 

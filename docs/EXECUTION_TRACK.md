@@ -12,10 +12,10 @@ Branch:
 main
 
 Latest functional baseline:
-Release Candidate Consistency Gate Complete (READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP)
+Phase 9B Transactional Email & Communication Delivery Complete (READY FOR PHASE 9C PRODUCTION AI PROVIDER & COST CONTROLS)
 
 Flyway:
-V033
+V035
 
 Phase 7 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
@@ -24,7 +24,9 @@ Phase 7 Hardening & Release Tracks:
 - Phase 7D: AI, Media Storage, Upload Lifecycle & Failure Recovery (PASS)
 - Phase 7E: Admin, Moderation, Audit & Operational Controls (PASS)
 - Phase 7F: Final Security, API, Concurrency & End-to-End Release Audit (PASS)
-- Final Whole-Product QA & Release Candidate Consistency Gate: Visual, UX, Accessibility, Performance & Locked Invariant Source Verification (PASS - READY FOR PHASE 8 CLOSED-BETA INFRASTRUCTURE SETUP)
+- Final Whole-Product QA & Release Candidate Consistency Gate: Visual, UX, Accessibility, Performance & Locked Invariant Source Verification (PASS)
+- Phase 9A: Commercial Billing, Payment & Subscription Lifecycle Architecture (PASS)
+- Phase 9B: Transactional Email & Communication Delivery Productionization (PASS)
 
 Production deployment:
 DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)

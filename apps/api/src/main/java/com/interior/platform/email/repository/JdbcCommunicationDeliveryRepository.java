@@ -108,6 +108,17 @@ public class JdbcCommunicationDeliveryRepository implements CommunicationDeliver
     }
 
     @Override
+    public Optional<CommunicationDeliveryRecord> findByProviderMessageId(String providerMessageId) {
+        if (providerMessageId == null || providerMessageId.isBlank()) return Optional.empty();
+        String sql = "SELECT * FROM communication_deliveries WHERE provider_message_id = ?";
+        try {
+            return Optional.ofNullable(jdbcTemplate.queryForObject(sql, rowMapper, providerMessageId));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public List<CommunicationDeliveryRecord> findByStudioId(UUID studioId, int limit, int offset) {
         String sql = """
             SELECT * FROM communication_deliveries
@@ -150,5 +161,19 @@ public class JdbcCommunicationDeliveryRepository implements CommunicationDeliver
                 Timestamp.from(Instant.now()),
                 id
         );
+    }
+
+    @Override
+    public List<CommunicationDeliveryRecord> claimNextRetryBatch(int batchSize, Instant now) {
+        // Multi-instance concurrency safe batch claiming using FOR UPDATE SKIP LOCKED
+        String sql = """
+            SELECT * FROM communication_deliveries
+            WHERE status = 'RETRY_SCHEDULED'
+              AND next_retry_at <= ?
+            ORDER BY next_retry_at ASC
+            LIMIT ?
+            FOR UPDATE SKIP LOCKED
+        """;
+        return jdbcTemplate.query(sql, rowMapper, Timestamp.from(now), batchSize);
     }
 }

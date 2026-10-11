@@ -6,5 +6,7 @@ public enum DeliveryStatus {
     FAILED,
     NOT_CONFIGURED,
     DELIVERED,
-    RETRY_SCHEDULED
+    RETRY_SCHEDULED,
+    BOUNCED,
+    COMPLAINT
 }
