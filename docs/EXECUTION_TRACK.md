@@ -178,7 +178,7 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
 
 ## Current Next Step:
 
-- Phase 9D: Admin MFA + Account Security + Recovery Architecture.
+- Phase 11: Provider Selection, Live Infrastructure Provisioning, Deployment & Smoke Test.
 
 ---
 

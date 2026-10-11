@@ -64,8 +64,55 @@ public class AuditService {
                     java.time.Instant.now()
             );
         } catch (Exception e) {
-            // Audit failures should not crash the request, but must be logged
-            log.error("Failed to persist audit event [{}]: {}", eventType, e.getMessage(), e);
+            // Best-effort operational audit failures should not crash the request, but must be logged
+            log.error("Failed to persist operational audit event [{}]: {}", eventType, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Mandatory audit persistence for critical privileged mutations (MFA reset, role changes, maintenance mode, legal holds).
+     * If audit persistence fails, this method does NOT swallow the exception, ensuring the surrounding transaction fails closed.
+     */
+    public void recordRequired(
+            UUID actorUserId,
+            UUID studioId,
+            String eventType,
+            String resourceType,
+            String resourceId,
+            Map<String, Object> payload,
+            String ipAddress,
+            String userAgent
+    ) {
+        String payloadJson = "{}";
+        if (payload != null && !payload.isEmpty()) {
+            try {
+                payloadJson = objectMapper.writeValueAsString(payload);
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to serialize audit payload: {}", e.getMessage());
+                payloadJson = "{\"error\":\"serialization_failed\"}";
+            }
+        }
+
+        UUID id = com.interior.platform.common.util.UuidV7.randomUuid();
+        UUID resUuid = null;
+        if (resourceId != null) {
+            try {
+                resUuid = UUID.fromString(resourceId);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        // Fails closed if repository throws DataAccessException
+        securityRepository.recordAuditEvent(
+                id,
+                studioId,
+                actorUserId,
+                eventType,
+                resourceType,
+                resUuid,
+                "req-" + UUID.randomUUID().toString().substring(0, 8),
+                payloadJson,
+                java.time.Instant.now()
+        );
     }
 }

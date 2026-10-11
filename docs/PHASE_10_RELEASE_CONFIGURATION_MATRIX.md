@@ -20,10 +20,10 @@ Launch Tiers:
 
 | Subsystem / Feature | Provider Status | Required Environment Variables | Tier 1 (Closed Beta) | Tier 2 (Public Beta) | Tier 3 (General Availability) |
 |---|---|---|---|---|---|
-| **Identity & Authentication (OIDC / OAuth)** | Provider Ready (`Google`, `Apple`, `Email OTP`) | `AUTH_OIDC_GOOGLE_CLIENT_ID`, `AUTH_OIDC_GOOGLE_CLIENT_SECRET`, `APP_JWT_SECRET` | Active | Active | Active |
+| **Identity & Authentication (OIDC / OAuth)** | Provider Ready (`Google`, `Apple`, `Email OTP`) | `AUTH_OIDC_GOOGLE_CLIENT_ID`, `AUTH_OIDC_GOOGLE_CLIENT_SECRET` | Active | Active | Active |
 | **Session & Token Management** | Implemented (Database-backed SHA-256 session store) | `APP_SESSION_COOKIE_DOMAIN`, `APP_SESSION_SECURE_COOKIE` | Active | Active | Active |
-| **Admin MFA (RFC 6238 TOTP)** | Implemented (In-app TOTP + Argon2id backup codes) | N/A (Internal crypto algorithms) | Active | Active | Active |
-| **Tenant Isolation & RLS** | Implemented (Native PostgreSQL RLS across 59 tables) | `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | Active | Active | Active |
+| **Admin MFA (RFC 6238 TOTP)** | Implemented (In-app TOTP + SHA-256 backup codes) | N/A (Internal crypto algorithms) | Active | Active | Active |
+| **Tenant Isolation & RLS** | Implemented (Native PostgreSQL RLS across 59 tables via `app.current_user_id`, `app.current_studio_id`, `app.is_admin`) | `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | Active | Active | Active |
 | **Project & Proposal Engine** | Implemented | N/A | Active | Active | Active |
 | **Object Storage (Media Uploads)** | Provider Pending (Implemented `S3` adapter; candidate: `Cloudflare R2` / `AWS S3`) | `AWS_S3_BUCKET`, `AWS_S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` (if R2) | Local / Mock Storage | Live Cloud Storage | Live Cloud Storage + Multi-Region CDN |
 | **Malware Scanning** | Provider Pending (Implemented `MalwareScanner` SPI; candidate: `ClamAV`) | `APP_MEDIA_SECURITY_REQUIRE_CLEAN_SCAN`, `CLAMAV_HOST`, `CLAMAV_PORT` | Permissive dev / mock scan | Fail-Closed ClamAV | Fail-Closed ClamAV + Edge Pre-Filter |
@@ -32,7 +32,7 @@ Launch Tiers:
 | **Commercial Billing & Subscriptions** | Provider Pending (Implemented `BillingProvider` SPI; candidate: `Stripe` / `Razorpay`; status: `NOT_SELECTED`) | `BILLING_PROVIDER`, `BILLING_API_KEY`, `BILLING_WEBHOOK_SECRET`, `BILLING_PRICE_IDS` | Seeded Mock Billing | Sandbox Billing (Stripe/Razorpay Test) | Production Gateway + Live Webhooks |
 | **Support & Ticket Operations** | Implemented (Database-backed queue & assignment; retention decision required) | N/A | Active | Active | Active |
 | **Platform Ops & Maintenance Mode** | Implemented (`NORMAL` and `READ_ONLY` with strict admin boundary) | `APP_OPERATIONS_MAINTENANCE_MODE` | Active | Active | Active |
-| **Audit Logging & Security Events** | Implemented (`audit_logs`, `security_events`) | N/A | Active | Active | Active |
+| **Audit Logging & Security Events** | Implemented (`audit_logs`, `security_events` with fail-closed `recordRequired` for admin mutations) | N/A | Active | Active | Active |
 | **Data Export & Account Closure** | Implemented (JSON bundle export + immediate suspension/deletion; 14-day recovery is config default only) | N/A | Active | Active | Active |
 
 ---
@@ -40,6 +40,6 @@ Launch Tiers:
 ## 3. Environment Variable Validation Rules
 
 In production (`prod` Spring profile / `NODE_ENV=production`):
-1. **No Blank Secret Fallbacks:** If `JWT_SECRET`, `SESSION_SECRET`, or `SPRING_DATASOURCE_PASSWORD` are missing or set to default example strings (e.g., `dev-secret`, `changeme`), the application fails fast at startup.
+1. **No Blank Secret Fallbacks:** If `APP_MFA_MASTER_KEY` or `SPRING_DATASOURCE_PASSWORD` are missing or set to default example strings (e.g., `dev-secret`, `changeme`), the application fails fast at startup.
 2. **Fail-Closed Malware Scanning:** When `APP_MEDIA_SECURITY_REQUIRE_CLEAN_SCAN=true`, files without a verified clean scan result are permanently quarantined and inaccessible.
 3. **Strict Origin Validation:** `APP_ALLOWED_ORIGINS` must match the production custom domain exactly; wildcard origins (`*`) are disallowed when cookies are enabled.

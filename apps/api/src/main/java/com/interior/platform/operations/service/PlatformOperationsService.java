@@ -105,7 +105,7 @@ public class PlatformOperationsService {
                 actor.userId()
         );
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 null,
                 "ADMIN_OPERATIONAL_STATE_UPDATED",

@@ -406,7 +406,7 @@ public class MfaService {
         // Revoke ALL active sessions for the target user immediately
         securityRepository.revokeAllUserSessions(targetUserId, Instant.now());
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 actor.activeStudioId(),
                 "MFA_RESET_BY_ADMIN",

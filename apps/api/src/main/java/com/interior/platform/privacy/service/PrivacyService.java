@@ -182,10 +182,11 @@ public class PrivacyService {
         return toResponse(req);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public LegalHoldDto placeLegalHold(String subjectType, UUID subjectId, String reason, UUID placedBy) {
         UUID id = UuidV7.randomUuid();
         PrivacyLegalHoldRecord record = privacyRepository.createLegalHold(id, subjectType, subjectId, reason, placedBy, "{}");
-        auditService.record(
+        auditService.recordRequired(
                 placedBy,
                 null,
                 "LEGAL_HOLD_PLACED",
@@ -198,9 +199,10 @@ public class PrivacyService {
         return toLegalHoldDto(record);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void releaseLegalHold(UUID holdId, UUID adminUserId) {
         privacyRepository.releaseLegalHold(holdId, Instant.now());
-        auditService.record(
+        auditService.recordRequired(
                 adminUserId,
                 null,
                 "LEGAL_HOLD_RELEASED",

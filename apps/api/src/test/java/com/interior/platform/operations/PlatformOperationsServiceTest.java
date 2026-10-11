@@ -118,7 +118,7 @@ class PlatformOperationsServiceTest {
         assertNotNull(result);
         verify(mfaService).requireFreshStepUp(eq(superAdminActor), eq(validSession));
         verify(operationsRepository).updateOperationalState(eq("NORMAL"), isNull(), eq(true), eq(true), eq(true), eq(superAdminActor.userId()));
-        verify(auditService).record(eq(superAdminActor.userId()), isNull(), eq("ADMIN_OPERATIONAL_STATE_UPDATED"), eq("PLATFORM_OPERATIONAL_STATE"), eq("GLOBAL"), any(), any(), any());
+        verify(auditService).recordRequired(eq(superAdminActor.userId()), isNull(), eq("ADMIN_OPERATIONAL_STATE_UPDATED"), eq("PLATFORM_OPERATIONAL_STATE"), eq("GLOBAL"), any(), any(), any());
     }
 
     @Test

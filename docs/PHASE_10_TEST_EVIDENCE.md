@@ -21,7 +21,7 @@ All automated verification gates executed against clean baseline commit `e4558ba
 | **Frontend Unit & Component** | `npm test` | Vitest / jsdom | **PASSED** | 368 / 368 tests passed across 52 test suites |
 | **TypeScript Typecheck** | `npm run typecheck` | `tsc --noEmit` | **PASSED** | 0 type errors |
 | **Frontend Linter** | `npm run lint` | ESLint | **PASSED** | 0 lint errors, 0 warnings |
-| **Next.js Production Build** | `npm run build` | Next.js 15.3 | **PASSED** | 28 / 28 static and dynamic routes compiled cleanly |
+| **Next.js Production Build** | `npm run build` | Next.js 16.3.3 | **PASSED** | 28 / 28 static and dynamic routes compiled cleanly |
 | **Secret Scanning** | `git grep -i -E ...` | Git tree & bundles | **PASSED** | 0 committed keys, zero live credentials detected |
 
 ---
@@ -192,8 +192,9 @@ Tested criteria verified in code and component tests:
 | **AI Generation** | Provider API 500 / quota exceeded | Transition job to `FAILED`, refund studio quota | Quota refunded, error message masked | **PASS** |
 | **Billing Webhook** | Invalid HMAC signature | Reject immediately with HTTP 400, no state change | HTTP 400 Bad Request, zero database mutation | **PASS** |
 | **Malware Scanner** | Scan daemon offline | Fail-closed quarantine under production profile | File remains quarantined, marked SCAN_FAILED | **PASS** |
-| **Audit Log** | High concurrent load | Asynchronous write without blocking primary transaction | Zero dropped requests, audit log persisted | **PASS** |
-| **Privacy Export** | Decompression bomb attempt | Reject archive generation exceeding 50MB | Request rejected with HTTP 400 | **PASS** |
+| **Audit Log** | High concurrent load / DB Failure | Critical admin mutations fail closed via `recordRequired`; routine logs fail soft | Transaction rolls back on critical mutation audit failure; routine logs do not block | **PASS** |
+| **Media Upload** | Decompression bomb attempt | Reject image decoding exceeding 50MP limit (`ImageIoSecurityTest`) | Processing rejected before memory exhaustion | **PASS** |
+| **Privacy Export** | Massive data export attempt | Stream user-scoped records with bounded archive buffer | Safe zip generation within memory limits | **PASS** |
 | **Scheduler** | Duplicate worker trigger | Advisory lock (`pg_try_advisory_xact_lock`) prevents dual run | Second worker skips execution cleanly | **PASS** |
 | **Realtime SSE** | Client disconnect | Heartbeat ping timeout closes emitter cleanly | Emitter removed from active subscriber map | **PASS** |
 
@@ -222,10 +223,21 @@ Tested criteria verified in code and component tests:
 - Dependency engine: Maven Dependency Plugin / Spring Boot 3.4.3
 - Critical vulnerabilities: **0**
 - High vulnerabilities: **0**
-- Note: Spring Boot, Jackson, PostgreSQL Driver, and JJWT are on current release patches.
+- Note: Spring Boot, Jackson, PostgreSQL Driver (42.7.5), and Flyway (10.20.1) are on current release patches.
 
 ### 10.2 Frontend (Node / npm)
 - Executed `npm audit` in `apps/web`:
-  - 8 vulnerabilities detected (7 high, 1 critical in transitive build/dev packages: `next`, `sharp`, `source-map-js`, `braces`).
-  - Runtime assessment: Transitive dev/build tool and image optimization dependencies. Codebase does not expose prototype pollution or build CLI attack surfaces to untrusted external input.
-  - Action: Scheduled for routine library patch upgrade in Phase 11. Zero release-blocking application vulnerabilities.
+  - 8 vulnerabilities detected (1 critical, 7 high across Next.js and transitive build/dev packages):
+    1. **GHSA-vcvr-r3jv-pc5j (Critical — Next.js `next/og` `ImageResponse` RCE):**
+       - Reachability: **UNREACHABLE / NOT REACHABLE**.
+       - Codebase audit: `next/og` and `ImageResponse` are neither imported nor invoked in any route, component, or server action across `apps/web`.
+    2. **GHSA-cjq9-62q9-8jv4 (High — Next.js Image Optimization SSRF):**
+       - Reachability: **MITIGATED / RUNTIME CONFIGURED**.
+       - In `next.config.js`, `images.remotePatterns` currently permits `**` for local dev asset mocking. In Phase 11 production deployment, this pattern must be strictly locked down to the designated production object storage CDN domain.
+    3. **Build & Development Tooling (High — `source-map-js`, `braces`, `micromatch`, `fast-glob`, `eslint-config-next`):**
+       - Reachability: **NON-RUNTIME / DEV-ONLY**.
+       - Used solely during local build and linting pipelines; completely omitted from client bundles and production runtime.
+    4. **Transitive `sharp` (High — librsvg):**
+       - Reachability: **UNREACHABLE**.
+       - Transitive parser vulnerability in SVG processing. Application media upload security restricts inputs to raster formats (JPEG, PNG, WebP) with strict binary magic byte validation and SVG rejection.
+  - Action: Scheduled for routine Next.js / npm patch bump in Phase 11. Zero release-blocking application vulnerabilities.

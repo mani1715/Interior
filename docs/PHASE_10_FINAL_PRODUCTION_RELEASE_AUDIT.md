@@ -50,32 +50,35 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 - **Session Tokens:** 256-bit cryptographically secure tokens hashed with SHA-256 before database persistence.
 - **Cookie Flags:** `__Host-session`, `HttpOnly`, `SameSite=Lax`, `Secure=true` enforced.
 - **Timeouts:** Idle timeout: 1800s (30m), Absolute timeout: 43200s (12h), Throttled last-seen: 300s (5m).
-- **Multi-Session:** Maximum 10 concurrent active sessions enforced per user.
+- **Multi-Session:** Multi-session concurrency is unconstrained in application code; active sessions are tracked in `identity_sessions` with SHA-256 tokens and immediate revocation capabilities.
 
 ### 3.2 Admin MFA & Privileged Escalation
 - **TOTP Enforced:** Mandatory for `SUPER_ADMIN` and `ADMIN`. Configurable default `true` for `MODERATOR`. Optional for `DESIGNER` and `CUSTOMER`.
-- **Step-Up Verification:** 15-minute sliding TTL enforced for sensitive operational actions.
-- **Backup Codes:** Argon2id hashed single-use emergency backup codes.
+- **Step-Up Verification:** 15-minute sliding TTL enforced for sensitive operational actions (config default 900s / 15m; subject to security policy review).
+- **Backup Codes:** SHA-256 hashed single-use emergency backup codes stored in `identity_recovery_codes`.
 - **Encryption Fail-Closed:** Missing or blank master encryption key throws `IllegalStateException` and blocks enrollment/decryption.
 
 ### 3.3 Authorization & Row Level Security (RLS)
 - **Role-Based Access Control:** Strict RBAC across Customer, Designer Member, Designer Admin, Platform Admin, and Super Admin.
-- **Native PostgreSQL RLS:** 59 tenant-scoped entity tables enforced via session variables `app.current_user_id` and `app.current_tenant_id` with `FORCE ROW LEVEL SECURITY`.
+- **Native PostgreSQL RLS:** 59 tables enforced via session variables `app.current_user_id`, `app.current_studio_id`, and `app.is_admin` with `FORCE ROW LEVEL SECURITY`.
+  - Detailed breakdown (78 base tables total): 59 RLS-enabled tables (38 studio-scoped, 8 user-scoped, 2 dual-scoped, 3 control-plane/admin, 2 system audit/messaging, 6 conditional public) and 19 non-RLS tables (`flyway_schema_history`, identity/role/session/token management, and system plan catalog).
 - **45 / 45 PostgreSQL RLS tests passed** against live PostgreSQL 18.3 database.
 
 ### 3.4 Media, Upload Security & Malware Scanning
 - **Magic Byte Validation:** Image and PDF uploads validated against binary file signatures.
+- **Decompression Bomb Protection:** 50MP max decoded pixel dimension limit enforced during media upload processing (`ImageIoSecurityTest`).
 - **Fail-Closed Scanner:** Multi-engine scanner SPI implemented. Configurable fail-closed policy (`app.media.security.require-clean-scan=true`).
 - **Threat Information Masking:** Threat signature names, raw scanner stderr, and security metadata suppressed from customer-facing responses.
 
 ### 3.5 Privacy, Data Export & Deletion
-- **GDPR / CCPA:** Automated JSON archive export.
+- **GDPR / CCPA:** Automated JSON/ZIP archive export bounded by user-scoped RLS isolation and safe serialization.
 - **Account Closure:** Immediate account suspension, session termination, and deactivated timestamp recording. Recovery period designated as `ACCOUNT CLOSURE / DELETION RECOVERY PERIOD DECISION REQUIRED` (14-day value is `CONFIG DEFAULT ONLY`).
 - **Financial Audit Retention:** Pseudonymization applied to transactional ledgers while retaining required statutory tax audit compliance.
 
 ### 3.6 Support, Operations & Maintenance Mode
 - **Ticket Queuing:** Priority sorting, internal notes isolation, status transitions verified. Support retention: `SUPPORT RETENTION POLICY DECISION REQUIRED`.
 - **Maintenance Modes:** Canonical states: `NORMAL` (full platform read/write operational state) and `READ_ONLY` (blocks all mutating requests with HTTP 503 `MAINTENANCE_MODE_ACTIVE` for regular users; platform administrators restricted strictly to control-plane endpoints).
+- **Audit Fail-Closed Semantics:** Critical administrative actions (`adminResetMfa`, `updateOperationalState`, `placeLegalHold`, `releaseLegalHold`) use `recordRequired` which propagates database errors to ensure transaction rollback.
 - **Job Trigger Allowlist:** Automated jobs restricted to approved operational task names via PostgreSQL advisory locking.
 
 ### 3.7 Database Integrity & Flyway
