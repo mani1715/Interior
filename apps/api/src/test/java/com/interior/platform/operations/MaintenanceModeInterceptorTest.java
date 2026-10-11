@@ -82,6 +82,26 @@ class MaintenanceModeInterceptorTest {
     }
 
     @Test
+    @DisplayName("Ordinary product mutations by SUPER_ADMIN are blocked in READ_ONLY mode")
+    void preHandle_ordinaryProductMutationBySuperAdmin_blockedInReadOnly() throws Exception {
+        when(operationsService.isMaintenanceReadOnly()).thenReturn(true);
+        when(operationsService.getOperationalState()).thenReturn(
+                new PlatformOperationalStateRecord("GLOBAL", "READ_ONLY", "Scheduled maintenance", false, false, false, null, Instant.now())
+        );
+
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/projects");
+        ActorContext superAdminActor = new ActorContext(UuidV7.randomUuid(), "SuperAdmin", "super@test.com", "ACTIVE", Set.of("SUPER_ADMIN"), Set.of(), null, null, "MFA", true, Instant.now());
+        request.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, superAdminActor);
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean result = interceptor.preHandle(request, response, new Object());
+        assertFalse(result);
+        assertEquals(503, response.getStatus());
+        assertTrue(response.getContentAsString().contains("MAINTENANCE_MODE_ACTIVE"));
+    }
+
+    @Test
     @DisplayName("Logout request passes in READ_ONLY mode so users can safely terminate session")
     void preHandle_logout_allowedInReadOnly() throws Exception {
         when(operationsService.isMaintenanceReadOnly()).thenReturn(true);

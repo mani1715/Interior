@@ -192,8 +192,8 @@ public class PlatformOperationsService {
         // 6. Commercial Payment Gateway
         matrix.put("payment", new ProviderMatrixResponse.ProviderStatusDetail(
                 ProviderOperationalStatus.NOT_CONFIGURED,
-                "Stripe",
-                "Live payment keys pending Phase 11 production provisioning"
+                "NOT_SELECTED",
+                "Commercial payment provider not selected; live payment keys pending Phase 11 production provisioning"
         ));
 
         return new ProviderMatrixResponse(matrix, Instant.now());

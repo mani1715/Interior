@@ -75,14 +75,16 @@ Current completed milestone:
 
 - Phase 9G: Support + Operations + Incident Controls + Commercial Admin Completion (Flyway V040, `support_requests`, `support_messages` with internal admin notes & in-app user reply dispatch, `platform_operational_state` with `NORMAL` vs `READ_ONLY` maintenance mode and HTTP 503 `MAINTENANCE_MODE_ACTIVE` fail-closed interceptor, granular kill switches `uploads_enabled`, `ai_enabled`, `registrations_enabled`, `operational_job_runs` with PostgreSQL advisory locking across 6 core tasks, RFC-compliant `X-Request-Id` correlation with MDC propagation, truthful provider matrix reporting, 537/537 Backend PASS, 45/45 PostgreSQL 18.3 RLS PASS across 13 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 10: Final 100% Production Release Audit & Defect Closure (Exhaustive 166-point audit across 30 domains; Pre-flight remediations: RPO/RTO & Backup Retention marked DECISION REQUIRED in runbooks, payment provider corrected to neutral NOT_SELECTED, MaintenanceModeInterceptor hardened to restrict Super Admin mutations to control-plane endpoints during READ_ONLY, canonical Flyway verified at exactly 40 migrations V001-V040; Quality gates: 538/538 Backend tests PASS, 45/45 PostgreSQL 18.3 RLS tests PASS across 13 classes, 368/368 Frontend Vitest tests PASS across 52 suites, 0 TypeScript errors, 0 ESLint warnings/errors, clean 28-route Next.js production build, 0 committed secrets; Release Candidate Approved).
+
 Current Flyway:
-V040 (`V040__support_and_operations_foundation.sql`)
+V040 (`V040__support_and_operations_foundation.sql` - exactly 40 canonical PostgreSQL migrations)
 
 Whole-Product Release Status:
-ALL PRODUCT-DEVELOPMENT PHASES COMPLETE (PHASE 9G VERIFIED). FEATURE DEVELOPMENT IS FROZEN FOR PHASE 10 RELEASE AUDIT.
+PHASE 10 FINAL 100% PRODUCTION RELEASE AUDIT COMPLETE. RELEASE CANDIDATE (RC-1) APPROVED. FEATURE FREEZE ACTIVE.
 
 Next planned milestone:
-PHASE 10 FINAL 100% PRODUCTION RELEASE AUDIT (Defect fixes and audit verification only; no new features).
+PHASE 11: PROVIDER SELECTION + LIVE INFRASTRUCTURE PROVISIONING + DEPLOYMENT + SMOKE TEST.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

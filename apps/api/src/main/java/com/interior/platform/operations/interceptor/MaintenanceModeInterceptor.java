@@ -34,15 +34,20 @@ public class MaintenanceModeInterceptor implements HandlerInterceptor {
 
         String path = request.getRequestURI();
 
-        // Allow Admin operations
-        ActorContext actor = (ActorContext) request.getAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE);
-        if (actor != null && (actor.hasRole("ADMIN") || actor.hasRole("SUPER_ADMIN"))) {
+        // Allow explicit operational bypass paths for infrastructure/session/webhook recovery
+        if (path.contains("/auth/logout") || path.contains("/public/webhooks") || path.contains("/actuator")) {
             return true;
         }
 
-        // Allow explicit operational bypass paths
-        if (path.contains("/auth/logout") || path.contains("/public/webhooks") || path.contains("/actuator")) {
-            return true;
+        // Dedicated administrative operational and control-plane remediation paths are permitted for platform administrators
+        ActorContext actor = (ActorContext) request.getAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE);
+        if (actor != null && (actor.hasRole("ADMIN") || actor.hasRole("SUPER_ADMIN"))) {
+            String normPath = path.startsWith("/api/v1") ? path.substring("/api/v1".length()) : path;
+            if (normPath.startsWith("/admin/operations") || normPath.startsWith("/admin/mfa") || normPath.startsWith("/admin/audit")
+                    || normPath.startsWith("/admin/users/") && normPath.endsWith("/status")
+                    || normPath.startsWith("/admin/studios/") && normPath.endsWith("/moderation")) {
+                return true;
+            }
         }
 
         // Block with 503 Service Unavailable

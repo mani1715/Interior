@@ -12,12 +12,12 @@ Branch:
 main
 
 Latest functional baseline:
-Phase 9G Support + Operations + Incident Controls Complete (FEATURE FREEZE ACTIVE FOR PHASE 10 AUDIT)
+Phase 10 Final 100% Production Release Audit Complete (RELEASE CANDIDATE RC-1 APPROVED; FEATURE FREEZE ACTIVE)
 
 Flyway:
-V040
+V040 (40 canonical PostgreSQL migrations V001-V040)
 
-Phase 7 & 9 Hardening & Release Tracks:
+Phase 7, 9 & 10 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
 - Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & CRM Workflow (PASS)
 - Phase 7C: In-App Notifications & Authoritative Communication Delivery (PASS)
@@ -32,9 +32,10 @@ Phase 7 & 9 Hardening & Release Tracks:
 - Phase 9E: Privacy + Data Export + Account Closure + Deletion + Retention (PASS)
 - Phase 9F: Malware Scanning + Production Upload Security + Quarantine Hardening (PASS)
 - Phase 9G: Support + Operations + Incident Controls + Commercial Admin Completion (PASS)
+- Phase 10: Final 100% Production Release Audit & Defect Closure (PASS - RC-1 APPROVED)
 
 Production deployment:
-DEFERRED (Ready for Phase 10 Audit -> Phase 11 Go-Live)
+DEFERRED (Ready for Phase 11: Provider Provisioning, Infrastructure & Go-Live)
 
 ---
 
