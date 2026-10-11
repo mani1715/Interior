@@ -552,8 +552,20 @@ public class JdbcAdminRepository implements AdminRepository {
         long committedPhotos = countQuery("SELECT COUNT(*) FROM media_assets WHERE deleted_at IS NULL");
         long pendingIntents = countQuery("SELECT COUNT(*) FROM upload_intents WHERE status = 'PENDING'");
         long expiredIntents = countQuery("SELECT COUNT(*) FROM upload_intents WHERE status = 'EXPIRED'");
+        long infectedIntents = countQuery("SELECT COUNT(*) FROM upload_intents WHERE scan_status = 'INFECTED'");
+        long failedScans = countQuery("SELECT COUNT(*) FROM upload_intents WHERE scan_status = 'SCAN_FAILED'");
 
-        return new AdminMediaDiagnosticsDto(committedBytes, committedPhotos, pendingIntents, expiredIntents);
+        return new AdminMediaDiagnosticsDto(
+                committedBytes,
+                committedPhotos,
+                pendingIntents,
+                expiredIntents,
+                infectedIntents,
+                failedScans,
+                "fake",
+                true,
+                true
+        );
     }
 
     @Override

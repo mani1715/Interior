@@ -58,4 +58,11 @@ public interface MediaRepository {
     void saveDerivatives(List<MediaDerivativeRecord> derivatives);
     List<MediaDerivativeRecord> findDerivativesByMediaId(UUID mediaId, UUID studioId);
     void deleteDerivativesByMediaId(UUID mediaId, UUID studioId);
+
+    // 5. Malware Scanning & Upload Security
+    void updateUploadIntentScanStatus(UUID intentId, ScanStatus scanStatus, String scannerProvider, String threatName);
+    void recordMediaSecurityScan(MediaSecurityScanRecord scanRecord);
+    List<MediaSecurityScanRecord> findSecurityScansByIntentId(UUID intentId);
+    long countInfectedUploadIntents();
+    long countFailedScans();
 }

@@ -35,20 +35,61 @@ public class JdbcMediaRepository implements MediaRepository {
             rs.getTimestamp("updated_at").toInstant()
     );
 
-    private final RowMapper<UploadIntentRecord> uploadIntentMapper = (rs, rowNum) -> new UploadIntentRecord(
-            getUuid(rs, "id"),
-            getUuid(rs, "studio_id"),
-            getUuid(rs, "project_id"),
-            MediaType.valueOf(rs.getString("media_type")),
-            rs.getString("expected_content_type"),
-            rs.getLong("expected_size_bytes"),
-            rs.getString("quarantine_key"),
-            UploadIntentStatus.valueOf(rs.getString("status")),
-            rs.getTimestamp("expires_at").toInstant(),
-            getUuid(rs, "created_by"),
-            rs.getTimestamp("created_at").toInstant(),
-            getUuid(rs, "media_asset_id")
-    );
+    private final RowMapper<UploadIntentRecord> uploadIntentMapper = (rs, rowNum) -> {
+        String scanStatusStr = null;
+        try {
+            scanStatusStr = rs.getString("scan_status");
+        } catch (SQLException ignored) {}
+        ScanStatus scanStatus = scanStatusStr != null ? ScanStatus.valueOf(scanStatusStr) : ScanStatus.NOT_SCANNED;
+
+        int scanAttempt = 0;
+        try {
+            scanAttempt = rs.getInt("scan_attempt");
+        } catch (SQLException ignored) {}
+
+        Instant scanRequestedAt = null;
+        try {
+            Timestamp ts = rs.getTimestamp("scan_requested_at");
+            if (ts != null) scanRequestedAt = ts.toInstant();
+        } catch (SQLException ignored) {}
+
+        Instant scannedAt = null;
+        try {
+            Timestamp ts = rs.getTimestamp("scanned_at");
+            if (ts != null) scannedAt = ts.toInstant();
+        } catch (SQLException ignored) {}
+
+        String scannerProvider = null;
+        try {
+            scannerProvider = rs.getString("scanner_provider");
+        } catch (SQLException ignored) {}
+
+        String threatName = null;
+        try {
+            threatName = rs.getString("threat_name");
+        } catch (SQLException ignored) {}
+
+        return new UploadIntentRecord(
+                getUuid(rs, "id"),
+                getUuid(rs, "studio_id"),
+                getUuid(rs, "project_id"),
+                MediaType.valueOf(rs.getString("media_type")),
+                rs.getString("expected_content_type"),
+                rs.getLong("expected_size_bytes"),
+                rs.getString("quarantine_key"),
+                UploadIntentStatus.valueOf(rs.getString("status")),
+                rs.getTimestamp("expires_at").toInstant(),
+                getUuid(rs, "created_by"),
+                rs.getTimestamp("created_at").toInstant(),
+                getUuid(rs, "media_asset_id"),
+                scanStatus,
+                scanAttempt,
+                scanRequestedAt,
+                scannedAt,
+                scannerProvider,
+                threatName
+        );
+    };
 
     private final RowMapper<MediaAssetRecord> mediaAssetMapper = (rs, rowNum) -> new MediaAssetRecord(
             getUuid(rs, "id"),
@@ -519,6 +560,82 @@ public class JdbcMediaRepository implements MediaRepository {
     public void deleteDerivativesByMediaId(UUID mediaId, UUID studioId) {
         String sql = "DELETE FROM media_derivatives WHERE media_id = ? AND studio_id = ?";
         jdbcTemplate.update(sql, mediaId, studioId);
+    }
+
+    // 5. Malware Scanning & Upload Security
+    private final RowMapper<MediaSecurityScanRecord> securityScanMapper = (rs, rowNum) -> new MediaSecurityScanRecord(
+            getUuid(rs, "id"),
+            getUuid(rs, "upload_intent_id"),
+            getUuid(rs, "studio_id"),
+            rs.getString("storage_key"),
+            rs.getString("scanner_provider"),
+            rs.getString("engine_version"),
+            ScanOutcome.valueOf(rs.getString("scan_outcome")),
+            rs.getString("threat_classification"),
+            rs.getLong("duration_ms"),
+            rs.getTimestamp("scanned_at").toInstant(),
+            rs.getString("error_message"),
+            rs.getString("metadata")
+    );
+
+    @Override
+    public void updateUploadIntentScanStatus(UUID intentId, ScanStatus scanStatus, String scannerProvider, String threatName) {
+        String sql = """
+            UPDATE upload_intents
+            SET scan_status = ?,
+                scanner_provider = COALESCE(?, scanner_provider),
+                threat_name = ?,
+                scan_attempt = scan_attempt + 1,
+                scanned_at = now()
+            WHERE id = ?
+        """;
+        jdbcTemplate.update(sql, scanStatus.name(), scannerProvider, threatName, intentId);
+    }
+
+    @Override
+    public void recordMediaSecurityScan(MediaSecurityScanRecord scan) {
+        String sql = """
+            INSERT INTO media_security_scans (
+                id, upload_intent_id, studio_id, storage_key, scanner_provider,
+                engine_version, scan_outcome, threat_classification, duration_ms,
+                scanned_at, error_message, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+        """;
+        jdbcTemplate.update(
+                sql,
+                scan.id(),
+                scan.uploadIntentId(),
+                scan.studioId(),
+                scan.storageKey(),
+                scan.scannerProvider(),
+                scan.engineVersion(),
+                scan.scanOutcome().name(),
+                scan.threatClassification(),
+                scan.durationMs(),
+                Timestamp.from(scan.scannedAt()),
+                scan.errorMessage(),
+                scan.metadata() != null ? scan.metadata() : "{}"
+        );
+    }
+
+    @Override
+    public List<MediaSecurityScanRecord> findSecurityScansByIntentId(UUID intentId) {
+        String sql = "SELECT * FROM media_security_scans WHERE upload_intent_id = ? ORDER BY scanned_at DESC";
+        return jdbcTemplate.query(sql, securityScanMapper, intentId);
+    }
+
+    @Override
+    public long countInfectedUploadIntents() {
+        String sql = "SELECT COUNT(*) FROM upload_intents WHERE scan_status = 'INFECTED'";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    @Override
+    public long countFailedScans() {
+        String sql = "SELECT COUNT(*) FROM upload_intents WHERE scan_status = 'SCAN_FAILED'";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0L;
     }
 
     private UUID getUuid(ResultSet rs, String column) throws SQLException {

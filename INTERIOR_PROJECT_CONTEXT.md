@@ -71,14 +71,16 @@ Current completed milestone:
 
 - Phase 9E: Privacy, Data Export, Account Closure, Anonymization & Retention Architecture (Flyway V038, `privacy_requests`, `data_export_jobs`, `privacy_legal_holds` with PostgreSQL 18 RLS isolation, sanitized ZIP archive generator for personal and studio data with CSV formula injection defense, sole-admin studio blocker preventing orphaned active studios, privileged legal hold defense blocking destructive erasure during litigation/audit, self-service account closure and permanent anonymization, studio closure unpublishing and archiving, accounting and audit ledgers preserved in pseudonymized state, 39/39 PostgreSQL 18.3 RLS PASS across 11 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
 
+- Phase 9F: Media Malware Scanning, Quarantining & Production Upload Security (Flyway V039, `media_security_scans` audit ledger table with RLS tenant isolation, `upload_intents` scan status state machine, provider-agnostic `MalwareScanner` abstraction with `DisabledMalwareScanner` and `FakeMalwareScanner`, fail-closed production commit gate with clean-only invariant, slot-preserving media replacement protection, quota release on infection, 516/516 Backend PASS, 41/41 PostgreSQL 18.3 RLS PASS across 12 classes, 368/368 Frontend Vitest PASS, clean Next.js 16.3.3 Turbopack build, ESLint 0 warnings/errors).
+
 Current Flyway:
-V038 (`V038__privacy_data_export_and_deletion.sql`)
+V039 (`V039__media_malware_scanning_and_upload_security.sql`)
 
 Whole-Product Release Status:
-PRIVACY, DATA EXPORT, ACCOUNT CLOSURE & DELETION COMPLETED (PHASE 9E VERIFIED)
+MEDIA MALWARE SCANNING & PRODUCTION UPLOAD SECURITY COMPLETED (PHASE 9F VERIFIED)
 
 Next planned milestone:
-Phase 9F Malware Scanning + Production Upload Security.
+Phase 9G Support + Operations + Commercial Admin Controls.
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

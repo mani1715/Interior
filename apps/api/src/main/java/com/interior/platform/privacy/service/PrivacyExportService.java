@@ -26,17 +26,20 @@ public class PrivacyExportService {
     private final JdbcTemplate jdbcTemplate;
     private final StorageService storageService;
     private final ObjectMapper objectMapper;
+    private final int exportTtlDays;
 
     public PrivacyExportService(
             PrivacyRepository privacyRepository,
             JdbcTemplate jdbcTemplate,
             StorageService storageService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            @org.springframework.beans.factory.annotation.Value("${app.privacy.export-ttl-days:7}") int exportTtlDays
     ) {
         this.privacyRepository = privacyRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.storageService = storageService;
         this.objectMapper = objectMapper;
+        this.exportTtlDays = exportTtlDays;
     }
 
     public static String sanitizeCsvField(String field) {
@@ -99,7 +102,7 @@ public class PrivacyExportService {
             String storageKey = "exports/users/" + userId + "/" + jobId + ".zip";
 
             storageService.store(storageKey, zipData, "application/zip");
-            Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
+            Instant expiresAt = Instant.now().plus(exportTtlDays, ChronoUnit.DAYS);
 
             privacyRepository.updateDataExportJobReady(jobId, storageKey, zipData.length, tokenHash, expiresAt);
             privacyRepository.updatePrivacyRequestStatus(requestId, PrivacyRequestStatus.COMPLETED, Instant.now(), null);
@@ -152,7 +155,7 @@ public class PrivacyExportService {
             String storageKey = "exports/studios/" + studioId + "/" + jobId + ".zip";
 
             storageService.store(storageKey, zipData, "application/zip");
-            Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
+            Instant expiresAt = Instant.now().plus(exportTtlDays, ChronoUnit.DAYS);
 
             privacyRepository.updateDataExportJobReady(jobId, storageKey, zipData.length, tokenHash, expiresAt);
             privacyRepository.updatePrivacyRequestStatus(requestId, PrivacyRequestStatus.COMPLETED, Instant.now(), null);

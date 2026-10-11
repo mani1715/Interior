@@ -12,12 +12,12 @@ Branch:
 main
 
 Latest functional baseline:
-Phase 9E Privacy + Data Export + Account Closure + Deletion Complete (READY FOR PHASE 9F MALWARE SCANNING & UPLOAD SECURITY)
+Phase 9F Malware Scanning + Production Upload Security Complete (READY FOR PHASE 9G SUPPORT & OPERATIONS)
 
 Flyway:
-V038
+V039
 
-Phase 7 Hardening & Release Tracks:
+Phase 7 & 9 Hardening & Release Tracks:
 - Phase 7A: Auth, Sessions, Tenant Switching & Studio Onboarding (PASS)
 - Phase 7B: Project Lifecycle, Publishing Gates, Enquiries & CRM Workflow (PASS)
 - Phase 7C: In-App Notifications & Authoritative Communication Delivery (PASS)
@@ -30,6 +30,7 @@ Phase 7 Hardening & Release Tracks:
 - Phase 9C: Production AI Provider, Usage, Cost Controls & Privacy (PASS)
 - Phase 9D: Admin MFA + Account Security + Recovery Architecture (PASS)
 - Phase 9E: Privacy + Data Export + Account Closure + Deletion + Retention (PASS)
+- Phase 9F: Malware Scanning + Production Upload Security + Quarantine Hardening (PASS)
 
 Production deployment:
 DEFERRED (Ready for Phase 8 Closed Beta Infrastructure Setup)

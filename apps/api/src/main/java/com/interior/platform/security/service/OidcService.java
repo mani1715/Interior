@@ -215,6 +215,9 @@ public class OidcService {
         var existingUserOpt = securityRepository.findUserByExternalIdentity(issuer, subject);
         if (existingUserOpt.isPresent()) {
             UserRecord user = existingUserOpt.get();
+            if ("DELETED".equalsIgnoreCase(user.status())) {
+                throw new AccessDeniedException("ACCOUNT_PERMANENTLY_DELETED: This account has been permanently deleted/closed and cannot be re-authenticated.");
+            }
             if (!"ACTIVE".equalsIgnoreCase(user.status())) {
                 throw new AccessDeniedException("User account is inactive");
             }

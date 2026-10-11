@@ -45,6 +45,8 @@ public class MediaService {
     private final com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository;
     @Autowired(required = false)
     private com.interior.platform.billing.service.EntitlementService entitlementService;
+    @Autowired(required = false)
+    private MediaSecurityScanService mediaSecurityScanService;
 
     @Autowired
     public MediaService(
@@ -56,7 +58,8 @@ public class MediaService {
             AuditService auditService,
             StorageService storageService,
             ImageProcessingService imageProcessingService,
-            com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository
+            com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository,
+            MediaSecurityScanService mediaSecurityScanService
     ) {
         this.mediaRepository = mediaRepository;
         this.projectRepository = projectRepository;
@@ -67,6 +70,32 @@ public class MediaService {
         this.storageService = storageService;
         this.imageProcessingService = imageProcessingService;
         this.projectRoomRepository = projectRoomRepository;
+        this.mediaSecurityScanService = mediaSecurityScanService;
+    }
+
+    public MediaService(
+            MediaRepository mediaRepository,
+            ProjectRepository projectRepository,
+            StudioRepository studioRepository,
+            SecurityRepository securityRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            StorageService storageService,
+            ImageProcessingService imageProcessingService,
+            com.interior.platform.projects.repository.ProjectRoomRepository projectRoomRepository
+    ) {
+        this(
+                mediaRepository,
+                projectRepository,
+                studioRepository,
+                securityRepository,
+                authorizationService,
+                auditService,
+                storageService,
+                imageProcessingService,
+                projectRoomRepository,
+                null
+        );
     }
 
     public MediaService(
@@ -88,6 +117,7 @@ public class MediaService {
                 auditService,
                 storageService,
                 imageProcessingService,
+                null,
                 null
         );
     }
@@ -230,8 +260,13 @@ public class MediaService {
             throw new BadRequestException("Uploaded file data is empty");
         }
 
-        // Validate and get image dimensions
+        // Validate and get image dimensions (magic bytes, dimensions, pixel limit)
         ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(rawBytes);
+
+        // Security scan gate: ensure payload is clean before committing to canonical storage
+        if (mediaSecurityScanService != null) {
+            mediaSecurityScanService.scanAndEnforce(intent, rawBytes, actor.userId());
+        }
 
         // Visibility rules
         MediaType mediaType = intent.mediaType();
@@ -697,6 +732,11 @@ public class MediaService {
 
         // Validate image format and dimensions (decompression bomb defense)
         ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(rawBytes);
+
+        // Security scan gate: ensure replacement payload is clean before committing to canonical storage
+        if (mediaSecurityScanService != null) {
+            mediaSecurityScanService.scanAndEnforce(intent, rawBytes, actor.userId());
+        }
 
         // Check storage quota delta if replacement is larger than original
         long byteDelta = rawBytes.length - asset.fileSize();

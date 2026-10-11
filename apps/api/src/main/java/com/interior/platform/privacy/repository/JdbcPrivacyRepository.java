@@ -295,7 +295,7 @@ public class JdbcPrivacyRepository implements PrivacyRepository {
 
     @Override
     public void anonymizeUserData(UUID userId) {
-        // Anonymize user identity row in users
+        // Anonymize user identity row in users and mark as DELETED
         String anonSql = """
             UPDATE users
             SET display_name = 'Deleted User',
@@ -308,8 +308,9 @@ public class JdbcPrivacyRepository implements PrivacyRepository {
         """;
         jdbcTemplate.update(anonSql, userId);
 
-        // Delete OIDC external identity bindings
-        jdbcTemplate.update("DELETE FROM identity_external_identities WHERE user_id = ?", userId);
+        // Retain identity_external_identities binding to the tombstoned user
+        // so that the same OIDC issuer+subject cannot silently provision a new account.
+        // OidcService checks user status and strictly blocks DELETED users from authenticating.
 
         // Delete MFA credentials and recovery codes
         jdbcTemplate.update("DELETE FROM identity_mfa_methods WHERE user_id = ?", userId);

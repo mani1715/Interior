@@ -73,12 +73,25 @@ export interface CreateUploadIntentRequest {
   clientFileName?: string;
 }
 
+export type ScanStatus =
+  | 'NOT_SCANNED'
+  | 'NOT_REQUIRED'
+  | 'PENDING'
+  | 'SCANNING'
+  | 'CLEAN'
+  | 'INFECTED'
+  | 'SCAN_FAILED'
+  | 'NOT_CONFIGURED';
+
 export interface UploadIntentResponse {
   uploadIntentId: string;
   mediaAssetId: string;
   uploadUrl: string;
   quarantineKey: string;
   expiresAt: string;
+  scanStatus?: ScanStatus;
+  threatName?: string | null;
+  scannerProvider?: string | null;
 }
 
 export interface CommitUploadRequest {
