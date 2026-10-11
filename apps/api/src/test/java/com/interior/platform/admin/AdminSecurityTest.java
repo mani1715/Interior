@@ -163,7 +163,7 @@ class AdminSecurityTest {
 
         verify(adminRepository).updateUserStatus(targetUserId, "SUSPENDED", "Policy violation");
         verify(securityRepository).revokeAllUserSessions(eq(targetUserId), any(Instant.class));
-        verify(auditService).record(
+        verify(auditService).recordRequired(
                 eq(adminActor.userId()),
                 isNull(),
                 eq("USER_STATUS_CHANGED"),
@@ -225,7 +225,7 @@ class AdminSecurityTest {
         adminService.updateStudioStatus(adminActor, targetStudioId, req, "127.0.0.1", "TestAgent");
 
         verify(adminRepository).updateStudioStatus(targetStudioId, "SUSPENDED", "Fraud investigation");
-        verify(auditService).record(
+        verify(auditService).recordRequired(
                 eq(adminActor.userId()),
                 eq(targetStudioId),
                 eq("STUDIO_STATUS_CHANGED"),
@@ -250,7 +250,7 @@ class AdminSecurityTest {
 
         verify(adminRepository).updateUserRole(targetUserId, "ADMIN");
         verify(securityRepository).revokeAllUserSessions(eq(targetUserId), any(Instant.class));
-        verify(auditService).record(
+        verify(auditService).recordRequired(
                 eq(superAdminActor.userId()),
                 isNull(),
                 eq("ADMIN_ROLE_CHANGED"),
@@ -301,7 +301,7 @@ class AdminSecurityTest {
         adminService.revokeUserSessions(superAdminActor, targetUserId, "127.0.0.1", "TestAgent");
 
         verify(securityRepository).revokeAllUserSessions(eq(targetUserId), any(Instant.class));
-        verify(auditService).record(
+        verify(auditService).recordRequired(
                 eq(superAdminActor.userId()),
                 isNull(),
                 eq("SESSION_REVOKED"),
@@ -436,5 +436,53 @@ class AdminSecurityTest {
         assertEquals("UP", health.database());
         assertEquals("NOT_CONFIGURED", health.emailProvider());
         assertEquals("DIRECT_WAME", health.whatsappMode());
+    }
+
+    @Test
+    @DisplayName("Manual Plan Override: Audit persistence failure throws exception to trigger transactional rollback")
+    void manualPlanOverride_auditFailure_throwsAndFailsClosed() {
+        UUID targetStudioId = UUID.randomUUID();
+        when(adminRepository.getStudioDetail(targetStudioId)).thenReturn(Optional.of(new AdminStudioDetailDto(
+                targetStudioId, "Studio A", "studio-a", UUID.randomUUID(), "owner@a.local", "ACTIVE", null, "PUBLISHED", "VERIFIED", "STANDARD", 2, 2, 10, 5000000L, 0, 0, Instant.now()
+        )));
+
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("Disk full on audit table"))
+                .when(auditService).recordRequired(any(), any(), eq("SUBSCRIPTION_OVERRIDE"), any(), any(), any(), any(), any());
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
+                adminService.updateStudioPlan(superAdminActor, targetStudioId, new UpdateStudioPlanRequest("PRO"), "127.0.0.1", "TestAgent")
+        );
+    }
+
+    @Test
+    @DisplayName("Platform Role Change: Audit persistence failure throws exception preventing unaudited escalation")
+    void roleChange_auditFailure_throwsAndFailsClosed() {
+        UUID targetUserId = UUID.randomUUID();
+        when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
+                targetUserId, "User B", "b@test.local", null, "ACTIVE", null, Instant.now(), Set.of("DESIGNER"), List.of(), 1, false
+        )));
+
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("Audit deadlocked"))
+                .when(auditService).recordRequired(any(), any(), eq("ADMIN_ROLE_CHANGED"), any(), any(), any(), any(), any());
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
+                adminService.updateUserRole(superAdminActor, targetUserId, new UpdateUserRoleRequest("ADMIN"), "127.0.0.1", "TestAgent")
+        );
+    }
+
+    @Test
+    @DisplayName("User Account Suspension: Audit persistence failure throws exception ensuring rollback")
+    void userStatus_auditFailure_throwsAndFailsClosed() {
+        UUID targetUserId = UUID.randomUUID();
+        when(adminRepository.getUserDetail(targetUserId)).thenReturn(Optional.of(new AdminUserDetailDto(
+                targetUserId, "User B", "b@test.local", null, "ACTIVE", null, Instant.now(), Set.of("DESIGNER"), List.of(), 1, false
+        )));
+
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("Audit down"))
+                .when(auditService).recordRequired(any(), any(), eq("USER_STATUS_CHANGED"), any(), any(), any(), any(), any());
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
+                adminService.updateUserStatus(adminActor, targetUserId, new UpdateUserStatusRequest("SUSPENDED", "Fraud"), "127.0.0.1", "TestAgent")
+        );
     }
 }

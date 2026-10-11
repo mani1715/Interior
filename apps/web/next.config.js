@@ -26,18 +26,54 @@ const securityHeaders = [
   },
 ];
 
+function getRemotePatterns() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const patterns = [];
+
+  // Production remote image policy:
+  // Accept ONLY explicitly configured trusted CDN hostnames from environment.
+  // Strict hostname validation: RFC 1123 compliant, no wildcards, no protocols, no slashes.
+  const rawHost = process.env.APP_CDN_HOSTNAME || process.env.NEXT_PUBLIC_CDN_HOSTNAME;
+  if (rawHost) {
+    const sanitizedHost = rawHost.trim().toLowerCase();
+    const hostnameRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
+    if (hostnameRegex.test(sanitizedHost) && !sanitizedHost.includes('*')) {
+      patterns.push({
+        protocol: 'https',
+        hostname: sanitizedHost,
+        pathname: '/**',
+      });
+    }
+  }
+
+  // Development mode: permit local API media paths only (no wildcard hostnames).
+  if (!isProd && patterns.length === 0) {
+    patterns.push(
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/api/v1/media/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8080',
+        pathname: '/api/v1/media/**',
+      }
+    );
+  }
+
+  return patterns;
+}
+
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
     qualities: [75, 90],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    remotePatterns: getRemotePatterns(),
   },
   async headers() {
     return [

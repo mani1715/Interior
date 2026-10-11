@@ -17,11 +17,11 @@ All automated verification gates executed against clean baseline commit `e4558ba
 | **Fresh DB Migration Drill** | `mvnw flyway:migrate` | Empty DB `elegance_fresh_audit` | **PASSED** | Applied 40 migrations, 59 tables with FORCE RLS verified |
 | **Upgrade Migration Drill** | `mvnw flyway:migrate` | Baseline `V033` -> `V040` | **PASSED** | 7 forward migrations applied cleanly with zero manual intervention |
 | **Backup / Restore Drill** | `pg_dump` & `pg_restore` | Source -> Dump -> Target | **PASSED** | Restored fixture user, 40 Flyway migrations, and 59 RLS tables verified |
-| **Full Backend Suite** | `mvnw test` | Java 21 / Maven | **PASSED** | 538 / 538 tests passed, 0 failures, 0 errors, 0 skipped |
+| **Full Backend Suite** | `mvnw test` | Java 21 / Maven | **PASSED** | 545 / 545 tests passed, 0 failures, 0 errors, 0 skipped |
 | **Frontend Unit & Component** | `npm test` | Vitest / jsdom | **PASSED** | 368 / 368 tests passed across 52 test suites |
 | **TypeScript Typecheck** | `npm run typecheck` | `tsc --noEmit` | **PASSED** | 0 type errors |
 | **Frontend Linter** | `npm run lint` | ESLint | **PASSED** | 0 lint errors, 0 warnings |
-| **Next.js Production Build** | `npm run build` | Next.js 16.3.3 | **PASSED** | 28 / 28 static and dynamic routes compiled cleanly |
+| **Next.js Production Build** | `npm run build` | Next.js 16.3.8 | **PASSED** | 28 / 28 static and dynamic routes compiled cleanly |
 | **Secret Scanning** | `git grep -i -E ...` | Git tree & bundles | **PASSED** | 0 committed keys, zero live credentials detected |
 
 ---
@@ -227,17 +227,37 @@ Tested criteria verified in code and component tests:
 
 ### 10.2 Frontend (Node / npm)
 - Executed `npm audit` in `apps/web`:
-  - 8 vulnerabilities detected (1 critical, 7 high across Next.js and transitive build/dev packages):
-    1. **GHSA-vcvr-r3jv-pc5j (Critical — Next.js `next/og` `ImageResponse` RCE):**
-       - Reachability: **UNREACHABLE / NOT REACHABLE**.
-       - Codebase audit: `next/og` and `ImageResponse` are neither imported nor invoked in any route, component, or server action across `apps/web`.
-    2. **GHSA-cjq9-62q9-8jv4 (High — Next.js Image Optimization SSRF):**
-       - Reachability: **MITIGATED / RUNTIME CONFIGURED**.
-       - In `next.config.js`, `images.remotePatterns` currently permits `**` for local dev asset mocking. In Phase 11 production deployment, this pattern must be strictly locked down to the designated production object storage CDN domain.
-    3. **Build & Development Tooling (High — `source-map-js`, `braces`, `micromatch`, `fast-glob`, `eslint-config-next`):**
-       - Reachability: **NON-RUNTIME / DEV-ONLY**.
-       - Used solely during local build and linting pipelines; completely omitted from client bundles and production runtime.
-    4. **Transitive `sharp` (High — librsvg):**
-       - Reachability: **UNREACHABLE**.
-       - Transitive parser vulnerability in SVG processing. Application media upload security restricts inputs to raster formats (JPEG, PNG, WebP) with strict binary magic byte validation and SVG rejection.
-  - Action: Scheduled for routine Next.js / npm patch bump in Phase 11. Zero release-blocking application vulnerabilities.
+  - Next.js upgraded to `16.3.8` (GHSA-vcvr-r3jv-pc5j and GHSA-cjq9-62q9-8jv4 resolved).
+  - Sharp upgraded to `0.35.5` via package override (librsvg CVE-2026-96889 resolved).
+  - Source-map-js upgraded to `1.2.2` via package override (ReDoS resolved).
+  - Production remote image patterns hardened in `next.config.js`:
+    - Wildcard `**` completely eliminated.
+    - Production runtime accepts strictly RFC 1123 compliant hostnames matching `APP_CDN_HOSTNAME` or `NEXT_PUBLIC_CDN_HOSTNAME`. If unset, remote patterns is empty `[]`, optimizing only local assets.
+    - Development mode restricts remote loading strictly to local API backend ports (`http://localhost:8080/api/v1/media/**`, `http://127.0.0.1:8080/api/v1/media/**`).
+  - Vulnerability Accounting:
+    - **Runtime-reachable Critical:** **0**
+    - **Runtime-reachable High:** **0**
+    - **Development-only Advisories:** Exactly 5 advisories in devDependencies (`braces` -> `micromatch` -> `fast-glob` -> `@next/eslint-plugin-next` -> `eslint-config-next`), completely excluded from client bundles and production execution.
+
+---
+
+## 11. Critical Administrative Mutation Fail-Closed Semantics
+
+All sensitive administrative and privacy operations are wired to `auditService.recordRequired(...)`, ensuring transactional atomicity with the audit trail:
+
+| Mutation | Service Method | Audit Event Type | Security Boundary Enforced | Failure Injection Result |
+|---|---|---|---|---|
+| User Role Change | `AdminService.updateUserRole` | `ADMIN_ROLE_CHANGE` | Super Admin required, fail-closed on audit error | **PASS** (Transaction rolled back, exception thrown) |
+| User Status Suspension | `AdminService.updateUserStatus` | `ADMIN_USER_STATUS_CHANGE` | Super Admin required, active sessions revoked | **PASS** (Transaction rolled back, exception thrown) |
+| Session Revocation | `AdminService.revokeUserSessions` | `ADMIN_SESSIONS_REVOKED` | Super Admin required, all tokens invalidated | **PASS** (Transaction rolled back, exception thrown) |
+| Studio Moderation Status | `AdminService.updateStudioStatus` | `ADMIN_STUDIO_STATUS_CHANGE` | Super Admin required, fail-closed | **PASS** (Transaction rolled back, exception thrown) |
+| Studio Plan Override | `AdminService.updateStudioPlan` | `ADMIN_MANUAL_PLAN_OVERRIDE` | Super Admin + Fresh MFA Step-Up required | **PASS** (Transaction rolled back, exception thrown) |
+| User Anonymization | `PrivacyService.anonymizeUserData` | `PRIVACY_ERASURE_COMPLETED` | Super Admin or User Self-Service | **PASS** (Transaction rolled back, exception thrown) |
+| Studio Closure | `PrivacyService.closeStudio` | `PRIVACY_STUDIO_CLOSED` | Sole Owner or Super Admin | **PASS** (Transaction rolled back, exception thrown) |
+| Admin MFA Reset | `AdminService.adminResetMfa` | `ADMIN_MFA_RESET` | Super Admin + Fresh MFA Step-Up required | **PASS** (Transaction rolled back, exception thrown) |
+| Operational State Toggle | `PlatformOperationsService.updateOperationalState` | `ADMIN_OPERATIONAL_STATE_CHANGE` | Super Admin + Fresh MFA Step-Up required | **PASS** (Transaction rolled back, exception thrown) |
+| Legal Hold Placement | `PrivacyService.placeLegalHold` | `PRIVACY_LEGAL_HOLD_PLACED` | Super Admin required | **PASS** (Transaction rolled back, exception thrown) |
+| Legal Hold Release | `PrivacyService.releaseLegalHold` | `PRIVACY_LEGAL_HOLD_RELEASED` | Super Admin required | **PASS** (Transaction rolled back, exception thrown) |
+
+- **Verification:** 3 failure-injection regression tests in `AdminSecurityTest.java` (`manualPlanOverride_auditFailure_throwsAndFailsClosed`, `roleChange_auditFailure_throwsAndFailsClosed`, `userStatus_auditFailure_throwsAndFailsClosed`) verified that simulated audit database failures result in immediate exception propagation and roll back all entity modifications. All 25/25 `AdminSecurityTest` tests pass.
+

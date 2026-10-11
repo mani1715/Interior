@@ -24,7 +24,7 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 - **P2 OPEN:** 0
 - **P3 OPEN:** 0
 - **P0 FIXED:** 1
-- **P1 FIXED:** 5
+- **P1 FIXED:** 7
 - **P2 FIXED:** 2
 - **P3 FIXED:** 0
 
@@ -40,6 +40,8 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 | **FINDING-P10-006** | P1 | Operations / Specs | *Root Cause:* Prior documentation mentioned `ACTIVE` and `OFFLINE` states, while PostgreSQL schema constraint `V040` and application code strictly define `NORMAL` and `READ_ONLY`. | Harmonized all runbooks, matrices, and decision registers to canonical states: `NORMAL` and `READ_ONLY`. | Verified check constraint in `V040` and `UpdateOperationalStateRequest.java`. Retest: **PASS**. | **CLOSED** |
 | **FINDING-P10-007** | P1 | Privacy / Policy | *Root Cause:* Prior docs referred to a "14-day deletion grace period" as an adopted locked policy, whereas the privacy service performs immediate closure and immediate deletion request processing, and the 14-day recovery period is an unapproved proposed parameter. | Designated as `ACCOUNT CLOSURE / DELETION RECOVERY PERIOD DECISION REQUIRED` with 14-day period explicitly labelled as `CONFIG DEFAULT ONLY`. | Verified in `DATA_RETENTION_MATRIX.md`, `PRODUCTION_DECISION_REGISTER.md`, and `PrivacyService.java`. Retest: **PASS**. | **CLOSED** |
 | **FINDING-P10-008** | P2 | Accessibility / Specs | *Root Cause:* Summary claimed formal "WCAG 2.1 AA compliance" solely based on Vitest component tests. | Aligned wording to "WCAG-oriented accessibility audit passed tested criteria" and documented the criteria tested vs items requiring deployed manual assistive technology evaluation. | Audited keyboard focus, landmarks, reduced motion, and aria attributes. Retest: **PASS**. | **CLOSED** |
+| **P10-RC-DEP-001** | P1 | Frontend / Security | *Root Cause:* Next.js 16.3.3 contained known security advisories (GHSA-vcvr-r3jv-pc5j critical RCE, GHSA-cjq9-62q9-8jv4 high SSRF); transitive sharp contained librsvg advisory; remotePatterns allowed `**` wildcard. | Upgraded Next.js and eslint-config-next to 16.3.8; applied package overrides for sharp 0.35.5 and source-map-js 1.2.2; eliminated `**` remote pattern wildcard in `next.config.js` and enforced strict RFC 1123 hostname validation via `APP_CDN_HOSTNAME` and local dev backend paths. | Vitest 368/368 pass, `tsc --noEmit` pass, ESLint pass, Next.js 16.3.8 build clean, `npm audit` runtime-reachable Critical = 0, High = 0. Retest: **PASS**. | **CLOSED** |
+| **P10-RC-AUDIT-001** | P1 | Admin / Audit Security | *Root Cause:* Administrative and privacy mutations (`updateUserRole`, `updateUserStatus`, `revokeUserSessions`, `updateStudioStatus`, `updateStudioPlan`, `anonymizeUserData`, `closeStudio`) used best-effort audit logging rather than transactional fail-closed audit recording. | Wired all administrative and privacy mutations to `auditService.recordRequired(...)`, ensuring database failures during audit persistence cause transaction rollback; enforced MFA step-up verification on plan overrides. | Added 3 failure-injection regression tests in `AdminSecurityTest.java` verifying transaction abort and fail-closed behavior on audit failures. 25/25 AdminSecurityTest pass; 545/545 full backend suite pass. Retest: **PASS**. | **CLOSED** |
 
 ---
 
@@ -78,7 +80,7 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 ### 3.6 Support, Operations & Maintenance Mode
 - **Ticket Queuing:** Priority sorting, internal notes isolation, status transitions verified. Support retention: `SUPPORT RETENTION POLICY DECISION REQUIRED`.
 - **Maintenance Modes:** Canonical states: `NORMAL` (full platform read/write operational state) and `READ_ONLY` (blocks all mutating requests with HTTP 503 `MAINTENANCE_MODE_ACTIVE` for regular users; platform administrators restricted strictly to control-plane endpoints).
-- **Audit Fail-Closed Semantics:** Critical administrative actions (`adminResetMfa`, `updateOperationalState`, `placeLegalHold`, `releaseLegalHold`) use `recordRequired` which propagates database errors to ensure transaction rollback.
+- **Audit Fail-Closed Semantics:** All critical administrative and privacy mutations (`updateUserRole`, `updateUserStatus`, `revokeUserSessions`, `updateStudioStatus`, `updateStudioPlan`, `anonymizeUserData`, `closeStudio`, `adminResetMfa`, `updateOperationalState`, `placeLegalHold`, `releaseLegalHold`) use `recordRequired`, ensuring that database failures during audit logging propagate out of the `@Transactional` boundary and roll back state changes.
 - **Job Trigger Allowlist:** Automated jobs restricted to approved operational task names via PostgreSQL advisory locking.
 
 ### 3.7 Database Integrity & Flyway
@@ -91,7 +93,8 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 - **Test Suite:** 368 / 368 Vitest tests passed (52 suites).
 - **TypeScript:** 0 compilation errors (`tsc --noEmit`).
 - **ESLint:** 0 errors, 0 warnings.
-- **Build:** Next.js production build succeeded cleanly across all 28 routes.
+- **Build:** Next.js production build succeeded cleanly across all 28 routes (`next@16.3.8` Turbopack).
+- **Security Hardening:** Next.js patched to 16.3.8 (GHSA-vcvr-r3jv-pc5j, GHSA-cjq9-62q9-8jv4 closed), sharp patched to 0.35.5, source-map-js patched to 1.2.2. Remote image patterns locked down to strict RFC 1123 hostname (`APP_CDN_HOSTNAME`) with wildcard `**` eliminated.
 - **WCAG Audit:** WCAG-oriented accessibility audit passed tested criteria (keyboard, focus rings, dialog trapping, landmarks, aria-live, contrast, reduced motion).
 
 ---
@@ -99,4 +102,4 @@ In accordance with the Elégance Release Roadmap, **Feature Freeze is ACTIVE**.
 ## 4. Release Decision
 
 **Status: PRODUCTION RELEASE CANDIDATE READY — P0=0, P1=0**  
-All quality gates, database migration drills, security re-attacks, and defect closures have completed with zero open P0 or P1 defects. Feature Freeze remains active. The codebase is locked and approved for Phase 11 production provider provisioning and infrastructure deployment.
+All quality gates, 545 backend tests, 45 PostgreSQL RLS tests, 368 frontend tests, database migration drills, security re-attacks, and defect closures have completed with zero open P0 or P1 defects. Feature Freeze remains active. The codebase is locked and approved for Phase 11 production provider provisioning and infrastructure deployment.

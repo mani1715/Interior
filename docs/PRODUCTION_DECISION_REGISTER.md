@@ -18,7 +18,7 @@ Where decisions have been architected and implemented in code, their architectur
 | ID | Domain | Area | Status | Authoritative Decision / Contract |
 |---|---|---|---|---|
 | **PDR-001** | Infrastructure | Primary Cloud Hosting | `DECISION REQUIRED` | Target candidates: Railway / AWS / Render. Application is container-ready (Dockerized Spring Boot API & Next.js web application). Final selection pending Phase 11. |
-| **PDR-002** | Infrastructure | Frontend CDN / Edge Hosting | `DECISION REQUIRED` | Target candidates: Vercel / Cloudflare Pages / AWS CloudFront. Standalone Next.js Node server mode tested and verified. |
+| **PDR-002** | Infrastructure | Frontend CDN / Edge Hosting | `DECISION REQUIRED` | Target candidates: Vercel / Cloudflare Pages / AWS CloudFront. Standalone Next.js Node server mode tested and verified. Runtime baseline: Next.js 16.3.8 Turbopack, sharp 0.35.5. Remote image optimization strictly requires valid RFC 1123 hostname configured in `APP_CDN_HOSTNAME`; arbitrary wildcard patterns (`*`) are prohibited. |
 | **PDR-003** | Database | Production PostgreSQL Host | `DECISION REQUIRED` | Requires PostgreSQL 16+ (tested against PostgreSQL 18.3, supported min 15, recommended 16/17 due to Flyway 10.20 notice). Native RLS (`app.current_user_id`, `app.current_studio_id`, `app.is_admin`) enforced across 59 tables. Target candidates: Neon, Supabase, AWS RDS, Railway PG. |
 | **PDR-004** | Disaster Recovery | Recovery Point Objective (RPO) | `DECISION REQUIRED` | **RPO DECISION REQUIRED**. Non-binding engineering target: < 1 hour for commercial data. Subject to executive SLA and infrastructure tier selection. |
 | **PDR-005** | Disaster Recovery | Recovery Time Objective (RTO) | `DECISION REQUIRED` | **RTO DECISION REQUIRED**. Non-binding engineering target: < 4 hours for full cluster restoration. Subject to executive SLA and infrastructure tier selection. |
@@ -36,6 +36,7 @@ Where decisions have been architected and implemented in code, their architectur
 | **PDR-017** | Privacy | Account Closure & Deletion Recovery Period | `DECISION REQUIRED` | **ACCOUNT CLOSURE / DELETION RECOVERY PERIOD DECISION REQUIRED**. Immediate account suspension and session termination implemented; 14-day deletion grace period is **CONFIG DEFAULT ONLY**, pending formal legal and regulatory review. |
 | **PDR-018** | Support | Support Ticket Data Retention | `DECISION REQUIRED` | **SUPPORT RETENTION POLICY DECISION REQUIRED**. Non-binding operational recommendation: Closed tickets retained 2 years. Subject to compliance review. |
 | **PDR-019** | Security | Malware Scan Ledger & Quarantine Retention | `DECISION REQUIRED` | **MALWARE RETENTION POLICY DECISION REQUIRED**. Non-binding operational recommendation: Quarantined metadata retained 90 days. Subject to security compliance approval. |
+| **PDR-020** | Audit & Governance | Fail-Closed Privileged Mutation Auditing | **ADOPTED / IMPLEMENTED** | All administrative and privacy mutations (`updateUserRole`, `updateUserStatus`, `revokeUserSessions`, `updateStudioStatus`, `updateStudioPlan`, `anonymizeUserData`, `closeStudio`, `adminResetMfa`, `updateOperationalState`, `placeLegalHold`, `releaseLegalHold`) are bound to `recordRequired`. Audit write failure aborts the transaction and rolls back database state changes. |
 
 ---
 

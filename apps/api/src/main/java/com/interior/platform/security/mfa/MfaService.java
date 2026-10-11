@@ -443,12 +443,13 @@ public class MfaService {
         authorizationService.requireAuthenticated(actor);
         authorizationService.requireActiveUser(actor);
 
-        if (session == null || session.mfaVerifiedAt() == null) {
+        Instant verifiedAt = session != null ? session.mfaVerifiedAt() : actor.mfaVerifiedAt();
+        if (verifiedAt == null) {
             throw new MfaStepUpRequiredException("Fresh multi-factor authentication verification is required for this action.");
         }
 
         Instant threshold = Instant.now().minusSeconds(properties.getMfa().getStepUpFreshnessSeconds());
-        if (session.mfaVerifiedAt().isBefore(threshold)) {
+        if (verifiedAt.isBefore(threshold)) {
             throw new MfaStepUpRequiredException("Your multi-factor authentication verification has expired. Fresh verification is required.");
         }
     }

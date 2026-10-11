@@ -44,6 +44,7 @@ In addition to Tier 1 prerequisites, opening the platform to public beta onboard
    - Provision secure S3-compatible bucket (e.g., Cloudflare R2, AWS S3).
    - Set up private bucket policies with presigned GET/PUT URLs.
    - Configure CORS rules for direct client uploads.
+   - Configure `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME` with the public storage / CDN domain to allow Next.js 16.3.8 image optimization to safely fetch assets without wildcard remote patterns.
 3. **Production Malware Scanner Deployment:**
    - Deploy ClamAV daemon container or provision external anti-malware scanning endpoint.
    - Connect API worker to scan queue with fail-closed policy (`app.media.security.require-clean-scan=true`).

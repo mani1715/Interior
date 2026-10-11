@@ -34,6 +34,7 @@ Launch Tiers:
 | **Platform Ops & Maintenance Mode** | Implemented (`NORMAL` and `READ_ONLY` with strict admin boundary) | `APP_OPERATIONS_MAINTENANCE_MODE` | Active | Active | Active |
 | **Audit Logging & Security Events** | Implemented (`audit_logs`, `security_events` with fail-closed `recordRequired` for admin mutations) | N/A | Active | Active | Active |
 | **Data Export & Account Closure** | Implemented (JSON bundle export + immediate suspension/deletion; 14-day recovery is config default only) | N/A | Active | Active | Active |
+| **Frontend Image CDN Optimization** | Implemented (Next.js 16.3.8 Turbopack + sharp 0.35.5; strict RFC 1123 validation, no wildcards) | `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME` | Local API paths only | CDN Host Required | Production Cloud CDN Host |
 
 ---
 
@@ -43,3 +44,4 @@ In production (`prod` Spring profile / `NODE_ENV=production`):
 1. **No Blank Secret Fallbacks:** If `APP_MFA_MASTER_KEY` or `SPRING_DATASOURCE_PASSWORD` are missing or set to default example strings (e.g., `dev-secret`, `changeme`), the application fails fast at startup.
 2. **Fail-Closed Malware Scanning:** When `APP_MEDIA_SECURITY_REQUIRE_CLEAN_SCAN=true`, files without a verified clean scan result are permanently quarantined and inaccessible.
 3. **Strict Origin Validation:** `APP_ALLOWED_ORIGINS` must match the production custom domain exactly; wildcard origins (`*`) are disallowed when cookies are enabled.
+4. **Strict Remote Image Validation:** `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME` must be a valid RFC 1123 hostname without wildcards (`*`). If unset, remote image optimization defaults to empty `[]` to prevent SSRF vulnerabilities.

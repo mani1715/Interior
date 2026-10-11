@@ -184,7 +184,7 @@ public class AdminService {
             securityRepository.revokeAllUserSessions(userId, Instant.now());
         }
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 null,
                 "USER_STATUS_CHANGED",
@@ -223,7 +223,7 @@ public class AdminService {
         // Revoke active sessions so role permissions re-evaluate upon next login
         securityRepository.revokeAllUserSessions(userId, Instant.now());
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 null,
                 "ADMIN_ROLE_CHANGED",
@@ -253,7 +253,7 @@ public class AdminService {
 
         securityRepository.revokeAllUserSessions(userId, Instant.now());
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 null,
                 "SESSION_REVOKED",
@@ -303,7 +303,7 @@ public class AdminService {
 
         adminRepository.updateStudioStatus(studioId, req.status(), req.reason());
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 studioId,
                 "STUDIO_STATUS_CHANGED",
@@ -316,15 +316,18 @@ public class AdminService {
     }
 
     @Transactional
-    public void updateStudioPlan(ActorContext actor, UUID studioId, UpdateStudioPlanRequest req, String ip, String ua) {
-        requireSuperAdmin(actor);
+    public void updateStudioPlan(ActorContext actor, UUID studioId, UpdateStudioPlanRequest req, String ip, String ua, com.interior.platform.security.domain.SessionRecord session) {
+        requireSuperAdmin(actor, session);
+        if (mfaService != null) {
+            mfaService.requireFreshStepUp(actor, session);
+        }
         rateLimiterService.acquire("admin:studio_plan:" + actor.userId(), 20, Duration.ofMinutes(1));
 
         getStudioDetail(actor, studioId); // validates existence
 
         adminRepository.updateStudioPlan(studioId, req.planCode());
 
-        auditService.record(
+        auditService.recordRequired(
                 actor.userId(),
                 studioId,
                 "SUBSCRIPTION_OVERRIDE",
@@ -334,6 +337,10 @@ public class AdminService {
                 ip,
                 ua
         );
+    }
+
+    public void updateStudioPlan(ActorContext actor, UUID studioId, UpdateStudioPlanRequest req, String ip, String ua) {
+        updateStudioPlan(actor, studioId, req, ip, ua, null);
     }
 
     // 4. Verifications

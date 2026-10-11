@@ -130,7 +130,7 @@ public class PrivacyService {
         // Anonymize user record and credentials
         privacyRepository.anonymizeUserData(userId);
 
-        auditService.record(
+        auditService.recordRequired(
                 userId,
                 null,
                 "ACCOUNT_ANONYMIZED_AND_DELETED",
@@ -167,7 +167,7 @@ public class PrivacyService {
 
         privacyRepository.archiveStudioByOwner(studioId, Instant.now());
 
-        auditService.record(
+        auditService.recordRequired(
                 actorUserId,
                 studioId,
                 "STUDIO_CLOSED_BY_OWNER",

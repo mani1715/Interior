@@ -226,7 +226,7 @@ public class AdminController {
             @Valid @RequestBody UpdateStudioPlanRequest req
     ) {
         ActorContext actor = extractActor(request);
-        adminService.updateStudioPlan(actor, studioId, req, getClientIp(request), request.getHeader("User-Agent"));
+        adminService.updateStudioPlan(actor, studioId, req, getClientIp(request), request.getHeader("User-Agent"), extractSession(request));
         return ResponseEntity.noContent().build();
     }
 
