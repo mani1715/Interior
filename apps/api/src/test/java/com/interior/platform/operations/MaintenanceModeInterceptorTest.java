@@ -89,16 +89,61 @@ class MaintenanceModeInterceptorTest {
                 new PlatformOperationalStateRecord("GLOBAL", "READ_ONLY", "Scheduled maintenance", false, false, false, null, Instant.now())
         );
 
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/projects");
+        String[] blockedEndpoints = {
+                "/api/v1/projects",
+                "/api/v1/projects/01a12b11-48ba-7617-8fb3-07a741349f8d",
+                "/api/v1/projects/01a12b11-48ba-7617-8fb3-07a741349f8d/publish",
+                "/api/v1/media/upload-intent",
+                "/api/v1/media/upload-commit",
+                "/api/v1/ai/generate",
+                "/api/v1/leads",
+                "/api/v1/studios/team/invitations",
+                "/api/v1/billing/checkout",
+                "/api/v1/support/tickets"
+        };
+
         ActorContext superAdminActor = new ActorContext(UuidV7.randomUuid(), "SuperAdmin", "super@test.com", "ACTIVE", Set.of("SUPER_ADMIN"), Set.of(), null, null, "MFA", true, Instant.now());
-        request.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, superAdminActor);
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        for (String endpoint : blockedEndpoints) {
+            String method = endpoint.contains("01a12b11-48ba-7617-8fb3-07a741349f8d") && !endpoint.endsWith("publish") ? "PATCH" : "POST";
+            MockHttpServletRequest request = new MockHttpServletRequest(method, endpoint);
+            request.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, superAdminActor);
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-        boolean result = interceptor.preHandle(request, response, new Object());
-        assertFalse(result);
-        assertEquals(503, response.getStatus());
-        assertTrue(response.getContentAsString().contains("MAINTENANCE_MODE_ACTIVE"));
+            boolean result = interceptor.preHandle(request, response, new Object());
+            assertFalse(result, "Super Admin mutation should be blocked at: " + endpoint);
+            assertEquals(503, response.getStatus(), "Should return 503 for: " + endpoint);
+            assertTrue(response.getContentAsString().contains("MAINTENANCE_MODE_ACTIVE"), "Should return MAINTENANCE_MODE_ACTIVE for: " + endpoint);
+        }
+    }
+
+    @Test
+    @DisplayName("Allowed operational control-plane paths pass for ADMIN / SUPER_ADMIN in READ_ONLY mode")
+    void preHandle_allowedControlPlanePaths_passInReadOnly() throws Exception {
+        when(operationsService.isMaintenanceReadOnly()).thenReturn(true);
+
+        String[] allowedPaths = {
+                "/api/v1/admin/operations/maintenance-mode",
+                "/api/v1/admin/operations/state",
+                "/api/v1/admin/mfa/reset",
+                "/api/v1/admin/audit/events",
+                "/api/v1/admin/users/01a12b11-48ba-7617-8fb3-07a741349f8d/status",
+                "/api/v1/admin/studios/01a12b11-48ba-7617-8fb3-07a741349f8d/moderation",
+                "/api/v1/auth/logout",
+                "/api/v1/public/webhooks/billing",
+                "/actuator/health"
+        };
+
+        ActorContext superAdminActor = new ActorContext(UuidV7.randomUuid(), "SuperAdmin", "super@test.com", "ACTIVE", Set.of("SUPER_ADMIN"), Set.of(), null, null, "MFA", true, Instant.now());
+
+        for (String path : allowedPaths) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
+            request.setAttribute(SecurityInterceptor.ACTOR_ATTRIBUTE, superAdminActor);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean result = interceptor.preHandle(request, response, new Object());
+            assertTrue(result, "Control-plane or emergency operational path should be permitted: " + path);
+        }
     }
 
     @Test
