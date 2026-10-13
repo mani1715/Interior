@@ -397,9 +397,8 @@ export function AiVisualizerClient() {
             <span>AI Generation Provider Not Configured</span>
           </div>
           <p className="text-xs sm:text-sm text-amber-800 leading-relaxed max-w-3xl">
-            AI concept generation requires an active provider key. To enable this feature in your deployment,
-            set <code className="bg-amber-100/80 px-1.5 py-0.5 rounded text-xs font-mono font-bold">interior.ai.provider</code> and{' '}
-            <code className="bg-amber-100/80 px-1.5 py-0.5 rounded text-xs font-mono font-bold">interior.ai.api-key</code> in your backend environment configuration.
+            Generative interior design features are currently unavailable on this platform instance.
+            Style visualization and concept generations will activate once provider configuration is completed by the administrator.
           </p>
         </div>
       )}

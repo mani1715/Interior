@@ -349,13 +349,13 @@ export default function AdminOperationsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-charcoal-900">Asset Uploads</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-sans font-medium ${
                     state?.uploadsEnabled
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {state?.uploadsEnabled ? 'ENABLED' : 'PAUSED'}
+                  {state?.uploadsEnabled ? 'Enabled' : 'Paused'}
                 </span>
               </div>
               <p className="text-[11px] text-charcoal-600 leading-normal">
@@ -382,13 +382,13 @@ export default function AdminOperationsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-charcoal-900">AI Processing</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-sans font-medium ${
                     state?.aiEnabled
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {state?.aiEnabled ? 'ENABLED' : 'PAUSED'}
+                  {state?.aiEnabled ? 'Enabled' : 'Paused'}
                 </span>
               </div>
               <p className="text-[11px] text-charcoal-600 leading-normal">
@@ -415,13 +415,13 @@ export default function AdminOperationsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-charcoal-900">Registrations</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-sans font-medium ${
                     state?.registrationsEnabled
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {state?.registrationsEnabled ? 'ENABLED' : 'PAUSED'}
+                  {state?.registrationsEnabled ? 'Enabled' : 'Paused'}
                 </span>
               </div>
               <p className="text-[11px] text-charcoal-600 leading-normal">

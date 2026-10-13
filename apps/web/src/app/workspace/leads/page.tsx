@@ -470,12 +470,12 @@ export default function LeadsWorkspacePage() {
           <div className="p-12 text-center bg-white rounded-2xl border border-sand-200 text-charcoal-500 space-y-2">
             <Users className="w-8 h-8 mx-auto text-sand-400" />
             <h3 className="font-serif text-base font-semibold text-charcoal-800">
-              No leads found in this view
+              {searchQuery ? 'No enquiries found' : 'No enquiries yet'}
             </h3>
             <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
               {searchQuery
-                ? `No leads matched "${searchQuery}". Try clearing search.`
-                : 'Inquiries submitted by homeowners on your published portfolio and projects will appear here.'}
+                ? `No enquiries matched "${searchQuery}". Try clearing search.`
+                : 'New enquiries will appear here.'}
             </p>
           </div>
         ) : (

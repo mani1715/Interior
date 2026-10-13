@@ -546,15 +546,20 @@ export function ProjectRoomManager({
 
             {/* Room List with Reordering & Actions */}
             <div className="space-y-1 py-1">
-              {rooms.map((room, idx) => (
-                <div
-                  key={room.id}
-                  className={`group rounded-xl p-2 flex items-center justify-between transition-all ${
-                    activeSpaceId === room.id
-                      ? 'bg-charcoal-900 text-white shadow-sm'
-                      : 'hover:bg-sand-100/70 text-charcoal-800'
-                  }`}
-                >
+              {rooms.length === 0 ? (
+                <div className="px-3 py-2 text-center text-[11px] text-charcoal-400 italic">
+                  No rooms yet. Add rooms to organize photography by space.
+                </div>
+              ) : (
+                rooms.map((room, idx) => (
+                  <div
+                    key={room.id}
+                    className={`group rounded-xl p-2 flex items-center justify-between transition-all ${
+                      activeSpaceId === room.id
+                        ? 'bg-charcoal-900 text-white shadow-sm'
+                        : 'hover:bg-sand-100/70 text-charcoal-800'
+                    }`}
+                  >
                   <button
                     type="button"
                     onClick={() => setActiveSpaceId(room.id)}
@@ -628,8 +633,9 @@ export function ProjectRoomManager({
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
+          </div>
 
             {/* Unassigned / Project Photos Group */}
             <button

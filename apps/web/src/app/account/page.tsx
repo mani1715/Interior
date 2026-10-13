@@ -54,6 +54,7 @@ import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
 } from '@/lib/notifications/api';
+import { formatStudioRoleLabel } from '@/lib/team/permissions';
 
 interface ActiveSession {
   id: string;
@@ -570,7 +571,7 @@ export default function AccountPage() {
                           <p className="text-xs font-mono text-bronze-800 mt-0.5">@{s.studioSlug}</p>
                         </div>
                         <span className="text-xs font-semibold px-2.5 py-1 bg-bronze-50 text-bronze-800 border border-bronze-200 rounded-lg">
-                          Role: {s.role}
+                          Role: {formatStudioRoleLabel(s.role)}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-sand-200/60 text-[11px]">

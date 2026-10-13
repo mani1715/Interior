@@ -39,8 +39,9 @@ import { CreateStudioModal } from './CreateStudioModal';
 export function formatStudioRole(role?: string | null): string {
   if (!role) return 'Team Member';
   const r = role.toUpperCase();
-  if (r === 'DESIGNER_ADMIN' || r === 'OWNER' || r === 'ADMIN') return 'Studio Admin';
-  if (r === 'DESIGNER_MEMBER' || r === 'MEMBER') return 'Team Member';
+  if (r === 'OWNER' || r === 'STUDIO_OWNER') return 'Studio Owner';
+  if (r === 'DESIGNER_ADMIN' || r === 'ADMIN') return 'Studio Admin';
+  if (r === 'DESIGNER_MEMBER' || r === 'MEMBER' || r === 'DESIGNER_TEAM') return 'Team Member';
   return role.replace(/_/g, ' ');
 }
 
@@ -335,8 +336,8 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 {studio?.professionalTitle || studio?.professionalType?.replace(/_/g, ' ') || 'Interior Professional'}
               </p>
             </div>
-            <span className="flex-shrink-0 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-sand-200 text-charcoal-800">
-              {studio?.role || 'OWNER'}
+            <span className="flex-shrink-0 text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-sand-200 text-charcoal-800">
+              {formatStudioRole(studio?.role || 'OWNER')}
             </span>
           </div>
 
@@ -431,7 +432,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
               >
                 {summary.availableStudios.map((s) => (
                   <option key={s.studioId} value={s.studioId}>
-                    {s.studioName} ({s.role})
+                    {s.studioName} ({formatStudioRole(s.role)})
                   </option>
                 ))}
               </select>

@@ -249,7 +249,7 @@ export function TeamWorkspace() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-bronze-100 text-bronze-900 border border-bronze-300">
           <ShieldCheck className="w-3.5 h-3.5 text-bronze-700" />
-          Owner
+          Studio Owner
         </span>
       );
     }
@@ -257,14 +257,14 @@ export function TeamWorkspace() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sand-100 text-charcoal-900 border border-sand-300">
           <Shield className="w-3.5 h-3.5 text-bronze-700" />
-          Admin
+          Studio Admin
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sand-100 text-charcoal-800 border border-sand-200">
         <User className="w-3.5 h-3.5 text-charcoal-500" />
-        Member
+        Team Member
       </span>
     );
   };

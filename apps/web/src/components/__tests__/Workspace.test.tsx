@@ -307,7 +307,7 @@ describe('Phase 09: Designer Dashboard & Professional Workspace', () => {
     // Verify studio details in sidebar
     await waitFor(() => {
       expect(screen.getAllByText('Srinivasa Interiors').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('OWNER').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Studio Owner').length).toBeGreaterThanOrEqual(1);
     });
 
     // Primary nav items in sidebar and mobile nav

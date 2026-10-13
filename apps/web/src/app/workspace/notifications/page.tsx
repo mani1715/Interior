@@ -204,13 +204,8 @@ export default function NotificationsWorkspacePage() {
               <Inbox className="w-6 h-6" />
             </div>
             <h3 className="font-serif text-base text-charcoal-900 font-semibold">
-              {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+              {filter === 'unread' ? "You're all caught up." : "No notifications yet."}
             </h3>
-            <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
-              {filter === 'unread'
-                ? 'All caught up! New lead inquiries, review submissions, and AI generation notices will appear here.'
-                : 'When clients submit inquiries or reviews, or when AI concepts complete, updates will appear in your center.'}
-            </p>
           </div>
         ) : (
           filteredNotifications.map((notif) => {
