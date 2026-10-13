@@ -110,3 +110,61 @@ export interface AdminVerificationDecisionRequest {
   status: 'NEEDS_MORE_INFO' | 'VERIFIED' | 'REJECTED' | 'REVERIFY_REQUIRED';
   reason?: string;
 }
+
+export interface AdminResetMfaRequest {
+  reason: string;
+}
+
+export interface UpdateUserRoleRequest {
+  role: 'CUSTOMER' | 'DESIGNER' | 'DESIGNER_TEAM' | 'ADMIN' | 'SUPER_ADMIN';
+}
+
+export interface PlatformOperationalState {
+  id: string;
+  maintenanceMode: 'NORMAL' | 'READ_ONLY';
+  maintenanceMessage: string | null;
+  uploadsEnabled: boolean;
+  aiEnabled: boolean;
+  registrationsEnabled: boolean;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
+export interface UpdateOperationalStateRequest {
+  maintenanceMode?: 'NORMAL' | 'READ_ONLY';
+  maintenanceMessage?: string;
+  uploadsEnabled?: boolean;
+  aiEnabled?: boolean;
+  registrationsEnabled?: boolean;
+}
+
+export type ProviderOperationalStatus =
+  | 'AVAILABLE'
+  | 'DEGRADED'
+  | 'NOT_CONFIGURED'
+  | 'DISABLED'
+  | 'UNAVAILABLE';
+
+export interface ProviderStatusDetail {
+  status: ProviderOperationalStatus;
+  providerName: string;
+  details: string | null;
+}
+
+export interface ProviderMatrixResponse {
+  providers: Record<string, ProviderStatusDetail>;
+  timestamp: string;
+}
+
+export interface OperationalJobRun {
+  id: string;
+  jobKey: string;
+  instanceId: string;
+  status: string;
+  startedAt: string;
+  completedAt: string | null;
+  processedCount: number;
+  failureCode: string | null;
+  errorSummary: string | null;
+}
+

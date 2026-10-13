@@ -10,14 +10,21 @@ import {
   AlertOctagon,
   MoreVertical,
   RefreshCw,
+  KeyRound,
+  ShieldAlert,
 } from 'lucide-react';
-import { fetchAdminUsers, updateUserStatus } from '@/lib/admin/api';
+import { useAuth } from '@/lib/auth/auth-context';
+import { fetchAdminUsers, resetUserMfa, updateUserStatus } from '@/lib/admin/api';
 import { AdminUserSummary } from '@/lib/admin/types';
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = Boolean(currentUser?.roles?.includes('SUPER_ADMIN'));
+
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -26,6 +33,12 @@ export default function AdminUsersPage() {
   const [targetStatus, setTargetStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'DELETED'>('ACTIVE');
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // MFA Reset Dialog State
+  const [mfaUser, setMfaUser] = useState<AdminUserSummary | null>(null);
+  const [mfaReason, setMfaReason] = useState('');
+  const [isResettingMfa, setIsResettingMfa] = useState(false);
+  const [mfaError, setMfaError] = useState<string | null>(null);
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -56,11 +69,35 @@ export default function AdminUsersPage() {
       });
       setSelectedUser(null);
       setReason('');
+      setSuccessMessage('User account status updated successfully.');
       await loadUsers();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update user status');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResetMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaUser) return;
+    if (mfaReason.trim().length < 10) {
+      setMfaError('A valid administrative reason (minimum 10 characters) is required.');
+      return;
+    }
+
+    setIsResettingMfa(true);
+    setMfaError(null);
+    try {
+      await resetUserMfa(mfaUser.id, { reason: mfaReason.trim() });
+      setSuccessMessage(`Multi-factor authentication reset successfully for ${mfaUser.displayName}.`);
+      setMfaUser(null);
+      setMfaReason('');
+      await loadUsers();
+    } catch (err) {
+      setMfaError(err instanceof Error ? err.message : 'Failed to reset MFA');
+    } finally {
+      setIsResettingMfa(false);
     }
   };
 
@@ -75,6 +112,17 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      {successMessage && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
+          <span>{successMessage}</span>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -190,16 +238,32 @@ export default function AdminUsersPage() {
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setTargetStatus(u.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
-                          setReason('');
-                        }}
-                        className="px-2.5 py-1 text-xs font-medium rounded border border-sand-300 hover:bg-sand-100 text-charcoal-700"
-                      >
-                        Change Status
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(u);
+                            setTargetStatus(u.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
+                            setReason('');
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium rounded border border-sand-300 hover:bg-sand-100 text-charcoal-700"
+                        >
+                          Change Status
+                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => {
+                              setMfaUser(u);
+                              setMfaReason('');
+                              setMfaError(null);
+                            }}
+                            disabled={currentUser?.id === u.id}
+                            title={currentUser?.id === u.id ? 'Cannot reset own MFA administratively' : 'Reset Multi-Factor Authentication'}
+                            className="px-2.5 py-1 text-xs font-medium rounded border border-sand-300 hover:bg-amber-50 text-amber-800 disabled:opacity-40 disabled:hover:bg-white"
+                          >
+                            Reset MFA
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -273,6 +337,82 @@ export default function AdminUsersPage() {
                   className="px-3 py-1.5 rounded-lg bg-charcoal-900 text-white font-medium hover:bg-charcoal-800 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Updating...' : 'Confirm Status Change'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset MFA Modal */}
+      {mfaUser && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-sand-200">
+            <div className="flex items-center gap-2 mb-2 text-amber-700">
+              <ShieldAlert className="w-5 h-5" />
+              <h2 className="text-lg font-serif text-charcoal-900">
+                Reset Multi-Factor Authentication
+              </h2>
+            </div>
+
+            <div className="bg-sand-50 p-3 rounded-lg border border-sand-200 mb-4 text-xs space-y-1">
+              <div>
+                <span className="text-charcoal-500">Target User: </span>
+                <span className="font-semibold text-charcoal-900">{mfaUser.displayName}</span> ({mfaUser.email})
+              </div>
+              <div>
+                <span className="text-charcoal-500">Roles: </span>
+                <span className="font-mono text-[11px] text-charcoal-800">{mfaUser.roles.join(', ')}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-charcoal-600 mb-4 leading-relaxed">
+              This will remove the user&apos;s currently enrolled MFA method and revoke affected privileged sessions. The user will need to enroll MFA again upon next sign-in.
+            </p>
+
+            {mfaError && (
+              <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                {mfaError}
+              </div>
+            )}
+
+            <form onSubmit={handleResetMfa} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-medium text-charcoal-700 mb-1">
+                  Reason for Administrative Reset (Minimum 10 characters)
+                </label>
+                <textarea
+                  value={mfaReason}
+                  onChange={(e) => setMfaReason(e.target.value)}
+                  placeholder="e.g. Device lost / replaced by employee, verified identity via secondary channel..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-sand-300 text-xs focus:ring-1 focus:ring-charcoal-900"
+                  required
+                />
+                <span className="text-[10px] text-charcoal-400 mt-1 block">
+                  {mfaReason.trim().length} / 10 characters minimum
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-sand-100">
+                <button
+                  type="button"
+                  onClick={() => setMfaUser(null)}
+                  disabled={isResettingMfa}
+                  className="px-3 py-1.5 rounded-lg border border-sand-300 text-charcoal-700 hover:bg-sand-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResettingMfa || mfaReason.trim().length < 10}
+                  className="px-3 py-1.5 rounded-lg bg-amber-700 text-white font-medium hover:bg-amber-800 disabled:opacity-50"
+                >
+                  {isResettingMfa ? 'Resetting...' : 'Confirm Reset MFA'}
                 </button>
               </div>
             </form>

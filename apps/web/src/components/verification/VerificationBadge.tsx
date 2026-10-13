@@ -63,9 +63,9 @@ export function VerificationBadge({
       {showTooltip && (
         <div
           role="tooltip"
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 text-xs leading-relaxed text-zinc-700 bg-white rounded-lg shadow-xl border border-zinc-200 pointer-events-none"
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 text-xs leading-relaxed text-charcoal-700 bg-white rounded-lg shadow-xl border border-sand-200 pointer-events-none"
         >
-          <div className="font-semibold text-zinc-900 mb-1 flex items-center gap-1.5">
+          <div className="font-semibold text-charcoal-900 mb-1 flex items-center gap-1.5">
             <svg
               className="w-4 h-4 text-emerald-600 shrink-0"
               viewBox="0 0 20 20"
@@ -79,11 +79,11 @@ export function VerificationBadge({
             </svg>
             Verified Business Entity
           </div>
-          <p className="text-zinc-600">
+          <p className="text-charcoal-600">
             {businessName ? `${businessName}'s ` : 'This business\'s '}
             official registration documents were verified by the platform team.
           </p>
-          <p className="mt-1.5 text-[11px] text-zinc-500 italic border-t border-zinc-100 pt-1.5">
+          <p className="mt-1.5 text-[11px] text-charcoal-400 italic border-t border-sand-100 pt-1.5">
             This verification confirms identity and registration records. It does not guarantee service quality or project outcomes.
           </p>
           <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-white" />

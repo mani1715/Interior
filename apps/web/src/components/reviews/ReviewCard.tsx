@@ -48,12 +48,12 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
   };
 
   return (
-    <article className="p-6 bg-white rounded-xl border border-zinc-200/80 shadow-sm space-y-4">
+    <article className="p-6 bg-white rounded-xl border border-sand-200 shadow-sm space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-semibold text-zinc-900">{review.displayName}</h4>
+            <h4 className="font-semibold text-charcoal-900">{review.displayName}</h4>
             {review.verifiedClient && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
                 <svg className="w-3 h-3 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
@@ -68,9 +68,9 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
             )}
           </div>
           {(review.projectTitle || review.completedYear) && (
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-charcoal-500 mt-0.5">
               Project:{' '}
-              <span className="text-zinc-700 font-medium">
+              <span className="text-charcoal-700 font-medium">
                 {review.projectTitle || 'Interior Project'}
               </span>
               {review.completedYear && ` • Completed ${review.completedYear}`}
@@ -79,24 +79,24 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
         </div>
         <div className="text-right shrink-0">
           <ReviewStars rating={review.rating} size="sm" />
-          <time dateTime={review.createdAt} className="block text-[11px] text-zinc-400 mt-1">
+          <time dateTime={review.createdAt} className="block text-[11px] text-charcoal-400 mt-1">
             {formattedDate}
           </time>
         </div>
       </div>
 
       {/* Review Body */}
-      <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-line">
+      <p className="text-sm text-charcoal-700 leading-relaxed whitespace-pre-line">
         {review.reviewText}
       </p>
 
       {/* Studio Public Response */}
       {review.studioResponse && (
-        <div className="mt-3 p-4 bg-zinc-50 rounded-lg border-l-4 border-zinc-400 space-y-1">
-          <div className="flex items-center justify-between text-xs text-zinc-600">
-            <span className="font-semibold text-zinc-800">Response from Studio</span>
+        <div className="mt-3 p-4 bg-sand-50 rounded-lg border-l-4 border-bronze-600 space-y-1">
+          <div className="flex items-center justify-between text-xs text-charcoal-600">
+            <span className="font-semibold text-charcoal-800">Response from Studio</span>
             {review.studioRespondedAt && (
-              <time dateTime={review.studioRespondedAt} className="text-[11px] text-zinc-400">
+              <time dateTime={review.studioRespondedAt} className="text-[11px] text-charcoal-400">
                 {new Date(review.studioRespondedAt).toLocaleDateString('en-IN', {
                   month: 'short',
                   day: 'numeric',
@@ -105,18 +105,18 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
               </time>
             )}
           </div>
-          <p className="text-xs text-zinc-700 whitespace-pre-line leading-relaxed">
+          <p className="text-xs text-charcoal-700 whitespace-pre-line leading-relaxed">
             {review.studioResponse}
           </p>
         </div>
       )}
 
       {/* Footer / Report Action */}
-      <div className="pt-2 border-t border-zinc-100 flex items-center justify-end">
+      <div className="pt-2 border-t border-sand-100 flex items-center justify-end">
         <button
           type="button"
           onClick={() => setShowReportModal(true)}
-          className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+          className="text-xs text-charcoal-400 hover:text-charcoal-600 transition-colors"
         >
           Report review
         </button>
@@ -125,13 +125,13 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
       {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-sand-200 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-zinc-900">Report this Review</h3>
+              <h3 className="font-semibold text-charcoal-900">Report this Review</h3>
               <button
                 type="button"
                 onClick={() => setShowReportModal(false)}
-                className="text-zinc-400 hover:text-zinc-600"
+                className="text-charcoal-400 hover:text-charcoal-600"
               >
                 ✕
               </button>
@@ -146,13 +146,13 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
                   <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{reportError}</p>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 mb-1">
+                  <label className="block text-xs font-medium text-charcoal-700 mb-1">
                     Reason for report
                   </label>
                   <select
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value as ReportReason)}
-                    className="w-full text-xs p-2 border border-zinc-300 rounded-md focus:ring-1 focus:ring-zinc-900"
+                    className="w-full text-xs p-2 border border-sand-300 rounded-md focus:ring-1 focus:ring-charcoal-900"
                   >
                     <option value="INAPPROPRIATE">Inappropriate or abusive language</option>
                     <option value="SPAM">Spam or advertisement</option>
@@ -162,7 +162,7 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 mb-1">
+                  <label className="block text-xs font-medium text-charcoal-700 mb-1">
                     Additional details (optional)
                   </label>
                   <textarea
@@ -170,14 +170,14 @@ export function ReviewCard({ review, onReported }: ReviewCardProps) {
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
                     placeholder="Provide details to assist moderation team..."
-                    className="w-full text-xs p-2 border border-zinc-300 rounded-md focus:ring-1 focus:ring-zinc-900"
+                    className="w-full text-xs p-2 border border-sand-300 rounded-md focus:ring-1 focus:ring-charcoal-900"
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowReportModal(false)}
-                    className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-800"
+                    className="px-3 py-1.5 text-xs text-charcoal-600 hover:text-charcoal-800"
                   >
                     Cancel
                   </button>

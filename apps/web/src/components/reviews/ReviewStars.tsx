@@ -32,7 +32,7 @@ export function ReviewStars({
             <div key={index} className={`relative ${iconSizes}`}>
               {/* Background empty star */}
               <svg
-                className={`absolute inset-0 ${iconSizes} text-zinc-300`}
+                className={`absolute inset-0 ${iconSizes} text-sand-300`}
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -58,12 +58,12 @@ export function ReviewStars({
         })}
       </div>
       {showNumber && (
-        <span className="font-semibold text-zinc-900 text-sm">
+        <span className="font-semibold text-charcoal-900 text-sm">
           {rating.toFixed(1)}
         </span>
       )}
       {totalReviews !== undefined && (
-        <span className="text-zinc-500 text-xs">
+        <span className="text-charcoal-500 text-xs">
           ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
         </span>
       )}

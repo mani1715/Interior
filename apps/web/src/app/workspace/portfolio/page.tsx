@@ -647,7 +647,7 @@ export default function PortfolioBuilderPage() {
                     className={`p-3.5 rounded-xl border flex items-center justify-between transition-colors ${
                       section.isVisible
                         ? 'bg-sand-50/70 border-sand-200'
-                        : 'bg-gray-50/70 border-dashed border-sand-200 opacity-60'
+                        : 'bg-sand-50/40 border-dashed border-sand-200 opacity-60'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -699,7 +699,7 @@ export default function PortfolioBuilderPage() {
                         className={`p-1.5 rounded-lg border transition-colors ${
                           section.isVisible
                             ? 'border-sand-200 bg-white text-charcoal-800 hover:bg-sand-100'
-                            : 'border-sand-200 bg-gray-100 text-charcoal-400 hover:bg-sand-100'
+                            : 'border-sand-200 bg-sand-100 text-charcoal-400 hover:bg-sand-200'
                         }`}
                       >
                         {section.isVisible ? (

@@ -183,13 +183,13 @@ export function PhotoInspectorSlideover({
                   </span>
                 )}
                 {isRoomCover && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bronze-700 text-white shadow-sm">
                     <Home className="w-3 h-3" />
                     <span>Room Cover</span>
                   </span>
                 )}
                 {media.mediaType === 'AI_CONCEPT' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-600 text-white shadow-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-charcoal-800 text-white shadow-sm">
                     <Sparkles className="w-3 h-3" />
                     <span>AI Concept</span>
                   </span>
@@ -282,11 +282,11 @@ export function PhotoInspectorSlideover({
                   disabled={isReadOnly || selectedRoomId === 'unassigned'}
                   checked={isRoomCover}
                   onChange={(e) => setIsRoomCover(e.target.checked)}
-                  className="mt-0.5 rounded border-sand-300 text-indigo-600 focus:ring-indigo-500"
+                  className="mt-0.5 rounded border-sand-300 text-bronze-700 focus:ring-bronze-500"
                 />
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-charcoal-900">
-                    <Home className="w-3.5 h-3.5 text-indigo-600" />
+                    <Home className="w-3.5 h-3.5 text-bronze-700" />
                     <span>Room Cover Photo</span>
                   </div>
                   <p className="text-[11px] text-charcoal-500">

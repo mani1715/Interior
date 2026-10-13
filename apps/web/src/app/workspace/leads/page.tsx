@@ -252,13 +252,13 @@ export default function LeadsWorkspacePage() {
         );
       case 'QUALIFIED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-900 border border-indigo-300">
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-bronze-100 text-bronze-900 border border-bronze-300">
             Qualified
           </span>
         );
       case 'SITE_VISIT_PLANNED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-900 border border-purple-300">
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sand-100 text-charcoal-800 border border-sand-300">
             Site Visit Planned
           </span>
         );
@@ -366,11 +366,15 @@ export default function LeadsWorkspacePage() {
           onClick={() => setActiveTab('ACTIVE')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             activeTab === 'ACTIVE'
-              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+              ? 'bg-charcoal-900 text-white border-charcoal-900 shadow-sm'
               : 'bg-white text-charcoal-800 border-sand-200 hover:border-sand-300'
           }`}
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wider block text-indigo-700">
+          <span
+            className={`text-[10px] font-semibold uppercase tracking-wider block ${
+              activeTab === 'ACTIVE' ? 'text-sand-300' : 'text-charcoal-500'
+            }`}
+          >
             Active Pipeline
           </span>
           <span className="font-serif text-2xl font-bold">{counts.active}</span>
@@ -538,7 +542,7 @@ export default function LeadsWorkspacePage() {
                   Received {new Date(lead.createdAt).toLocaleDateString()}
                 </span>
                 {lead.nextFollowUpAt && (
-                  <span className="text-[11px] font-semibold text-indigo-700 flex items-center gap-1">
+                  <span className="text-[11px] font-semibold text-bronze-700 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     Follow-up: {new Date(lead.nextFollowUpAt).toLocaleDateString()}
                   </span>

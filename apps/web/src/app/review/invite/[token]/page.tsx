@@ -36,13 +36,13 @@ export default function ReviewInvitePage() {
   }, [token, router]);
 
   return (
-    <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-zinc-50">
-      <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm text-center space-y-4">
+    <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-[#FAF8F5]">
+      <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-sand-200 shadow-sm text-center space-y-4">
         {loading && (
           <div className="space-y-4 py-8">
-            <div className="w-8 h-8 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin mx-auto" />
-            <h2 className="text-lg font-semibold text-zinc-900">Verifying Invitation...</h2>
-            <p className="text-xs text-zinc-500">
+            <div className="w-8 h-8 border-2 border-charcoal-900 border-t-transparent rounded-full animate-spin mx-auto" />
+            <h2 className="text-lg font-semibold text-charcoal-900">Verifying Invitation...</h2>
+            <p className="text-xs text-charcoal-500">
               Validating your secure client review invitation.
             </p>
           </div>
@@ -53,11 +53,11 @@ export default function ReviewInvitePage() {
             <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto text-xl">
               ✕
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900">Invitation Expired or Invalid</h2>
-            <p className="text-xs text-zinc-600 leading-relaxed">
+            <h2 className="text-lg font-semibold text-charcoal-900">Invitation Expired or Invalid</h2>
+            <p className="text-xs text-charcoal-600 leading-relaxed">
               {error}
             </p>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-charcoal-400">
               Review invitations are valid for 30 days and single-use only.
             </p>
           </div>
@@ -68,9 +68,9 @@ export default function ReviewInvitePage() {
             <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
               ✓
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900">Welcome, {data.clientName}</h2>
-            <p className="text-xs text-zinc-600">
-              Your verified review session for <span className="font-semibold text-zinc-900">{data.studioName}</span> has been established. Redirecting to review submission...
+            <h2 className="text-lg font-semibold text-charcoal-900">Welcome, {data.clientName}</h2>
+            <p className="text-xs text-charcoal-600">
+              Your verified review session for <span className="font-semibold text-charcoal-900">{data.studioName}</span> has been established. Redirecting to review submission...
             </p>
           </div>
         )}

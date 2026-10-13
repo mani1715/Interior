@@ -845,13 +845,13 @@ export function ProjectRoomManager({
                           </span>
                         )}
                         {media.isRoomCover && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-600 text-white shadow-sm">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bronze-700 text-white shadow-sm">
                             <Home className="w-3 h-3" />
                             <span>Room Cover</span>
                           </span>
                         )}
                         {media.mediaType === 'AI_CONCEPT' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-600 text-white shadow-sm">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-charcoal-800 text-white shadow-sm">
                             <Sparkles className="w-3 h-3" />
                             <span>AI Concept</span>
                           </span>
@@ -975,8 +975,8 @@ export function ProjectRoomManager({
                                   title={media.isRoomCover ? 'Remove Room Cover' : 'Set as Room Cover'}
                                   className={`p-1 rounded transition-colors ${
                                     media.isRoomCover
-                                      ? 'text-indigo-600 hover:text-indigo-700 bg-indigo-50'
-                                      : 'text-charcoal-400 hover:text-indigo-600 hover:bg-sand-100'
+                                      ? 'text-bronze-700 hover:text-bronze-800 bg-sand-100'
+                                      : 'text-charcoal-400 hover:text-bronze-700 hover:bg-sand-100'
                                   }`}
                                 >
                                   <Home className="w-3.5 h-3.5" />

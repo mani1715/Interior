@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   MessageSquare,
   FileText,
+  Activity,
   ShieldAlert,
   ArrowLeft,
   ExternalLink,
@@ -32,6 +33,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: 'Studios', href: '/admin/studios', icon: Building2 },
   { label: 'Verification', href: '/admin/verification', icon: ShieldCheck },
   { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
+  { label: 'Operations', href: '/admin/operations', icon: Activity },
   { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
 ];
 

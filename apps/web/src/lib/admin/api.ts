@@ -2,13 +2,19 @@ import { apiFetch } from '../api-client';
 import {
   AdminAuditLog,
   AdminDashboardMetrics,
+  AdminResetMfaRequest,
   AdminReviewSummary,
   AdminStudioSummary,
   AdminUserSummary,
   AdminVerificationDecisionRequest,
   AdminVerificationSummary,
   ModerateReviewRequest,
+  OperationalJobRun,
+  PlatformOperationalState,
+  ProviderMatrixResponse,
+  UpdateOperationalStateRequest,
   UpdateStudioStatusRequest,
+  UpdateUserRoleRequest,
   UpdateUserStatusRequest,
 } from './types';
 
@@ -105,3 +111,65 @@ export async function fetchAdminAuditLogs(
   if (action) params.append('action', action);
   return apiFetch<AdminAuditLog[]>(`/admin/audit-logs?${params.toString()}`);
 }
+
+export async function resetUserMfa(
+  userId: string,
+  req: AdminResetMfaRequest
+): Promise<void> {
+  return apiFetch<void>(`/admin/users/${userId}/mfa/reset`, {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function updateUserRole(
+  userId: string,
+  req: UpdateUserRoleRequest
+): Promise<void> {
+  return apiFetch<void>(`/admin/users/${userId}/role`, {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function revokeUserSessions(userId: string): Promise<void> {
+  return apiFetch<void>(`/admin/users/${userId}/revoke-sessions`, {
+    method: 'POST',
+  });
+}
+
+export async function fetchOperationalState(): Promise<PlatformOperationalState> {
+  return apiFetch<PlatformOperationalState>('/admin/operations/state');
+}
+
+export async function updateOperationalState(
+  req: UpdateOperationalStateRequest
+): Promise<PlatformOperationalState> {
+  return apiFetch<PlatformOperationalState>('/admin/operations/state', {
+    method: 'PUT',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function fetchProviderMatrix(): Promise<ProviderMatrixResponse> {
+  return apiFetch<ProviderMatrixResponse>('/admin/operations/providers');
+}
+
+export async function fetchOperationalJobs(
+  limit: number = 50,
+  offset: number = 0,
+  jobKey?: string
+): Promise<OperationalJobRun[]> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (jobKey) params.append('jobKey', jobKey);
+  return apiFetch<OperationalJobRun[]>(`/admin/operations/jobs?${params.toString()}`);
+}
+
+export async function triggerOperationalJob(
+  jobKey: string
+): Promise<OperationalJobRun> {
+  return apiFetch<OperationalJobRun>(`/admin/operations/jobs/${jobKey}/run`, {
+    method: 'POST',
+  });
+}
+

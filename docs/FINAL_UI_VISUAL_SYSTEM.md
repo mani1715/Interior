@@ -95,3 +95,23 @@ The Elégance design language conveys architectural restraint, editorial sophist
 ### 3.6 Mobile Navigation & Safe Areas
 * **Fixed Bottom Bar:** `md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-sand-200`
 * **Main Canvas Safe Area:** `<main className="flex-1 pb-20 md:pb-0">` ensures zero occlusion of bottom controls or pagination on 360px–430px screens.
+
+### 3.7 Platform Operations & Infrastructure Controls
+* **Operations Cards:** `bg-white border border-sand-200 rounded-xl p-5 shadow-sm space-y-4`. Clean, restrained editorial composition avoiding dark DevOps or generic cloud console aesthetics.
+* **Platform State Pill:**
+  * `NORMAL`: `bg-emerald-50 text-emerald-800 border border-emerald-300`
+  * `READ_ONLY`: `bg-amber-50 text-amber-800 border border-amber-300`
+* **Provider Health Badges:**
+  * `AVAILABLE`: `bg-emerald-50 text-emerald-700 border border-emerald-200`
+  * `DEGRADED`: `bg-amber-50 text-amber-700 border border-amber-200`
+  * `DISABLED`: `bg-sand-100 text-charcoal-600 border border-sand-300`
+  * `NOT_CONFIGURED`: `bg-sand-50 text-charcoal-500 border border-sand-200`
+  * `UNAVAILABLE`: `bg-red-50 text-red-700 border border-red-200`
+
+### 3.8 High-Impact Administrative Confirmations
+* **Visual Treatment:** White dialog (`bg-white border border-sand-200 rounded-xl max-w-md shadow-xl`), `backdrop-blur-xs` scrim.
+* **Requirements:**
+  * Explicit action explanation detailing caller impact (e.g., session revocation, mutation restrictions).
+  * Mandatory audit reason input with client-side character validation (min 10 characters for MFA reset and state changes).
+  * Distinct action button (`bg-amber-700 hover:bg-amber-800 text-white` for privileged step-up or restricted modes).
+  * Clear loading state (`disabled:opacity-50`) preventing duplicate in-flight mutations.

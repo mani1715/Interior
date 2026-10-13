@@ -38,7 +38,7 @@ export function SaveToCollectionButton({
             setModalOpen(true);
           }}
           aria-label="Save project to collection"
-          className={`p-2 rounded-full bg-white/90 backdrop-blur-xs text-zinc-700 hover:text-zinc-950 hover:bg-white shadow-sm transition-all ${className}`}
+          className={`p-2 rounded-full bg-white/90 backdrop-blur-xs text-charcoal-700 hover:text-charcoal-900 hover:bg-white shadow-sm transition-all ${className}`}
         >
           {savedFeedback ? (
             <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
@@ -68,7 +68,7 @@ export function SaveToCollectionButton({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 transition-colors ${className}`}
+          className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-sand-300 bg-white hover:bg-sand-50 text-charcoal-800 transition-colors ${className}`}
         >
           {savedFeedback ? (
             <>

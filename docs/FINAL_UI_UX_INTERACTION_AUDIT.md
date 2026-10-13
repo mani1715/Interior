@@ -171,9 +171,17 @@ All live HTTP endpoints were probed against the active PostgreSQL database (`int
 4. **DEF-UI-06 (`account/collections/page.tsx`, `workspace/verification/page.tsx`, `invite/[token]`, `invite/accept`, `review/submit`, `workspace/leads`): Alien Color Tokens**
    * *Status:* **FIXED IN PROMPT 2**
    * *Resolution:* Harmonized 68 zinc tokens in `collections/page.tsx`, 56 in `verification/page.tsx`, 37 in `review/submit/page.tsx`, 36 in `invite/[token]/page.tsx`, 33 in `invite/accept/page.tsx`, and 6 in `leads/page.tsx`. All six pages now have 0 remaining cold zinc tokens.
-5. **DEF-UI-07 (`admin/layout.tsx` L29-36): Missing Operations & MFA Control Plane Navigation**
-   * *Status:* **DEFERRED TO PROMPT 3 — ADMIN CONTROL PLANE UX**
-   * *Rationale:* Under feature freeze, because no frontend UI screen or dialog currently exists for maintenance mode toggle or administrative MFA reset, full component creation is deferred to the dedicated Prompt 3 Admin Control Plane pass.
+5. **DEF-UI-07 (`admin/layout.tsx`, `admin/operations/page.tsx`, `admin/users/page.tsx`): Operations & MFA Control Plane UX**
+   * *Status:* **RESOLVED IN PROMPT 3**
+   * *Resolution:*
+     * Exposed existing backend platform operational state (`GET/PUT /admin/operations/state`) in a dedicated `/admin/operations` page.
+     * Implemented Platform Status card (`NORMAL` vs `READ_ONLY`) with explicit confirmation dialog and required audit reason.
+     * Implemented feature availability switches (`uploadsEnabled`, `aiEnabled`, `registrationsEnabled`) with confirmation modals and reason tracking.
+     * Implemented provider health status matrix from `GET /admin/operations/providers` (`AVAILABLE`, `DEGRADED`, `NOT_CONFIGURED`, `DISABLED`, `UNAVAILABLE`).
+     * Implemented operational job coordinator with manual execution triggers for fixed backend jobs (`SESSION_CLEANUP`, `UPLOAD_EXPIRY`, `AI_STUCK_RECOVERY`, `PRIVACY_CLEANUP`, `STORAGE_RECONCILIATION`) and recent run execution history.
+     * Exposed contextual "Reset MFA" action in `/admin/users` for Super Administrators with self-reset prevention, confirmation dialog, minimum 10-character reason validation, and session revocation warnings.
+     * Added Operations entry with `Activity` icon to `ADMIN_NAV_ITEMS` in `AdminLayout`.
+     * Added full unit test coverage in `AdminConsole.test.tsx` (9 tests passed).
 
 ### Low Polish & Cosmetic Defects (UI-P3)
 1. **DEF-UI-08 (`sign-in/page.tsx` L82): Outdated Product Branding Copy**
@@ -185,13 +193,17 @@ All live HTTP endpoints were probed against the active PostgreSQL database (`int
 3. **DEF-UI-10 (`admin/layout.tsx` L44, L58, L89): Inconsistent Background Utility**
    * *Status:* **FIXED IN PROMPT 2**
    * *Resolution:* Replaced all occurrences of `bg-sand-50` with canonical `bg-[#FAF8F5]` in `AdminLayout.tsx`.
+4. **DEF-UI-11 (Secondary Components Token Debt): 114 Remaining Alien Utility Classes**
+   * *Status:* **RESOLVED IN PROMPT 3**
+   * *Resolution:* Harmonized all cold zinc, slate, gray, indigo, and purple tokens in `SaveToCollectionModal.tsx`, `SaveToCollectionButton.tsx`, `ReviewCard.tsx`, `ReviewSection.tsx`, `ReviewStars.tsx`, `VerificationBadge.tsx`, `review/invite/[token]/page.tsx`, `PhotoInspectorSlideover.tsx`, `ProjectRoomManager.tsx`, `workspace/leads/page.tsx`, and `workspace/portfolio/page.tsx`. Zero accidental cold tokens remaining across all normal app components.
 
 ---
 
 ## 7. Verification & Test Evidence
 
-* **Vitest Suite:** 52 test files, 371 tests passed (100% PASS)
+* **Vitest Suite:** 52 test files, 373 tests passed (100% PASS)
 * **TypeScript:** `tsc --noEmit` exited 0 (0 errors)
 * **ESLint:** `eslint .` exited 0 (0 errors)
-* **Next.js Production Build:** `next build` compiled and generated all 51 route handlers successfully in 12.1s
-* **SSR Probe Verification:** 16 workspace routes and 6 admin routes returned HTTP 200 OK without errors.
+* **Next.js Production Build:** `next build` compiled and generated all 52 route handlers successfully in 12.8s
+* **SSR Probe Verification:** All workspace, public, and admin routes (including `/admin/operations`) return HTTP 200 OK without errors.
+* **Backend Focused Tests:** `AdminSecurityTest` (25 tests) and `PlatformOperationsServiceTest` (4 tests) passed with 0 failures, 0 errors.

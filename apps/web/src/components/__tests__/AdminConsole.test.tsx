@@ -7,6 +7,7 @@ import AdminUsersPage from '@/app/admin/users/page';
 import AdminStudiosPage from '@/app/admin/studios/page';
 import AdminVerificationPage from '@/app/admin/verification/page';
 import AdminReviewsPage from '@/app/admin/reviews/page';
+import AdminOperationsPage from '@/app/admin/operations/page';
 import * as adminApi from '@/lib/admin/api';
 import * as authContext from '@/lib/auth/auth-context';
 
@@ -29,6 +30,12 @@ vi.mock('@/lib/admin/api', () => ({
   fetchAdminReviews: vi.fn(),
   moderateReview: vi.fn(),
   fetchAdminAuditLogs: vi.fn(),
+  fetchOperationalState: vi.fn(),
+  updateOperationalState: vi.fn(),
+  fetchProviderMatrix: vi.fn(),
+  fetchOperationalJobs: vi.fn(),
+  triggerOperationalJob: vi.fn(),
+  resetUserMfa: vi.fn(),
 }));
 
 describe('Phase 29 — Admin Console & Operations', () => {
@@ -288,5 +295,118 @@ describe('Phase 29 — Admin Console & Operations', () => {
 
     fireEvent.click(screen.getByText('Remove'));
     expect(screen.getByRole('heading', { name: 'Moderate Review' })).toBeDefined();
+  });
+
+  it('renders operations page with platform state, providers and jobs', async () => {
+    vi.mocked(adminApi.fetchOperationalState).mockResolvedValue({
+      id: 'default',
+      maintenanceMode: 'NORMAL',
+      maintenanceMessage: null,
+      uploadsEnabled: true,
+      aiEnabled: true,
+      registrationsEnabled: true,
+      updatedBy: null,
+      updatedAt: '2026-10-01T12:00:00Z',
+    });
+
+    vi.mocked(adminApi.fetchProviderMatrix).mockResolvedValue({
+      providers: {
+        DATABASE: {
+          status: 'AVAILABLE',
+          providerName: 'PostgreSQL Primary',
+          details: 'Healthy',
+        },
+        STORAGE: {
+          status: 'AVAILABLE',
+          providerName: 'Object Storage S3',
+          details: 'Healthy',
+        },
+      },
+      timestamp: '2026-10-01T12:00:00Z',
+    });
+
+    vi.mocked(adminApi.fetchOperationalJobs).mockResolvedValue([
+      {
+        id: 'job-run-1',
+        jobKey: 'SESSION_CLEANUP',
+        instanceId: 'node-1',
+        status: 'COMPLETED',
+        startedAt: '2026-10-01T11:00:00Z',
+        completedAt: '2026-10-01T11:01:00Z',
+        processedCount: 14,
+        failureCode: null,
+        errorSummary: null,
+      },
+    ]);
+
+    render(<AdminOperationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Operations')).toBeDefined();
+      expect(screen.getByText('Platform Status')).toBeDefined();
+      expect(screen.getByText('NORMAL')).toBeDefined();
+      expect(screen.getByText('PostgreSQL Primary')).toBeDefined();
+      expect(screen.getByText('SESSION_CLEANUP')).toBeDefined();
+    });
+  });
+
+  it('allows super admin to open Reset MFA dialog and submit reason', async () => {
+    vi.spyOn(authContext, 'useAuth').mockReturnValue({
+      user: {
+        id: 'usr-super',
+        displayName: 'Super Administrator',
+        email: 'super@platform.local',
+        status: 'ACTIVE',
+        roles: ['ADMIN', 'SUPER_ADMIN'],
+        permissions: [],
+        activeStudioId: null,
+        activeStudioRole: null,
+        studios: [],
+        assurance: 'MFA',
+      },
+      isLoading: false,
+      isAuthenticated: true,
+      refreshUser: vi.fn(),
+      loginDevPersona: vi.fn(),
+      logout: vi.fn(),
+      revokeAllSessions: vi.fn(),
+    });
+
+    vi.mocked(adminApi.fetchAdminUsers).mockResolvedValue([
+      {
+        id: 'usr-target-1',
+        displayName: 'Designer User',
+        email: 'designer@studio.com',
+        phone: null,
+        status: 'ACTIVE',
+        createdAt: '2026-09-01T00:00:00Z',
+        roles: ['DESIGNER'],
+        studioMemberships: ['Studio Alpha'],
+      },
+    ]);
+
+    vi.mocked(adminApi.resetUserMfa).mockResolvedValue();
+
+    render(<AdminUsersPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Reset MFA')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByText('Reset MFA'));
+
+    expect(screen.getByText('Reset Multi-Factor Authentication')).toBeDefined();
+    expect(screen.getByText(/This will remove the user's currently enrolled MFA method/)).toBeDefined();
+
+    const textarea = screen.getByPlaceholderText(/Device lost \/ replaced by employee/);
+    fireEvent.change(textarea, { target: { value: 'Verified caller identity via authenticated callback' } });
+
+    fireEvent.click(screen.getByText('Confirm Reset MFA'));
+
+    await waitFor(() => {
+      expect(adminApi.resetUserMfa).toHaveBeenCalledWith('usr-target-1', {
+        reason: 'Verified caller identity via authenticated callback',
+      });
+    });
   });
 });
