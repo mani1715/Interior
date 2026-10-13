@@ -1,8 +1,9 @@
-# Elégance — Phase 11 Secret and Configuration Matrix
+# Elégance — Phase 11B Secret and Configuration Matrix
 **Document Status:** Complete / Authoritative Source Truth  
-**Phase:** Phase 11A — Production Decision Lock  
+**Phase:** Phase 11B — Final Production Decision Lock  
 **Date:** 2026-10-13  
 **Classification:** Production Credential & Configuration Specification  
+**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
 
 ---
 
@@ -23,68 +24,56 @@ Every variable listed below is mapped directly to actual source code definitions
 
 ---
 
-## 2. Complete Environment Variable & Secret Inventory
+## 2. Complete Production Environment Variable Audit
 
-### 2.1 Mandatory Secrets for Closed Beta (Tier 1)
-
-| Environment Variable Name | Secret? | Required When? | Source Component & Class | Who / What Provides It? | Rotation Impact & Procedure |
-|---|---|---|---|---|---|
-| `SPRING_DATASOURCE_URL` | YES (Sensitive) | Closed Beta | Backend (`application-production.properties:19`) | Cloud Database Provider (RDS, Supabase, Neon) | Requires application restart. Format: `jdbc:postgresql://<host>:<port>/<db>?sslmode=require` |
-| `SPRING_DATASOURCE_USERNAME` | YES | Closed Beta | Backend (`application-production.properties:20`) | Cloud Database Provider | Requires application restart. Least-privilege application role. |
-| `SPRING_DATASOURCE_PASSWORD` | YES (Critical) | Closed Beta | Backend (`application-production.properties:21`) | Cloud Database Provider | Requires application restart. Strong 32+ character random password. |
-| `APP_SECURITY_MFA_ENCRYPTION_KEY` | YES (Critical) | Closed Beta | Backend (`AuthSecurityProperties:154`, `TotpService:183`) | Platform Operations / Security Vault | **CRITICAL ROTATION IMPACT:** Master key used to encrypt/decrypt TOTP secrets at rest. Rotating key requires database re-encryption job. |
-| `OIDC_GOOGLE_CLIENT_ID` | NO (Public ID) | Closed Beta | Backend (`AuthSecurityProperties:37`, `OidcService`) | Google Cloud Console (OAuth 2.0 Client) | Updates allowed OAuth client ID. |
-| `OIDC_GOOGLE_CLIENT_SECRET` | YES (Critical) | Closed Beta | Backend (`AuthSecurityProperties:38`, `OidcService`) | Google Cloud Console (OAuth 2.0 Client) | Token exchanges fail immediately if rotated without updating backend. |
-| `S3_ACCESS_KEY_ID` | YES | Closed Beta | Backend (`S3StorageProperties:40`, `S3StorageService`) | Cloudflare R2 / AWS S3 IAM | Uploads fail if mismatched. Update via zero-downtime deployment. |
-| `S3_SECRET_ACCESS_KEY` | YES (Critical) | Closed Beta | Backend (`S3StorageProperties:48`, `S3StorageService`) | Cloudflare R2 / AWS S3 IAM | Uploads fail if mismatched. Update via zero-downtime deployment. |
-
----
-
-### 2.2 Mandatory Non-Secret Production Configuration (Closed Beta)
-
-| Environment Variable Name | Default / Production Setting | Required When? | Source Component & Class | Purpose & Behavioral Impact |
-|---|---|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `production` | Closed Beta | Backend (`application-production.properties`) | Activates production security validations and Hikari connection pool. |
-| `SERVER_PORT` | `8080` | Closed Beta | Backend (`application-production.properties:6`) | Embedded Tomcat listening port. |
-| `APP_SECURITY_ALLOWED_ORIGINS` | `https://elegance.design` | Closed Beta | Backend (`application-production.properties:50`) | Enforces CORS allowlist. Startup validator throws error if wildcard or localhost. |
-| `APP_SECURITY_DEV_AUTH_ENABLED`| `false` | Closed Beta | Backend (`application-production.properties:47`) | Must be `false`. Startup validator aborts startup if true in production. |
-| `APP_SECURITY_SESSION_COOKIE_SECURE` | `true` | Closed Beta | Backend (`application-production.properties:49`) | Enforces `Secure` flag on `__Host-session` cookie. |
-| `MEDIA_STORAGE_PROVIDER` | `S3_COMPATIBLE` | Closed Beta | Backend (`application-production.properties:61`) | Directs storage operations to S3/R2 cloud storage instead of local disk. |
-| `S3_ENDPOINT` | e.g. `https://<id>.r2.cloudflarestorage.com` | Closed Beta | Backend (`application-production.properties:62`) | S3 API endpoint URL (required for Cloudflare R2, optional for AWS S3). |
-| `S3_REGION` | `auto` (or `us-east-1`) | Closed Beta | Backend (`application-production.properties:63`) | S3 storage region identifier. |
-| `S3_BUCKET_PRIVATE` | `elegance-media-private` | Closed Beta | Backend (`application-production.properties:66`) | Private bucket for originals, quarantine uploads, and user export bundles. |
-| `S3_BUCKET_PUBLIC` | `elegance-media-public` | Closed Beta | Backend (`application-production.properties:67`) | Public bucket for web-optimized derivative photos. |
-| `PUBLIC_MEDIA_BASE_URL` | `https://media.elegance.design` | Closed Beta | Backend (`application-production.properties:68`) | Base URL returned in API responses for public media assets. |
-| `NEXT_PUBLIC_API_URL` | `https://api.elegance.design/api/v1` | Closed Beta | Frontend (`apps/web/src/lib/env.ts`) | Public API endpoint consumed by Next.js browser client and SSR server. |
-| `APP_CDN_HOSTNAME` | `media.elegance.design` | Closed Beta | Frontend (`apps/web/next.config.js`) | Strict RFC 1123 hostname for Next.js image optimization (wildcard `*` prohibited). |
-
----
-
-### 2.3 Deferred Credentials for Public Beta & Commercial Launch
-
-| Variable Name | Subsystem | Required Launch Tier | Source Component & Class | Who Provides It? |
-|---|---|---|---|---|
-| `APP_EMAIL_PROVIDER` | Email | Public Beta | Backend (`TransactionalEmailService`) | Operator selector (`resend`, `postmark`, `ses`) |
-| `APP_EMAIL_API_KEY` | Email | Public Beta | Backend (`TransactionalEmailService`) | Transactional Email Provider Dashboard |
-| `APP_EMAIL_FROM_ADDRESS` | Email | Public Beta | Backend (`TransactionalEmailService`) | Verified Domain Sender (e.g. `notifications@elegance.design`) |
-| `APP_EMAIL_WEBHOOK_SECRET` | Email | Public Beta | Backend (`EmailWebhookController:19`) | Webhook Signing Secret from Email Provider |
-| `INTERIOR_AI_PROVIDER` | AI | Public Beta (if AI enabled) | Backend (`AiVisualizerProperties:13`) | Provider selector (`stability`, `replicate`, `vertex`) |
-| `INTERIOR_AI_API_KEY` | AI | Public Beta (if AI enabled) | Backend (`AiVisualizerProperties:18`) | AI Model Provider Secret Token |
-| `INTERIOR_AI_ENDPOINT` | AI | Public Beta (if AI enabled) | Backend (`AiVisualizerProperties:23`) | Custom AI Endpoint URL |
-| `INTERIOR_AI_MODEL` | AI | Public Beta (if AI enabled) | Backend (`AiVisualizerProperties:28`) | Model identifier (e.g. `stable-diffusion-xl-1024-v1-0`) |
-| `BILLING_PROVIDER` | Billing | Commercial Launch | Backend (`BillingService`) | Gateway selector (`razorpay`, `stripe`) |
-| `BILLING_API_KEY` | Billing | Commercial Launch | Backend (`BillingService`) | Commercial Payment Gateway Live API Key |
-| `BILLING_WEBHOOK_SECRET` | Billing | Commercial Launch | Backend (`BillingWebhookController`) | Commercial Payment Webhook HMAC Secret |
+| VARIABLE | SECRET? | REQUIRED FOR CLOSED BETA? | REQUIRED FOR PUBLIC BETA? | REQUIRED FOR COMMERCIAL? | SOURCE FILE | DESCRIPTION |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `SPRING_PROFILES_ACTIVE` | NO | **YES** | **YES** | **YES** | `application-production.properties:3` | Activates production security validations, strict CORS, and connection pooling. Must be `production`. |
+| `SERVER_PORT` | NO | **YES** | **YES** | **YES** | `application-production.properties:6` | Listening port for embedded Tomcat server (default: `8080`). |
+| `SPRING_DATASOURCE_URL` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:19` | Production PostgreSQL JDBC connection URL with SSL mode (`jdbc:postgresql://<host>:<port>/<db>?sslmode=require`). |
+| `SPRING_DATASOURCE_USERNAME` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:20` | PostgreSQL application runtime user. |
+| `SPRING_DATASOURCE_PASSWORD` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:21` | PostgreSQL application runtime password. |
+| `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE` | NO | Optional | Optional | Optional | `application-production.properties:24` | HikariCP connection pool upper bound (default: `10`). |
+| `APP_SECURITY_ALLOWED_ORIGINS` | NO | **YES** | **YES** | **YES** | `application-production.properties:50` | CORS allowed origin (`https://<ROOT_DOMAIN>`). Startup validator rejects wildcards or localhost. |
+| `APP_SECURITY_DEV_AUTH_ENABLED` | NO | **YES** | **YES** | **YES** | `application-production.properties:47` | Must be `false`. Application fails fast at startup if true in production. |
+| `APP_SECURITY_SESSION_COOKIE_SECURE` | NO | **YES** | **YES** | **YES** | `application-production.properties:49` | Enforces `Secure` flag on `__Host-session` cookie (default: `true`). |
+| `APP_SECURITY_MFA_ENCRYPTION_KEY` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | 256-bit AES master key used to encrypt TOTP secrets at rest in PostgreSQL. |
+| `OIDC_GOOGLE_CLIENT_ID` | NO | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client ID for studio owner authentication. |
+| `OIDC_GOOGLE_CLIENT_SECRET` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client Secret for token exchange. |
+| `MEDIA_STORAGE_PROVIDER` | NO | **YES** | **YES** | **YES** | `application-production.properties:61` | Set to `S3_COMPATIBLE` for Cloudflare R2 or AWS S3 cloud storage. |
+| `S3_ENDPOINT` | NO | **YES** | **YES** | **YES** | `application-production.properties:62` | S3 API endpoint URL (e.g. `https://<account-id>.r2.cloudflarestorage.com` for R2). |
+| `S3_REGION` | NO | **YES** | **YES** | **YES** | `application-production.properties:63` | S3 region identifier (`auto` for R2). |
+| `S3_ACCESS_KEY_ID` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:64` | R2/S3 access key credential. |
+| `S3_SECRET_ACCESS_KEY` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:65` | R2/S3 secret access key credential. |
+| `S3_BUCKET_PRIVATE` | NO | **YES** | **YES** | **YES** | `application-production.properties:66` | Private bucket for originals, quarantine uploads, and GDPR privacy export ZIPs. |
+| `S3_BUCKET_PUBLIC` | NO | **YES** | **YES** | **YES** | `application-production.properties:67` | Public bucket for clean derivative photography. |
+| `PUBLIC_MEDIA_BASE_URL` | NO | **YES** | **YES** | **YES** | `application-production.properties:68` | Base URL returned in API responses for public media assets (`https://<MEDIA_DOMAIN>`). |
+| `PRIVACY_EXPORT_TTL_DAYS` | NO | Optional | Optional | Optional | `application-production.properties:71` | Expiration window in days for privacy export ZIP bundles (default: `7`). |
+| `MALWARE_SCANNER_PROVIDER` | NO | Optional | **YES** | **YES** | `application-production.properties:74` | Malware scanner provider (`disabled`, `clamav`, `external`). |
+| `REQUIRE_CLEAN_SCAN` | NO | Optional | **YES** | **YES** | `application-production.properties:75` | Whether uploads fail closed without clean scan (default: `true`). |
+| `NEXT_PUBLIC_API_URL` | NO | **YES** | **YES** | **YES** | `apps/web/src/lib/env.ts` | Base API URL for Next.js browser client (`https://api.<ROOT_DOMAIN>/api/v1`). |
+| `APP_CDN_HOSTNAME` | NO | **YES** | **YES** | **YES** | `apps/web/next.config.js` | Strict RFC 1123 hostname for Next.js image optimization (`<MEDIA_DOMAIN>`). |
+| `APP_EMAIL_PROVIDER` | NO | NO | **YES** | **YES** | `TransactionalEmailService.java` | Transactional email provider selector (`resend`, `postmark`, `ses`). |
+| `APP_EMAIL_API_KEY` | **YES** | NO | **YES** | **YES** | `TransactionalEmailService.java` | Transactional email provider secret API key. |
+| `APP_EMAIL_FROM_ADDRESS` | NO | NO | **YES** | **YES** | `TransactionalEmailService.java` | Verified sender email address (e.g. `notifications@<ROOT_DOMAIN>`). |
+| `APP_EMAIL_WEBHOOK_SECRET` | **YES** | NO | **YES** | **YES** | `EmailWebhookController.java` | HMAC secret for verifying email delivery and bounce webhooks. |
+| `INTERIOR_AI_PROVIDER` | NO | NO | Optional | Optional | `AiVisualizerProperties.java` | AI provider selector (`stability`, `replicate`, `vertex`). |
+| `INTERIOR_AI_API_KEY` | **YES** | NO | Optional | Optional | `AiVisualizerProperties.java` | AI model provider secret token. |
+| `INTERIOR_AI_ENDPOINT` | NO | NO | Optional | Optional | `AiVisualizerProperties.java` | Custom AI endpoint URL if using custom inference service. |
+| `INTERIOR_AI_MODEL` | NO | NO | Optional | Optional | `AiVisualizerProperties.java` | Model identifier string (e.g. `interior-diffusion-v1`). |
+| `BILLING_PROVIDER` | NO | NO | Optional | **YES** | `BillingService.java` | Commercial payment gateway selector (`razorpay`, `stripe`). |
+| `BILLING_API_KEY` | **YES** | NO | Optional | **YES** | `BillingService.java` | Commercial payment gateway live API key. |
+| `BILLING_WEBHOOK_SECRET` | **YES** | NO | Optional | **YES** | `BillingWebhookController.java` | Cryptographic secret for verifying payment webhook signatures. |
 
 ---
 
 ## 3. Discrepancy Reconciliation & Unused Variables
 
-During this audit, historical documentation placeholders were reconciled against actual source truth:
+During this source audit, historical documentation placeholders were reconciled against actual code truth:
 
 1. **`JWT_SECRET` (DISAVOWED / UNUSED):**
    - *Audit Finding:* Historical documentation incorrectly listed `JWT_SECRET`.
-   - *Source Truth:* Elégance does **NOT use JWT session tokens**. Authentication is implemented using stateful 256-bit cryptographic tokens stored as SHA-256 hashes in PostgreSQL table `identity_sessions`. Zero JWT parsing or signing exists in the codebase.
+   - *Source Truth:* Elégance does **NOT use JWT session tokens**. Authentication uses stateful 256-bit cryptographic tokens stored as SHA-256 hashes in PostgreSQL table `identity_sessions`. Zero JWT parsing or signing exists in the codebase.
    - *Instruction:* Do **NOT** configure `JWT_SECRET`.
 
 2. **`APP_ADMIN_MFA_ENCRYPTION_KEY` vs `app.security.mfa.encryption-key`:**
@@ -92,8 +81,8 @@ During this audit, historical documentation placeholders were reconciled against
    - *Source Truth:* Spring Boot maps properties to `AuthSecurityProperties.MfaProperties.encryptionKey`, which corresponds to `app.security.mfa.encryption-key` (environment variable: `APP_SECURITY_MFA_ENCRYPTION_KEY`).
 
 3. **`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` (DEFERRED):**
-   - *Audit Finding:* Stripe keys listed in early drafts.
-   - *Source Truth:* Payment provider selection remains pending user decision. Live billing checkout is disabled (`DisabledBillingProvider`). Do not provision payment credentials until Phase 11B.
+   - *Audit Finding:* Stripe keys listed as mandatory defaults in early drafts.
+   - *Source Truth:* Payment provider selection remains pending user decision. Live billing checkout is disabled (`DisabledBillingProvider`). Do not provision payment credentials until commercial launch.
 
 ---
 
@@ -101,4 +90,4 @@ During this audit, historical documentation placeholders were reconciled against
 
 1. **Never Commit `.env.production`:** Production credentials must never be committed to git or stored on developer workstations.
 2. **Container Platform Secret Ingestion:** Inject secrets directly via managed cloud platforms (e.g., Railway Project Variables, Vercel Environment Variables, AWS Secrets Manager).
-3. **Fail-Fast Validation:** The application will immediately abort startup if required database credentials or encryption keys are missing or set to insecure defaults.
+3. **Fail-Fast Startup Validation:** The application will immediately abort startup if required database credentials or encryption keys are missing or set to insecure defaults.

@@ -1,56 +1,65 @@
-# Elégance — Phase 11 Deployment Blockers & Prerequisites
-**Document Status:** Production Baseline  
-**Phase:** Phase 10 — Final Production Release Audit  
-**Classification:** Pre-Deployment Readiness Assessment
+# Elégance — Phase 11B Deployment Blockers & Prerequisites
+**Document Status:** Complete / Awaiting User Sign-Off  
+**Phase:** Phase 11B — Final Production Decision Lock  
+**Date:** 2026-10-13  
+**Classification:** Pre-Deployment Readiness Assessment  
+**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
 
 ---
 
 ## 1. Overview
 
-This document itemizes every external provider selection, commercial contract, cloud resource provisioning step, and secret credential requirement that must be fulfilled before the Elégance platform can be deployed to live environments in Phase 11.
+This document itemizes every external provider selection, commercial policy decision, cloud resource provisioning step, and secret credential requirement that must be fulfilled before the Elégance platform can be deployed to live cloud environments.
 
 ---
 
-## 2. Blockers Categorized by Launch Tier
+## 2. Blockers Categorized by Launch Phasing
 
 ### 2.1 Tier 1: Closed Beta (Studio Invitation Only)
 
-The application code is 100% complete and fully operational. Deployment to a private staging / closed beta environment requires:
+The application code is 100% complete and fully verified. Deployment to an invitation-only closed beta requires:
 
-1. **Production PostgreSQL Cluster Provisioning:**
-   - Host PostgreSQL 16+ on managed cloud (e.g., Supabase, Neon, AWS RDS, Railway).
-   - Configure connection pooling and execute Flyway migrations V001 through V040.
-   - Verify native RLS functionality under target database engine version.
-2. **Cloud Container Runtime Provisioning:**
-   - Provision production web runner (e.g., Railway, Render, AWS ECS) for Spring Boot API container (`apps/api/Dockerfile`).
-   - Provision Edge / Node runtime (e.g., Vercel, Cloudflare, Node server) for Next.js web application (`apps/web`).
-3. **Domain & TLS Setup:**
-   - Attach official custom domain (e.g., `app.elegance.design` / `api.elegance.design`).
+1. **User Decision Approvals:**
+   - Formal sign-off on the items in [docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md](file:///c:/my%20projects/interior%20design/docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md).
+2. **Production Domain Selection:**
+   - User must supply the registered root domain (replaces placeholder `<ROOT_DOMAIN>`).
+3. **Production PostgreSQL 17 Database Provisioning:**
+   - Provision managed PostgreSQL 17 on chosen provider (e.g., Railway Managed PostgreSQL or Supabase).
+   - Configure SSL connection mode (`sslmode=require`) and execute Flyway migrations `V001` through `V040`.
+   - Run verification script `verify-cloud-db-rls.sql` to confirm Row Level Security on all 59 tables.
+4. **Cloud Container Runtime Provisioning:**
+   - Provision backend container runner (e.g., Railway) for Spring Boot API container (`apps/api/Dockerfile`).
+   - Provision frontend edge platform (e.g., Vercel) for Next.js web application (`apps/web`).
+5. **Domain & Edge TLS Routing:**
+   - Map official custom domain routing (`https://<ROOT_DOMAIN>`, `https://api.<ROOT_DOMAIN>`, `https://<MEDIA_DOMAIN>`).
    - Provision automated TLS certificates (Let's Encrypt / Cloudflare Edge SSL).
-4. **Core Identity Provider Credentials:**
-   - Register OAuth 2.0 / OIDC credentials in Google Cloud Console and Apple Developer portal for the production callback URLs.
+6. **Core Identity Provider Credentials:**
+   - Register OAuth 2.0 credentials in Google Cloud Console for the production callback URL.
+7. **Cloud Object Storage Provisioning:**
+   - Provision S3-compatible dual buckets (e.g., Cloudflare R2: private and public).
+   - Configure CORS rules and map `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME` to `<MEDIA_DOMAIN>`.
+8. **Automated Database Backups:**
+   - Verify automated daily snapshots and Point-In-Time Recovery (PITR) WAL archiving are active.
 
 ---
 
 ### 2.2 Tier 2: Public Beta (Broader Studio Onboarding)
 
-In addition to Tier 1 prerequisites, opening the platform to public beta onboarding requires:
+Opening the platform to public beta onboarding requires resolving the following deferred items:
 
-1. **Transactional Email Service Credentials:**
+1. **Transactional Email Service Provisioning:**
    - Select and contract transactional email provider (e.g., Resend, Postmark, AWS SES).
    - Configure DNS DKIM, SPF, and DMARC records on the official sending domain.
-   - Inject `APP_EMAIL_API_KEY` and verify delivery of outbox messages.
-2. **Production Object Storage Provisioning:**
-   - Provision secure S3-compatible bucket (e.g., Cloudflare R2, AWS S3).
-   - Set up private bucket policies with presigned GET/PUT URLs.
-   - Configure CORS rules for direct client uploads.
-   - Configure `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME` with the public storage / CDN domain to allow Next.js 16.3.8 image optimization to safely fetch assets without wildcard remote patterns.
-3. **Production Malware Scanner Deployment:**
+   - Inject `APP_EMAIL_API_KEY` and verify delivery of outbox notifications.
+2. **Production Malware Scanner Deployment:**
    - Deploy ClamAV daemon container or provision external anti-malware scanning endpoint.
    - Connect API worker to scan queue with fail-closed policy (`app.media.security.require-clean-scan=true`).
-4. **AI Generation Provider API Key:**
-   - Provision production Anthropic / OpenAI / Google Gemini API credentials.
-   - Set workspace token budget alarms and enforce rate limits.
+3. **Generative AI Provider Decision (If Enabled):**
+   - Conduct model quality evaluation (Stability / Replicate / Vertex).
+   - Sign enterprise Data Processing Agreement (DPA) guaranteeing zero customer room photo training.
+   - Provision production API credentials and enforce daily studio rate limits.
+4. **Legal Policy Sign-Off:**
+   - Formal legal counsel sign-off on public Terms of Service and Privacy Policy.
 
 ---
 
@@ -59,18 +68,13 @@ In addition to Tier 1 prerequisites, opening the platform to public beta onboard
 Full commercial public launch requires:
 
 1. **Commercial Payment Gateway Contract & Credentials:**
-   - Complete business underwriting and KYC with payment processor (e.g., Stripe).
+   - Complete business underwriting and KYC with payment processor (e.g., Razorpay for India-First, or Stripe).
    - Configure live subscription plans, prices, and customer portal in payment dashboard.
    - Register live webhook endpoint (`POST /api/v1/billing/webhook`) and configure `BILLING_WEBHOOK_SECRET`.
-2. **Production Observability & Monitoring:**
-   - Deploy Prometheus + Grafana or Datadog agent.
-   - Configure PagerDuty / Opsgenie alert notifications for 5xx error rate spikes, database connection exhaustion, and queue backpressure.
-3. **Disaster Recovery Sign-Off:**
-   - Formal executive approval of RPO and RTO SLAs.
-   - Automated daily database backup and retention policy activation in cloud provider.
-
----
-
-## 3. Release Freeze Statement
-
-Application feature development is **FROZEN**. All 10 product development phases (Phases 1 through 9G) have successfully completed. No live cloud resources were created or modified during Phase 10. Phase 11 will proceed strictly to address the deployment blockers enumerated above.
+2. **Pricing & Currency Finalization:**
+   - Business leadership approval of monthly and annual subscription rates in INR (`₹`).
+3. **Statutory Tax & GST Review:**
+   - Qualified accounting and legal sign-off on GST treatment, SAC code 998314, and B2B invoicing rules.
+4. **Disaster Recovery & SLA Sign-Off:**
+   - Formal executive approval of RPO (< 1 hour) and RTO (< 2 hours) targets.
+   - Centralized 24/7 alert notifications for error spikes and connection pool exhaustion.

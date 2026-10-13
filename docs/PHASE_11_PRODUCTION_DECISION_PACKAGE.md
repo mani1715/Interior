@@ -1,405 +1,370 @@
-# Elégance — Phase 11A Production Decision Package
-**Document Status:** Complete / Ready for User Approval  
-**Phase:** Phase 11A — Production Decision Lock  
+# Elégance — Phase 11B Final Production Decision Package
+**Document Status:** Complete / Awaiting User Sign-Off  
+**Phase:** Phase 11B — Final Production Decision Lock  
 **Date:** 2026-10-13  
-**Classification:** Executive & Architectural Production Decision Package  
-**Release Candidate Baseline:** `ccbbcec534f466c8f40fbfe86d63915e66ecbb9e` (Flyway `V040`)  
+**Classification:** Authoritative Production Decision & Governance Specification  
+**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
+**UI/UX Design Freeze:** **ACTIVE & LOCKED**  
+**Application Feature Freeze:** **ACTIVE & LOCKED**  
 
 ---
 
 ## 1. Executive Summary & Purpose
 
-The Elégance Interior Designer Platform has reached **100% Release Candidate (RC) verification** with zero open defects across all severity tiers (P0=0, P1=0, P2=0, P3=0). Application feature freeze is active.
+The Elégance Interior Designer Platform has completed all 5 UI/UX quality passes and 100% of functional verification suites (52 route handlers, 52 Vitest test files with 373 passing tests, TypeScript and ESLint with 0 errors/warnings). Application feature freeze and UI/UX design freeze are strictly active.
 
 **CRITICAL DEPLOYMENT DIRECTIVE:**
-> **DEPLOYMENT NOT PERFORMED.** No cloud infrastructure, databases, storage buckets, domains, DNS records, or external vendor integrations have been provisioned or altered. This phase exists solely to provide the definitive, source-verified decision package required before any Phase 11 deployment begins.
+> **DEPLOYMENT NOT PERFORMED.** No cloud infrastructure, databases, storage buckets, domains, DNS records, or external vendor integrations have been provisioned or altered. This phase exists solely to provide the definitive, source-verified production configuration that the user must review and approve before Phase 11 deployment begins.
 
-This package provides the authoritative blueprint detailing:
-1. Every infrastructure, vendor, and commercial decision requiring explicit user selection.
-2. What the existing codebase actually supports versus what requires vendor binding.
-3. The exact minimum decisions needed for **Closed Beta (Invitation-Only)** vs **Public Beta** vs **General Commercial Launch**.
-4. Full secret and configuration variable matrices derived directly from the application source code.
-5. Migration, storage, DNS, and rollback procedures.
+This package clearly separates:
+1. **`LOCKED`**: Hardened in code, tests, and database schema; immutable under freeze.
+2. **`RECOMMENDED — WAITING USER APPROVAL`**: Engineering recommendations based on operational simplicity, low cost, and architectural compatibility; awaits user approval.
+3. **`DEFERRED`**: Postponed to Public Beta or General Commercial Launch to minimize initial blast radius.
 
 ---
 
-## 2. Decision Classification Standard
+## 2. Decision Status Standard
 
-Every decision item in this package is assigned exactly one authoritative status:
+Every item in this specification belongs to one of three strict categories:
 - **`LOCKED`**: Architected, implemented, and verified in code; immutable under feature freeze.
-- **`RECOMMENDED — NOT SELECTED`**: Technical recommendation based on architecture, security, and low operational complexity; awaits user decision.
-- **`DECISION REQUIRED`**: Requires user / stakeholder / legal selection before deployment can proceed.
-- **`NOT REQUIRED FOR THIS LAUNCH LEVEL`**: Can remain safely disabled/unconfigured for the designated launch tier.
-- **`DEFERRED`**: Intentionally postponed to a post-launch phase.
+- **`RECOMMENDED — WAITING USER APPROVAL`**: Technical recommendation based on architecture, security, and low operational complexity; requires user confirmation.
+- **`DEFERRED`**: Intentionally postponed to Public Beta, Commercial Launch, or specialized evaluation.
 
 ---
 
-## 3. Comprehensive Domain Decisions (A through AB)
+## 3. Authoritative Closed-Beta Deployment Profile (Minimal Recommendation)
 
-### A. Production Domain
-- **Current Status:** `DECISION REQUIRED` (Current state: `NOT SELECTED`)
-- **Required Architecture:**
-  - **Root / Web Frontend:** `elegance.design` or `www.elegance.design`
-  - **API Ingress:** `api.elegance.design` or reverse-proxied path `/api/v1` on the main domain
-  - **Media / CDN Host:** `media.elegance.design` or dedicated storage CDN hostname (bound to `APP_CDN_HOSTNAME`)
-  - **OIDC Redirect URI:** `https://<web-domain>/api/v1/auth/oidc/callback/<provider>`
-  - **Email Sending Subdomain:** `mail.elegance.design` or `send.elegance.design`
-- **Technical Recommendation:** Select a custom domain (e.g. `elegance.design`). Route frontend on apex/www and backend API on `api.` subdomain with TLS termination at Cloudflare / Edge Proxy.
+For an invitation-only closed beta, the recommended minimal profile is:
 
-### B. Frontend Hosting
-- **Current Status:** `RECOMMENDED — NOT SELECTED`
-- **Runtime Mode:** Standalone Node.js server (`next.config.js` specifies `output: 'standalone'`). Runs Next.js 16.3.8 with Turbopack.
-- **Requirements:** Node.js 20+ runtime, support for environment variables (`NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME`), SSR support for SEO-indexed routes.
-- **Candidate Evaluation:**
-  - **Vercel:** *Fit:* Native Next.js edge platform. *Pros:* Zero devops, instant preview, automatic edge caching. *Cons:* Higher commercial tier costs.
-  - **Railway / Render:** *Fit:* Dockerized standalone container (`node server.js`). *Pros:* Unified billing with backend container, predictable cost. *Cons:* Manual CDN edge configuration.
-  - **AWS ECS / Amplify:** *Fit:* Enterprise cloud container. *Pros:* Deep enterprise controls. *Cons:* High operational complexity.
-- **Technical Recommendation:** **Vercel** or **Railway** (using standalone Docker container).
-- **Closed-Beta Blocker:** **YES**.
-
-### C. Backend / API Hosting
-- **Current Status:** `RECOMMENDED — NOT SELECTED`
-- **Runtime Mode:** Spring Boot 3.4.3 on Java 21, multi-stage Docker container (`apps/api/Dockerfile`).
-- **Requirements:** 1 vCPU / 2GB RAM minimum, outbound internet for provider APIs, persistent TLS database connectivity, graceful shutdown support (`server.shutdown=graceful`), health probe endpoints (`/actuator/health/liveness`, `/actuator/health/readiness`).
-- **Candidate Evaluation:**
-  - **Railway:** *Fit:* Container runner with native private networking to PostgreSQL. *Pros:* Simplest setup, zero-downtime deploys, built-in health checks. *Cons:* Fixed regions.
-  - **Render:** *Fit:* Managed web service with Docker runtime. *Pros:* Transparent pricing, automated TLS. *Cons:* Cold starts on lower tiers.
-  - **AWS ECS Fargate:** *Fit:* Production enterprise standard. *Pros:* Extreme scalability, VPC isolation, IAM integration. *Cons:* Significant operational overhead.
-- **Technical Recommendation:** **Railway** (for rapid beta onboarding with automated health probes) or **AWS ECS Fargate** (for long-term enterprise scalability).
-- **Closed-Beta Blocker:** **YES**.
-
-### D. PostgreSQL Database Provider & Version
-- **Current Status:** `DECISION REQUIRED`
-- **Source Truth:**
-  - Locally tested: PostgreSQL 18.3 (port 5433).
-  - Minimum supported: PostgreSQL 15.
-  - Recommended production family: PostgreSQL 16 or 17.
-  - Migrations: Exactly 40 canonical Flyway migrations (`V001` through `V040`).
-  - Row Level Security: 59 entity tables enforced via session variables `app.current_user_id`, `app.current_studio_id`, `app.is_admin`.
-- **Candidate Evaluation:**
-  - **Neon:** Serverless PostgreSQL with instant branching and connection pooling. Supports PG 16.
-  - **Supabase:** Managed PG 16 with integrated connection pooling (PgBouncer/Supavisor).
-  - **AWS RDS PostgreSQL:** Fully managed PostgreSQL 16 with Multi-AZ HA and automated PITR.
-  - **Railway Managed PostgreSQL:** Simple single-node PG 16 provisioned alongside backend.
-- **Technical Recommendation:** **AWS RDS PostgreSQL 16** (Multi-AZ) for enterprise production, or **Supabase / Neon** for beta.
-- **Closed-Beta Blocker:** **YES**.
-
-### E. Object Storage (Media & Attachments)
-- **Current Status:** `RECOMMENDED — NOT SELECTED`
-- **Source Architecture:** S3-compatible storage adapter (`S3StorageService`).
-  - Dual bucket model: Private bucket (`S3_BUCKET_PRIVATE`) for original uploads, quarantine objects, and GDPR exports; Public bucket (`S3_BUCKET_PUBLIC`) for verified clean derivatives.
-  - Capabilities required: Presigned PUT URLs, content-type verification, metadata attachment, byte streaming, deletion.
-- **Candidate Evaluation:**
-  - **Cloudflare R2:** *Pros:* Zero egress fees, native S3 compatibility, global edge distribution. *Cons:* Requires custom domain binding for public assets.
-  - **AWS S3:** *Pros:* Global standard, fine-grained IAM policies, AWS KMS encryption. *Cons:* Egress bandwidth fees.
-  - **Backblaze B2:** *Pros:* Low cost. *Cons:* Slower propagation.
-- **Technical Recommendation:** **Cloudflare R2** (zero egress fee makes portfolio photo hosting highly cost-effective).
-- **Closed-Beta Blocker:** **YES** (or local filesystem for single-node closed beta container).
-
-### F. CDN / Media Delivery
-- **Current Status:** `DECISION REQUIRED`
-- **Source Architecture:** Next.js `next.config.js` enforces strict RFC 1123 hostname validation on `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME`. Arbitrary wildcards (`*`) are prohibited.
-- **Hostname Binding:** Must match the public custom CDN domain serving derivative media assets (e.g., `media.elegance.design` or `cdn.elegance.design`).
-- **Technical Recommendation:** Bind Cloudflare CDN or AWS CloudFront to the public storage bucket, and supply that exact FQDN to `APP_CDN_HOSTNAME`.
-- **Closed-Beta Blocker:** **YES** (if cloud storage is active).
-
-### G. Identity & OIDC Provider(s)
-- **Current Status:** `DECISION REQUIRED` (Current: Generic OIDC architecture implemented, `OidcService` handles OAuth2 authorization code flow with PKCE, state, and nonce verification).
-- **Source Architecture:** Configurable OIDC map under `app.security.oidc.providers.<provider-name>` (properties: `issuer`, `clientId`, `clientSecret`, `authorizationUri`, `tokenUri`, `redirectUri`).
-- **Candidates:** Google Identity (`google`), Apple Sign-In (`apple`), GitHub (`github`), or unified auth broker (e.g., Clerk / Auth0).
-- **Technical Recommendation:** **Google Identity** for primary closed-beta onboarding.
-- **Closed-Beta Blocker:** **YES** (at least one production OIDC provider must be configured, as Dev Personas are locked out in production).
-
-### H. Transactional Email Provider
-- **Current Status:** `DECISION REQUIRED` (Current: `EmailProvider` SPI; implementations: `DisabledEmailProvider` in production, `FakeEmailProvider` in test).
-- **Required Capabilities:** Outbox queue dispatch, exponential backoff, bounce and complaint webhook ingestion (`/api/v1/public/webhooks/email/{provider}`).
-- **Candidates:** Resend, Postmark, AWS SES, SendGrid.
-- **DNS Requirements:** SPF record (`v=spf1 ...`), DKIM key (CNAME/TXT), DMARC policy (`v=DMARC1; p=quarantine...`), verified From address (`notifications@elegance.design`).
-- **Closed-Beta Blocker:** **NO** (Closed beta can operate with invitations or disabled email if team onboarding is manual).
-- **Public-Beta Blocker:** **YES**.
-
-### I. AI Image Generation Provider & Model
-- **Current Status:** `DECISION REQUIRED` (Current: `ConfigurableAiImageProvider` SPI supporting `stability`, `replicate`, `vertex`, `mock_configured`).
-- **Workflow Requirements:** Multimodal image conditioning, interior room style transfer, inpainting masks (`supportsMaskEditing`), reference image weighting (`supportsReferenceImages`, up to 4 references), prompt enhancement.
-- **Candidates:**
-  - **Stability AI:** SDXL Inpainting / Stable Image Core. Proven interior architecture fine-tunes.
-  - **Replicate:** Hosted FLUX.1 or SDXL pipelines with custom LoRA support.
-  - **Google Vertex AI:** Imagen 3 with enterprise data protection (guaranteed zero customer data retention for model training).
-- **Compliance / DPA:** Data Processing Agreement (DPA) required ensuring customer room photos are never used for model training.
-- **Closed-Beta Blocker:** **NO** (AI feature can remain disabled via `interior.ai.enabled=false` or `interior.ai.provider=none`).
-- **Public-Beta Blocker:** **YES** (if AI visualizer feature is marketed).
-
-### J. AI Commercial Policy
-- **Current Status:** `DECISION REQUIRED`
-- **Source Truth:** Application code enforces a hard rate limit of **20 generations / studio / UTC calendar day** (`AiVisualizerProperties.dailyStudioLimit = 20`, reset at 00:00 UTC).
-- **Policy Options:**
-  1. *Included Allowance:* 20 free generations daily included in active paid plans.
-  2. *Credit Pack Add-on:* Base daily allowance with purchased credit packs for overage.
-  3. *Tiered Allowance:* Standard = 5/day, Premium = 15/day, Pro = 30/day.
-- **Technical Recommendation:** Maintain the implemented 20 generations/day included with Pro/Premium subscriptions during beta.
-
-### K. Malware Scanner
-- **Current Status:** `DECISION REQUIRED` (Current: `MalwareScanner` SPI; implementations: `DisabledMalwareScanner`, `FakeMalwareScanner`).
-- **Source Truth:** `app.media.security.require-clean-scan=true` enforces that uninspected uploads fail closed and cannot be committed to canonical storage.
-- **Candidates:**
-  - **ClamAV Daemon:** Containerized ClamAV daemon running alongside the API worker.
-  - **AWS GuardDuty for S3:** Native AWS malware protection scanning bucket uploads asynchronously.
-  - **VirusTotal / ICAP API:** External commercial malware scanning API.
-- **Closed-Beta Blocker:** **NO** (Can set `app.media.security.require-clean-scan=false` for trusted closed-beta testers, or deploy lightweight ClamAV container).
-- **Public-Beta Blocker:** **YES** (Fail-closed clean scan mandatory for public uploads).
-
-### L. Payment Gateway & Commercial Billing
-- **Current Status:** `DECISION REQUIRED` (Current: `BillingProvider` SPI; implementations: `DisabledBillingProvider`, `FakeBillingProvider`).
-- **Target Market Considerations:**
-  - **India:** Must support UPI, domestic credit/debit cards, NetBanking, and RBI e-mandate recurring guidelines. Primary candidate: **Razorpay** or **Stripe India**.
-  - **International:** Must support global credit cards, multi-currency settlement, and automated tax handling (Stripe Billing, LemonSqueezy, Paddle).
-- **Closed-Beta Blocker:** **NO** (Commercial checkout disabled; beta users assigned complimentary Pro plans).
-- **Public-Beta Blocker:** **NO** (Can run in Sandbox/Test mode).
-- **Commercial-Launch Blocker:** **YES**.
-
-### M. Commercial Plans Capacity Model
-- **Current Status:** `LOCKED` (Hardened in database schema `V030`, `V034` and backend code).
-- **Capacities:**
-  - **STANDARD:** 10 projects, 15 portfolio photos/project, 5 GB storage, 0 Cinematic projects.
-  - **PREMIUM:** 20 projects, 25 portfolio photos/project, 20 GB storage, 0 Cinematic projects.
-  - **PRO:** 20 projects, 30 portfolio photos/project, 50 GB storage, max 5 Cinematic projects.
-  - **BASE:** Legacy/internal baseline only.
-
-### N. Pricing Schedule
-- **Current Status:** `DECISION REQUIRED` (No prices locked in code; pricing worksheet presented below).
-
-### O. Billing Currency
-- **Current Status:** `DECISION REQUIRED` (Options: INR `₹` for India domestic market, USD `$` for global SaaS, or dual currency display).
-
-### P. Billing Periods
-- **Current Status:** `DECISION REQUIRED` (Options: Monthly, Quarterly, Annual with discount).
-
-### Q. Billing Grace Period
-- **Current Status:** `DECISION REQUIRED`
-- **Source Default:** 7 days (`app.billing.grace-period-days:7`).
-- **Business Policy:** Must decide whether studios enter read-only state immediately upon renewal failure or after a formal grace period (e.g., 3 days, 7 days, 14 days).
-
-### R. Upgrade & Downgrade Behavior
-- **Current Status:** `DECISION REQUIRED` (for upgrade timing/proration) / `LOCKED` (for downgrade architecture).
-- **Source Architecture:** Downgrades take effect strictly at **end-of-period**. Existing project records and photos are **never deleted** on downgrade; over-quota records enter safe read-only display status.
-
-### S. Refund Policy
-- **Current Status:** `DECISION REQUIRED` (Options: No refunds, 14-day money-back guarantee, or pro-rated service credits).
-
-### T. GST & Tax Treatment
-- **Current Status:** `DECISION REQUIRED` (Requires accounting/legal counsel; B2B GSTIN collection and SAC code invoicing specifications).
-
-### U. Production Monitoring & APM
-- **Current Status:** `RECOMMENDED — NOT SELECTED`
-- **Application Instrumentation:** Spring Boot Actuator enabled (`/actuator/health`, `/actuator/metrics`, `/actuator/info`). Micrometer tags application `interior-platform-api`.
-- **Candidates:** Prometheus + Grafana, Datadog, New Relic, Better Stack.
-- **Closed-Beta Blocker:** Basic uptime check required.
-
-### V. Centralized Logging
-- **Current Status:** `RECOMMENDED — NOT SELECTED`
-- **Application Instrumentation:** Structured SLF4J/Logback logs with `X-Request-Id` MDC correlation. Recipient email hashes and PII masking active.
-- **Candidates:** Better Stack Logtail, AWS CloudWatch Logs, Papertrail.
-- **Closed-Beta Blocker:** Container stdout logs sufficient; centralized log aggregation recommended.
-
-### W. Production Backup Infrastructure
-- **Current Status:** `DECISION REQUIRED`
-- **Verification Drill:** Clean `pg_dump` and `pg_restore` verified in Phase 10 audit.
-- **Requirement:** Automated daily PostgreSQL snapshots, WAL archiving for Point-In-Time Recovery (PITR), cross-region replication.
-- **Closed-Beta Blocker:** **YES** (automated daily backups mandatory before storing any user data).
-
-### X. Recovery Point Objective (RPO)
-- **Current Status:** `DECISION REQUIRED` (Non-binding planning target: `< 1 hour` for commercial data).
-
-### Y. Recovery Time Objective (RTO)
-- **Current Status:** `DECISION REQUIRED` (Non-binding planning target: `< 4 hours` for full platform restoration).
-
-### Z. Data Retention Policies (12 Categories)
-- **Current Status:** `DECISION REQUIRED` across all 12 operational data categories (detailed in Section 5).
-
-### AA. Privacy & Terms Legal Review
-- **Current Status:** `DECISION REQUIRED` (Technical export/deletion mechanisms verified; draft Privacy Policy and Terms of Service require formal legal sign-off before public launch).
-
-### AB. Launch Tier Phasing
-- **Current Status:** `LOCKED` (Tier 1 Closed Beta → Tier 2 Public Beta → Tier 3 General Availability).
+| Area | Recommended Choice | Status | Rationale & Code Truth |
+| :--- | :--- | :--- | :--- |
+| **Frontend Hosting** | **Vercel** | RECOMMENDED — WAITING USER APPROVAL | Native Next.js 16.3.8 Turbopack support, automatic edge caching, zero devops. Alternative: Railway. |
+| **Backend API Hosting** | **Railway** | RECOMMENDED — WAITING USER APPROVAL | Direct Spring Boot Java 21 Docker runner, native private networking to PostgreSQL, built-in health probes (`/actuator/health`). Alternative: AWS ECS Fargate. |
+| **Database Provider** | **Railway Managed PostgreSQL** (or **Supabase**) | RECOMMENDED — WAITING USER APPROVAL | Instant provisioning, zero VPC peering friction, automated daily backups, low operational cost. Alternative: AWS RDS PG 17 / Neon. |
+| **PostgreSQL Version** | **PostgreSQL 17** | RECOMMENDED — WAITING USER APPROVAL | Supported: 15+; Locally tested: 18.3; Flyway 10.20 certified: 16/17. PG 17 recommended for maximum performance. |
+| **Object Storage** | **Cloudflare R2** | RECOMMENDED — WAITING USER APPROVAL | 100% S3 API compatibility with `S3StorageService`, **zero ($0.00) egress fees**, native Cloudflare global edge caching. Alternative: AWS S3. |
+| **Media CDN Hostname** | `<MEDIA_DOMAIN>` (e.g. `media.<ROOT_DOMAIN>`) | RECOMMENDED — WAITING USER APPROVAL | Cloudflare CDN edge mapped to public R2 bucket; strictly satisfies Next.js RFC 1123 `APP_CDN_HOSTNAME` requirement. |
+| **Production Domain** | **`<ROOT_DOMAIN>` (Not Selected)** | USER SELECTION REQUIRED | Root domain remains unselected. Desired routing: `https://<ROOT_DOMAIN>`, `https://api.<ROOT_DOMAIN>`, `https://media.<ROOT_DOMAIN>`. |
+| **Authentication (OIDC)** | **Google OIDC First** | RECOMMENDED — WAITING USER APPROVAL | Supported via generic `OidcService`. Lowest onboarding friction for interior design studios. Secondary providers (Apple, etc.) deferred. |
+| **Transactional Email** | **DISABLED** (`DisabledEmailProvider`) | DEFERRED TO PUBLIC BETA | Closed beta invitations operate via direct secure tokens generated in UI/admin. Avoids email reputation and domain warmup risks during beta. |
+| **Generative AI** | **DISABLED** (`DisabledAiImageProvider`) | DEFERRED TO AI QUALITY EVALUATION | Avoids early third-party API spend and model rate limits during initial workflow testing. |
+| **Upload Malware Scanning** | **Controlled Closed Beta (Option B)** | RECOMMENDED — WAITING USER APPROVAL | Restrict upload permissions to controlled, trusted beta participants initially; full fail-closed scanning (`require-clean-scan=true`) mandatory before Public Beta. |
+| **Commercial Billing** | **DISABLED** (`DisabledBillingProvider`) | DEFERRED TO COMMERCIAL LAUNCH | Beta studios receive complimentary access to test workflows. For commercial launch, India-first **Razorpay** recommended (Alternative: Stripe). |
+| **Monitoring & Uptime** | **Hosting-Native Checks** | RECOMMENDED — WAITING USER APPROVAL | Platform `/actuator/health` and `/health` endpoints + hosting-native uptime alarms. Dedicated APM deferred. |
+| **Centralized Logging** | **Hosting-Native Logs** | RECOMMENDED — WAITING USER APPROVAL | Vercel and Railway native log streams are sufficient for closed beta. External centralized retention deferred. |
+| **Database Backups** | **Managed Automated Backups + PITR** | RECOMMENDED — WAITING USER APPROVAL | Automated daily snapshots + WAL continuous archiving. RPO < 1 hour recommended. |
 
 ---
 
-## 4. Launch Tier Readiness Minimums
+## 4. Comprehensive Architectural Evaluation
 
-```
-                       ┌───────────────────────────────┐
-                       │   TIER 1: CLOSED BETA         │
-                       │   - Hosted Web & API          │
-                       │   - PostgreSQL 16+ (RLS)      │
-                       │   - Google OIDC               │
-                       │   - Cloud Storage (R2/S3)     │
-                       │   - Daily DB Backups          │
-                       │   * Billing: DISABLED         │
-                       │   * Email: LOG/MANUAL         │
-                       │   * AI: OPTIONAL/DISABLED     │
-                       └───────────────┬───────────────┘
-                                       │
-                                       ▼
-                       ┌───────────────────────────────┐
-                       │   TIER 2: PUBLIC BETA         │
-                       │   - Live Transactional Email  │
-                       │   - Fail-Closed Malware AV    │
-                       │   - Live AI Provider + DPA    │
-                       │   - Sandbox Billing Gateway   │
-                       │   - Legal Policy Sign-Off     │
-                       │   - Centralized APM & Logs    │
-                       └───────────────┬───────────────┘
-                                       │
-                                       ▼
-                       ┌───────────────────────────────┐
-                       │   TIER 3: COMMERCIAL LAUNCH   │
-                       │   - Live Payment Underwriting │
-                       │   - GST Invoicing & Tax       │
-                       │   - Final Locked Pricing      │
-                       │   - Formally Approved SLAs    │
-                       │   - 24/7 On-Call Alerts       │
-                       └───────────────────────────────┘
-```
+### 4.1 Frontend Decision: Vercel vs. Railway
+* **Application Baseline:** Next.js 16.3.8 Turbopack, standalone output (`next.config.js` sets `output: 'standalone'`).
+* **Evaluation:**
+  * **Vercel (RECOMMENDED):**
+    * *Pros:* Native Next.js first-party platform, zero server management, automatic edge asset caching, instant preview URLs, built-in edge performance insights.
+    * *Cons:* Bandwidth pricing at high commercial scale.
+  * **Railway (ALTERNATIVE):**
+    * *Pros:* Can build and run `apps/web/Dockerfile` standalone container, unified dashboard and billing alongside backend and database.
+    * *Cons:* Requires manual CDN configuration to achieve edge caching equivalent to Vercel.
+* **Output:** RECOMMENDED: **Vercel** | ALTERNATIVE: **Railway** | **USER APPROVAL REQUIRED**.
 
----
+### 4.2 Backend Decision: Railway vs. AWS ECS Fargate
+* **Application Baseline:** Spring Boot 3.4.3 on Java 21, multi-stage Docker container (`apps/api/Dockerfile`), embedded Tomcat on port 8080, context path `/api/v1`.
+* **Evaluation:**
+  * **Railway (RECOMMENDED for Beta):**
+    * *Pros:* Native Docker support, automatic health check integration with `/api/v1/actuator/health/liveness` and `/readiness`, zero VPC setup, simple secret injection, predictable monthly costs, instant rollbacks.
+    * *Cons:* Fixed cloud regions.
+  * **AWS ECS Fargate (ALTERNATIVE - Enterprise Standard):**
+    * *Pros:* Multi-AZ high availability, deep AWS IAM governance, enterprise VPC isolation.
+    * *Cons:* High operational setup overhead (ALB, target groups, VPC endpoints, Route 53, Secrets Manager).
+* **Output:** RECOMMENDED: **Railway** | ALTERNATIVE: **AWS ECS Fargate** | **USER APPROVAL REQUIRED**.
 
-## 5. Unresolved Retention Policies Matrix
+### 4.3 Database Provider & PostgreSQL Version
+* **Source Truth:**
+  * Minimum supported: PostgreSQL 15.
+  * Locally tested & verified: PostgreSQL 18.3.
+  * Flyway 10.20 certified & recommended: **PostgreSQL 16 or 17**.
+  * Exactly 40 Flyway migrations (`V001` through `V040`).
+  * Row Level Security (RLS) active on all 59 entity tables.
+* **Provider Evaluation:**
+  * **Railway Managed PostgreSQL (RECOMMENDED for Beta):** Provisioned in same project network as backend, zero egress latency, automated daily backups.
+  * **Supabase PostgreSQL (ALTERNATIVE A):** Managed PostgreSQL 17 with Supavisor connection pooling and WAL archiving.
+  * **Neon (ALTERNATIVE B):** Serverless PostgreSQL 17 with instant branching.
+  * **AWS RDS PostgreSQL (ALTERNATIVE C - Enterprise):** Multi-AZ PostgreSQL 17 with 35-day automated PITR.
+* **Output:** RECOMMENDED: **PostgreSQL 17** on **Railway Managed PostgreSQL** (or **Supabase**) | **USER APPROVAL REQUIRED**.
 
-Every retention policy requires formal business, legal, or security determination:
+### 4.4 Object Storage: Cloudflare R2 vs. AWS S3
+* **Application Baseline:** S3-compatible adapter (`S3StorageService`) using AWS Java SDK v2 (`S3Client`, `S3Presigner`) with `endpointOverride`.
+* **Requirements:**
+  * Private bucket (`S3_BUCKET_PRIVATE`) for original uploads, quarantine objects, and GDPR privacy export bundles.
+  * Public bucket (`S3_BUCKET_PUBLIC`) for clean derivative web assets.
+  * Presigned PUT requests, content-type verification, metadata attachment, byte streaming, and deletion.
+* **Evaluation:**
+  * **Cloudflare R2 (RECOMMENDED):** Zero ($0.00) egress fees. Portfolio platforms host heavy high-resolution photography; zero egress saves significant recurring costs. 100% S3 API compatibility.
+  * **AWS S3 (ALTERNATIVE):** Industry standard, but incurs per-GB egress fees.
+* **Output:** RECOMMENDED: **Cloudflare R2** | ALTERNATIVE: **AWS S3** | **USER APPROVAL REQUIRED**.
 
-| # | Data Category | Source Baseline / Current Default | Governance Classification | Decision Required |
-|---|---|---|---|---|
-| 1 | **Database Backups** | Daily snapshots, 30 days recommended | `BUSINESS & COMPLIANCE` | Snapshot frequency, PITR window, offsite retention |
-| 2 | **Support Tickets** | Indefinite (table `support_requests`) | `BUSINESS DECISION` | Closed ticket archival period (e.g. 1 year vs 3 years) |
-| 3 | **Billing & Invoices** | 7 years minimum (`billing_transactions`) | `LEGAL & TAX MANDATE` | Statutory tax compliance retention period |
-| 4 | **CRM Leads & Enquiries** | Indefinite with user anonymization | `BUSINESS DECISION` | Inactive lead purge schedule |
-| 5 | **System Audit Logs** | 5 years (`audit_events`) | `SECURITY & COMPLIANCE` | Forensic audit log archival duration |
-| 6 | **Malware Scan Metadata** | Indefinite (`media_security_scans`) | `SECURITY DECISION` | Clean scan log retention (e.g. 90 days vs 1 year) |
-| 7 | **Infected Quarantine Files** | Immediate isolation in quarantine namespace | `SECURITY DECISION` | Auto-purge delay for forensic investigation (e.g. 14 days) |
-| 8 | **Identity Verification Records** | Session lifetime (`identity_sessions`) | `SECURITY DECISION` | Terminated session tombstone cleanup (e.g. 30 days) |
-| 9 | **AI Prompts & Cost Ledgers** | 5 years (`ai_cost_ledger`) | `FINANCIAL AUDIT` | AI generation history retention for users vs financial accounting |
-| 10 | **GDPR Privacy Exports** | 7 days (`app.privacy.export-ttl-days:7`) | `LEGAL & SECURITY` | ZIP export download link expiration window |
-| 11 | **Client Reviews & Ratings** | Lifetime of published portfolio | `BUSINESS DECISION` | Unapproved / draft review purge policy |
-| 12 | **Communication Deliveries** | 90 days (`communication_deliveries`) | `OPERATIONAL DECISION` | Outbox message tracking & bounce log cleanup window |
+### 4.5 CDN & Media Delivery
+* **Application Baseline:** Next.js `next.config.js` enforces strict RFC 1123 hostname matching via `APP_CDN_HOSTNAME` / `NEXT_PUBLIC_CDN_HOSTNAME`. Arbitrary wildcards (`*`) are prohibited.
+* **Recommendation:** Cloudflare CDN edge mapped to the public R2 bucket.
+* **Placeholder FQDN:** `<MEDIA_DOMAIN>` (e.g. `media.<ROOT_DOMAIN>`).
+* **Output:** RECOMMENDED: **Cloudflare CDN** | **USER APPROVAL REQUIRED**.
 
----
+### 4.6 Production Domain Structure
+* **Status:** **NOT SELECTED** (User must supply actual domain name).
+* **Desired Routing Hierarchy:**
+  * Web Application (Apex / WWW): `https://<ROOT_DOMAIN>`
+  * Backend API Ingress: `https://api.<ROOT_DOMAIN>`
+  * Media Delivery CDN: `https://media.<ROOT_DOMAIN>`
+  * OIDC Callback Redirect: `https://<ROOT_DOMAIN>/api/v1/auth/oidc/callback/<provider>`
+* **Rule:** Placeholders only; no hardcoded domain until user registration and approval.
 
-## 6. Commercial Pricing Decision Worksheet
+### 4.7 Identity & OIDC Provider
+* **Application Baseline:** Generic OIDC authorization code flow with PKCE (`OidcService`).
+* **Recommendation:** **Google OIDC first** for closed beta. Lowest friction for design studios.
+* **Secondary Providers:** Apple, GitHub, Clerk remain deferred.
+* **Output:** RECOMMENDED: **Google OIDC First** | **USER APPROVAL REQUIRED**.
 
-The capacity model is **LOCKED**. The pricing values below require executive commercial sign-off:
+### 4.8 Transactional Email Policy
+* **Source Truth:** Backend implements `DisabledEmailProvider` and `FakeEmailProvider` (test-only). No third-party provider adapter exists in code.
+* **Closed-Beta Strategy:** Invitation flow creates unique tokens. Studio owners can copy invitation links directly from the UI/admin console. Email can safely remain **DISABLED**.
+* **Recommendation:** **DEFER TO PUBLIC BETA**. Avoids DNS warmup, SPF/DKIM/DMARC provisioning, and spam reputation management during beta.
+* **Public Beta Strategy:** Select and configure Resend, Postmark, or AWS SES before public onboarding.
 
-| Plan | Included Projects | Included Photos / Proj | Included Storage | Cinematic Projects | Monthly Price (INR / USD) | Quarterly Price | Annual Price (Discount %) |
-|---|---|---|---|---|---|---|---|
-| **STANDARD** | 10 | 15 | 5 GB | 0 | *[ USER DECISION ]* | *[ USER DECISION ]* | *[ USER DECISION ]* |
-| **PREMIUM** | 20 | 25 | 20 GB | 0 | *[ USER DECISION ]* | *[ USER DECISION ]* | *[ USER DECISION ]* |
-| **PRO** | 20 | 30 | 50 GB | 5 | *[ USER DECISION ]* | *[ USER DECISION ]* | *[ USER DECISION ]* |
-| **BASE** | *Legacy/Internal* | *Legacy/Internal* | *Legacy/Internal* | 0 | *N/A (Grandfathered)* | *N/A* | *N/A* |
+### 4.9 Generative AI Policy
+* **Source Truth:** `ConfigurableAiImageProvider` throws `AiProviderNotConfiguredException` when unconfigured. `DisabledAiImageProvider` safely handles unconfigured state. Daily studio limit hard-capped at 20 generations (`AiVisualizerProperties.dailyStudioLimit = 20`).
+* **Closed-Beta Strategy:** Keep AI **DISABLED** (`interior.ai.enabled=false` or `provider=none`).
+* **Recommendation:** **DEFER TO AI QUALITY EVALUATION**. Conduct model evaluation on sample architectural spaces before incurring vendor API expenses.
 
----
+### 4.10 Upload Malware Scanning & Security Boundary
+* **Source Truth:** `app.media.security.require-clean-scan=${REQUIRE_CLEAN_SCAN:true}` and `app.media.security.scanner=${MALWARE_SCANNER_PROVIDER:disabled}`.
+* **Security Invariant:** In production with `require-clean-scan=true`, if no scanner is configured, upload security **fails closed** (`IllegalStateException: MALWARE_SCANNER_NOT_CONFIGURED`).
+* **Policy Options:**
+  * **Option A:** Deploy ClamAV daemon container before accepting any uploads (`require-clean-scan=true`).
+  * **Option B:** Restrict uploads to controlled, trusted beta studio participants initially with `require-clean-scan=false`, and enforce fail-closed scanning upon Public Beta.
+* **Recommendation:** **Option B for Closed Beta $\rightarrow$ Option A required before Public Beta**.
 
-## 7. Master Environment Secret & Config Inventory
-
-Derived directly from application source code (`application-production.properties`, `AuthSecurityProperties`, `S3StorageProperties`, `AiVisualizerProperties`, `next.config.js`):
-
-### 7.1 Mandatory Core Platform Secrets (Closed Beta)
-
-| Variable Name | Component | Sensitivity | Purpose & Source | Rotation Impact |
-|---|---|---|---|---|
-| `SPRING_DATASOURCE_URL` | Backend | CRITICAL | Production PostgreSQL JDBC connection URL with SSL mode (`jdbc:postgresql://...`) | API restart required |
-| `SPRING_DATASOURCE_USERNAME` | Backend | HIGH | PostgreSQL database application username | API restart required |
-| `SPRING_DATASOURCE_PASSWORD` | Backend | CRITICAL | PostgreSQL database application user password | API restart required |
-| `APP_SECURITY_MFA_ENCRYPTION_KEY` | Backend | CRITICAL | 256-bit AES master key used by `TotpService` to encrypt TOTP secrets at rest | Requires secret re-encryption |
-| `OIDC_GOOGLE_CLIENT_ID` | Backend | HIGH | Google OAuth2 Client ID for authentication | Auth disruption if mismatched |
-| `OIDC_GOOGLE_CLIENT_SECRET` | Backend | CRITICAL | Google OAuth2 Client Secret for token exchange | Auth disruption if mismatched |
-| `S3_ACCESS_KEY_ID` | Backend | HIGH | Object storage (R2/S3) access key ID | Upload failures if rotated wrong |
-| `S3_SECRET_ACCESS_KEY` | Backend | CRITICAL | Object storage (R2/S3) secret access key | Upload failures if rotated wrong |
-
-### 7.2 Core Non-Secret Production Configuration (Closed Beta)
-
-| Variable Name | Component | Default / Production Value | Purpose & Source |
-|---|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | Backend | `production` | Activates production configuration and security validators |
-| `SERVER_PORT` | Backend | `8080` | Port for embedded Tomcat web server |
-| `APP_SECURITY_ALLOWED_ORIGINS` | Backend | `https://elegance.design` | CORS allowed origin; must not contain wildcard or localhost |
-| `APP_SECURITY_DEV_AUTH_ENABLED`| Backend | `false` | Must be `false` in production; application fails fast if true |
-| `APP_SECURITY_SESSION_COOKIE_SECURE` | Backend | `true` | Enforces `Secure` flag on session cookies |
-| `MEDIA_STORAGE_PROVIDER` | Backend | `S3_COMPATIBLE` | Switches from ephemeral local storage to cloud storage |
-| `S3_ENDPOINT` | Backend | e.g. `https://<account-id>.r2.cloudflarestorage.com` | Custom endpoint for Cloudflare R2 or MinIO |
-| `S3_REGION` | Backend | `auto` (or `us-east-1`) | Cloud storage region |
-| `S3_BUCKET_PRIVATE` | Backend | `elegance-media-private` | Private bucket for originals, quarantine, and GDPR bundles |
-| `S3_BUCKET_PUBLIC` | Backend | `elegance-media-public` | Public bucket for clean, web-optimized derivatives |
-| `PUBLIC_MEDIA_BASE_URL` | Backend | `https://media.elegance.design` | Base URL used in API responses for public media assets |
-| `NEXT_PUBLIC_API_URL` | Frontend | `https://api.elegance.design/api/v1` | Public API endpoint consumed by Next.js client |
-| `APP_CDN_HOSTNAME` | Frontend | `media.elegance.design` | Strict RFC 1123 hostname for Next.js image optimization |
-
-### 7.3 Conditional / Launch Tier Deferred Credentials (Public Beta & Commercial)
-
-| Variable Name | Subsystem | Required When? | Purpose |
-|---|---|---|---|
-| `APP_EMAIL_API_KEY` | Email | Public Beta | API key for transactional email provider (Resend / SES) |
-| `APP_EMAIL_FROM_ADDRESS` | Email | Public Beta | Verified sender email (e.g. `notifications@elegance.design`) |
-| `APP_EMAIL_WEBHOOK_SECRET` | Email | Public Beta | HMAC secret for verifying email delivery/bounce webhooks |
-| `INTERIOR_AI_API_KEY` | AI | Public Beta (if AI enabled) | API key for AI generation provider (Stability / Replicate) |
-| `INTERIOR_AI_PROVIDER` | AI | Public Beta (if AI enabled) | Provider selector (`stability`, `replicate`, `vertex`) |
-| `BILLING_API_KEY` | Billing | Commercial Launch | Live secret API key for payment gateway (Razorpay / Stripe) |
-| `BILLING_WEBHOOK_SECRET` | Billing | Commercial Launch | Cryptographic secret for verifying payment webhook signatures |
+### 4.11 Commercial Payment Gateway
+* **Source Truth:** Backend implements `DisabledBillingProvider`. Commercial checkout throws `IllegalStateException` when unconfigured.
+* **Closed Beta:** Billing remains **DISABLED** (complimentary beta access).
+* **Commercial Launch Recommendation:** For India-first market, **Razorpay** is recommended (native UPI, RuPay, domestic debit/credit, NetBanking, and RBI e-mandate recurring debits with GST invoicing). Alternative: **Stripe**.
+* **Output:** RECOMMENDED: **Razorpay (India-First)** | ALTERNATIVE: **Stripe** | **USER APPROVAL REQUIRED**.
 
 ---
 
-## 8. Network Topology & Traffic Routing Flow
+## 5. Commercial Policy & Governance Invariants
 
-```
- [ End User Browser / Client ]
-            │
-            │  HTTPS (Port 443)
-            ▼
- ┌──────────────────────────────────────────────────────────────┐
- │                EDGE PROXY / CDN (Cloudflare)                 │
- └──────┬───────────────────────────────┬───────────────────────┘
-        │                               │
-        │ Host: elegance.design         │ Host: api.elegance.design
-        ▼                               ▼
- ┌──────────────────────┐      ┌────────────────────────────────┐
- │   FRONTEND RUNNER    │      │         BACKEND API            │
- │   (Next.js 16.3.8)   │─────▶│     (Spring Boot Java 21)      │
- │   Standalone Node    │      │     Port 8080 / Docker         │
- └──────────────────────┘      └────────┬──────────────┬────────┘
-                                        │              │
-                   ┌────────────────────┘              └──────────────────┐
-                   ▼                                                      ▼
-     ┌────────────────────────────┐                         ┌───────────────────────────┐
-     │   POSTGRESQL 16+ DATABASE  │                         │   S3-COMPATIBLE STORAGE   │
-     │   - 40 Flyway Migrations   │                         │   - Private Bucket        │
-     │   - 59 RLS Entity Tables   │                         │   - Public Derivative CDN │
-     └────────────────────────────┘                         └───────────────────────────┘
-```
+### 5.1 Subscription Capacity Model (LOCKED)
+The subscription capacity model is **LOCKED** in application code and Flyway migrations `V030`, `V034`:
 
----
+| Metric / Entitlement | STANDARD | PREMIUM | PRO | BASE (Grandfathered) | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Max Active Projects** | **10** | **20** | **20** | 5 | **LOCKED** |
+| **Photos per Project** | **15** | **25** | **30** | 10 | **LOCKED** |
+| **Total Cloud Storage** | **5 GB** | **20 GB** | **50 GB** | 2 GB | **LOCKED** |
+| **Cinematic Presentations** | **0** | **0** | **Max 5** Active Projects | 0 | **LOCKED** |
+| **Client Review Workflows** | Included | Included | Included | Included | **LOCKED** |
+| **Studio Team Collaboration** | 1 Designer | Up to 3 | Up to 10 | 1 Designer | **LOCKED** |
+| **Custom Domain Portfolio** | Subdomain | Subdomain | Custom domain | Subdomain | **LOCKED** |
 
-## 9. Cloud Migration & Deployment Execution Sequence (Future Phase 11B)
+### 5.2 Pricing Schedule Worksheet (DECISION REQUIRED)
+Pricing is not hardcoded. Business leadership must specify target amounts:
 
-When Phase 11A decisions are approved, execution will follow this strict sequence:
+| Plan | Billing Period | Target INR (₹) | Target USD ($) | Decision Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **STANDARD** | Monthly | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
+| **STANDARD** | Annual | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
+| **PREMIUM** | Monthly | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
+| **PREMIUM** | Annual | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
+| **PRO** | Monthly | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
+| **PRO** | Annual | `[ DECISION REQUIRED ]` | `[ DECISION REQUIRED ]` | Pending User Approval |
 
-1. **Infrastructure Provisioning:** Provision PostgreSQL database, S3 storage buckets, and container services.
-2. **Secret Injection:** Inject validated environment variables into deployment secret managers.
-3. **Database Migration Drill:**
-   - Execute Flyway migration runner against target production database (`V001` through `V040`).
-   - Run verification script `verify-cloud-db-rls.sql` to confirm all 59 tables have `FORCE ROW LEVEL SECURITY`.
-4. **Backend Container Launch:**
-   - Deploy backend API container.
-   - Verify `/actuator/health` returns HTTP 200 `UP`.
-   - Verify `ProductionConfigurationValidator` logs successful startup.
-5. **Frontend Web Deployment:**
-   - Build standalone Next.js container.
-   - Verify SSR rendering and image optimization against `APP_CDN_HOSTNAME`.
-6. **Live Smoke Test:**
-   - Execute synthetic OIDC login, project creation, media upload intent, and health checks.
+### 5.3 Currency & Billing Periods
+* **Primary Currency:** **INR (`₹`)** recommended for India-first launch. Status: **USER APPROVAL REQUIRED**.
+* **Billing Periods:** **Monthly** and **Annual** recommended. Status: **USER APPROVAL REQUIRED**.
+
+### 5.4 Billing Grace Period
+* **Source Default:** 7 days (`private int gracePeriodDays = 7;` in `BillingService.java`).
+* **Status:** **7-DAY CONFIG DEFAULT — USER BUSINESS APPROVAL REQUIRED**.
+
+### 5.5 Upgrade Proration & Downgrade Behavior
+* **Upgrade Proration:** Policy for applying pro-rata credit towards upgraded tier is **DECISION REQUIRED**.
+* **Downgrade Behavior (LOCKED INVARIANT):** Downgrading **never deletes** customer projects, photographs, or studio media. Over-quota assets remain preserved in read-only state. Downgrade takes effect strictly at **end-of-period** via `cancelAtPeriodEnd=true` and `downgradePlanId`.
+
+### 5.6 Refund Policy
+* **Status:** **DECISION REQUIRED** (Options: No refunds, 14-day refund window, or prorated credits).
+
+### 5.7 GST & Statutory Tax Treatment
+* **Status:** **GST / TAX CONFIGURATION REQUIRES QUALIFIED ACCOUNTING / LEGAL REVIEW**.
 
 ---
 
-## 10. Final Authoritative Decision
+## 6. Privacy & Operational Data Retention Schedules
 
-**Status:** **READY FOR USER PRODUCTION DECISIONS — DEPLOYMENT NOT YET AUTHORIZED.**
+| Data Category | Current Baseline / Code Default | Governance Classification | Decision Status |
+| :--- | :--- | :--- | :--- |
+| **Privacy Export TTL** | 7 days (`app.privacy.export-ttl-days=7`) | Privacy / Legal | **CONFIG DEFAULT (7 Days) — USER APPROVAL REQUIRED** |
+| **Account Deletion Grace** | 14 days before permanent purge | Privacy / Legal | **DECISION REQUIRED (14 Days Recommended)** |
+| **Database Backups** | Daily snapshots, 30 days recommended | Operations / Disaster Recovery | **DECISION REQUIRED** |
+| **System Audit Ledger** | Immutable write-ahead audit table (`audit_events`) | Security / Compliance | **DECISION REQUIRED (3 Years Recommended)** |
+| **Support Tickets** | Indefinite (`support_requests`) | Business / Customer Ops | **DECISION REQUIRED (2 Years Recommended)** |
+| **CRM Leads & Enquiries** | Indefinite with anonymization (`leads`) | Business Operations | **DECISION REQUIRED** |
+| **Malware Scan Records** | Scan metadata in `media_security_scans` | Security Operations | **DECISION REQUIRED (90 Days Recommended)** |
+| **Infected Quarantine Files** | Isolated in quarantine storage namespace | Security Operations | **DECISION REQUIRED (14 Days Auto-Purge Recommended)** |
+| **Identity Sessions** | Terminated session records in `identity_sessions` | Security Operations | **DECISION REQUIRED (30 Days Tombstone Recommended)** |
+| **AI Cost Ledgers** | Historical cost entries in `ai_cost_ledger` | Financial Audit | **DECISION REQUIRED (5 Years Recommended)** |
+| **Client Review Drafts** | Unsubmitted reviews | Business Operations | **DECISION REQUIRED** |
+| **Communications Tracking** | Outbox delivery logs (`communication_deliveries`) | Operations | **DECISION REQUIRED (90 Days Recommended)** |
 
-> [!IMPORTANT]
-> **NO DEPLOYMENT HAS BEEN PERFORMED.** All application features remain frozen. Antigravity will NOT generate or execute cloud deployment commands until the user reviews and explicitly approves the decision items presented in this package.
+---
+
+## 7. Disaster Recovery & Operational Objectives
+
+### 7.1 Recovery Point Objective (RPO) — DECISION REQUIRED
+* **Option 1 (< 1 Hour):** Requires managed PostgreSQL continuous Write-Ahead Log (WAL) archiving and Point-In-Time Recovery (PITR). (Recommended).
+* **Option 2 (24 Hours):** Daily snapshot backups only; lower cost, but up to 24 hours of data loss in catastrophic disaster.
+
+### 7.2 Recovery Time Objective (RTO) — DECISION REQUIRED
+* **Option 1 (< 2 Hours):** Automated container re-deployment and point-in-time database restoration runbook. (Recommended).
+* **Option 2 (< 8 Hours):** Standard business-hours manual restoration.
+
+### 7.3 Backup Strategy
+* **Minimum Closed Beta Requirement:** Managed PostgreSQL automated daily backups + verified restore capability.
+
+### 7.4 Monitoring & Centralized Logging
+* **Closed Beta:** Hosting-native container and deployment logs (Vercel & Railway) + endpoint probes on `/actuator/health` and `/health`.
+* **Public/Commercial:** Centralized searchable logging (e.g. BetterStack Logtail) and alert notifications (PagerDuty / Opsgenie).
+
+---
+
+## 8. Master Production Environment Variable Audit
+
+All variables derived directly from application source code (`application-production.properties`, `AuthSecurityProperties.java`, `S3StorageProperties.java`, `AiVisualizerProperties.java`, `apps/web/next.config.js`, `apps/web/src/lib/env.ts`):
+
+| Variable Name | Secret? | Closed Beta? | Public Beta? | Commercial? | Source File | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `SPRING_PROFILES_ACTIVE` | NO | **YES** | **YES** | **YES** | `application-production.properties:3` | Must be set to `production` to activate production validators and security filters. |
+| `SERVER_PORT` | NO | **YES** | **YES** | **YES** | `application-production.properties:6` | Embedded Tomcat listening port (default: `8080`). |
+| `SPRING_DATASOURCE_URL` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:19` | PostgreSQL JDBC connection URL with SSL mode (`jdbc:postgresql://<host>:<port>/<db>?sslmode=require`). |
+| `SPRING_DATASOURCE_USERNAME` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:20` | PostgreSQL application database username. |
+| `SPRING_DATASOURCE_PASSWORD` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:21` | PostgreSQL application database password. |
+| `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE` | NO | Optional | Optional | Optional | `application-production.properties:24` | HikariCP maximum pool size (default: `10`). |
+| `APP_SECURITY_ALLOWED_ORIGINS` | NO | **YES** | **YES** | **YES** | `application-production.properties:50` | CORS allowed origins (e.g. `https://<ROOT_DOMAIN>`). Fails fast if wildcard or localhost in production. |
+| `APP_SECURITY_DEV_AUTH_ENABLED` | NO | **YES** | **YES** | **YES** | `application-production.properties:47` | Must be `false`. Application refuses startup if true in production. |
+| `APP_SECURITY_SESSION_COOKIE_SECURE` | NO | **YES** | **YES** | **YES** | `application-production.properties:49` | Enforces `Secure` flag on `__Host-session` cookie. Must be `true`. |
+| `APP_SECURITY_MFA_ENCRYPTION_KEY` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | 256-bit AES master key used to encrypt TOTP secrets at rest in PostgreSQL. |
+| `OIDC_GOOGLE_CLIENT_ID` | NO | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client ID for studio owner authentication. |
+| `OIDC_GOOGLE_CLIENT_SECRET` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client Secret for token exchange. |
+| `MEDIA_STORAGE_PROVIDER` | NO | **YES** | **YES** | **YES** | `application-production.properties:61` | Set to `S3_COMPATIBLE` for Cloudflare R2 or AWS S3 cloud storage. |
+| `S3_ENDPOINT` | NO | **YES** | **YES** | **YES** | `application-production.properties:62` | S3 API endpoint URL (e.g. `https://<account-id>.r2.cloudflarestorage.com` for R2). |
+| `S3_REGION` | NO | **YES** | **YES** | **YES** | `application-production.properties:63` | S3 region identifier (`auto` for R2). |
+| `S3_ACCESS_KEY_ID` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:64` | R2/S3 access key credential. |
+| `S3_SECRET_ACCESS_KEY` | **YES** | **YES** | **YES** | **YES** | `application-production.properties:65` | R2/S3 secret access key credential. |
+| `S3_BUCKET_PRIVATE` | NO | **YES** | **YES** | **YES** | `application-production.properties:66` | Private bucket for originals, quarantine, and GDPR exports. |
+| `S3_BUCKET_PUBLIC` | NO | **YES** | **YES** | **YES** | `application-production.properties:67` | Public bucket for clean derivative photography. |
+| `PUBLIC_MEDIA_BASE_URL` | NO | **YES** | **YES** | **YES** | `application-production.properties:68` | Base URL returned in API responses for public media assets (`https://<MEDIA_DOMAIN>`). |
+| `PRIVACY_EXPORT_TTL_DAYS` | NO | Optional | Optional | Optional | `application-production.properties:71` | Expiration window in days for privacy export ZIP bundles (default: `7`). |
+| `MALWARE_SCANNER_PROVIDER` | NO | Optional | **YES** | **YES** | `application-production.properties:74` | Malware scanner provider (`disabled`, `clamav`, `external`). |
+| `REQUIRE_CLEAN_SCAN` | NO | Optional | **YES** | **YES** | `application-production.properties:75` | Whether uploads fail closed without clean scan (default: `true`). |
+| `NEXT_PUBLIC_API_URL` | NO | **YES** | **YES** | **YES** | `apps/web/src/lib/env.ts` | Base API URL for Next.js browser client (`https://api.<ROOT_DOMAIN>/api/v1`). |
+| `APP_CDN_HOSTNAME` | NO | **YES** | **YES** | **YES** | `apps/web/next.config.js` | Strict RFC 1123 hostname for Next.js image optimization (`<MEDIA_DOMAIN>`). |
+| `APP_EMAIL_PROVIDER` | NO | NO | **YES** | **YES** | `TransactionalEmailService.java` | Email provider selector (`resend`, `postmark`, `ses`). |
+| `APP_EMAIL_API_KEY` | **YES** | NO | **YES** | **YES** | `TransactionalEmailService.java` | Transactional email provider API key. |
+| `APP_EMAIL_FROM_ADDRESS` | NO | NO | **YES** | **YES** | `TransactionalEmailService.java` | Verified sender email address (e.g. `notifications@<ROOT_DOMAIN>`). |
+| `APP_EMAIL_WEBHOOK_SECRET` | **YES** | NO | **YES** | **YES** | `EmailWebhookController.java` | Secret for verifying email bounce and complaint webhooks. |
+| `INTERIOR_AI_PROVIDER` | NO | NO | Optional | Optional | `AiVisualizerProperties.java` | AI provider selector (`stability`, `replicate`, `vertex`). |
+| `INTERIOR_AI_API_KEY` | **YES** | NO | Optional | Optional | `AiVisualizerProperties.java` | AI model provider API key. |
+| `BILLING_PROVIDER` | NO | NO | Optional | **YES** | `BillingService.java` | Commercial gateway selector (`razorpay`, `stripe`). |
+| `BILLING_API_KEY` | **YES** | NO | Optional | **YES** | `BillingService.java` | Live payment gateway API key. |
+| `BILLING_WEBHOOK_SECRET` | **YES** | NO | Optional | **YES** | `BillingWebhookController.java` | HMAC signing secret for payment webhooks. |
+
+---
+
+## 9. Launch Phasing Decision Tables
+
+### 9.1 Closed-Beta Decision Table
+| Area | Recommended Option | Status | Required Before Deploy? | User Approval Required? |
+| :--- | :--- | :--- | :--- | :--- |
+| Frontend Hosting | Vercel | RECOMMENDED | **YES** | **YES** |
+| Backend Hosting | Railway | RECOMMENDED | **YES** | **YES** |
+| Database Provider | Railway Managed PostgreSQL | RECOMMENDED | **YES** | **YES** |
+| PostgreSQL Version | PostgreSQL 17 | RECOMMENDED | **YES** | **YES** |
+| Object Storage | Cloudflare R2 | RECOMMENDED | **YES** | **YES** |
+| Media CDN | Cloudflare CDN (`<MEDIA_DOMAIN>`) | RECOMMENDED | **YES** | **YES** |
+| Production Domain | `<ROOT_DOMAIN>` | DECISION REQUIRED | **YES** | **YES** |
+| OIDC Authentication | Google OIDC First | RECOMMENDED | **YES** | **YES** |
+| Transactional Email | DISABLED | DEFERRED TO PUBLIC BETA | NO | **YES** |
+| Generative AI | DISABLED | DEFERRED TO AI EVAL | NO | **YES** |
+| Upload Malware Policy | Controlled Trusted Beta (Option B) | RECOMMENDED | **YES** | **YES** |
+| Commercial Billing | DISABLED | DEFERRED TO COMMERCIAL | NO | **YES** |
+| Database Backups | Automated Daily + PITR | RECOMMENDED | **YES** | **YES** |
+| Monitoring & Logs | Hosting-Native | RECOMMENDED | **YES** | **YES** |
+
+### 9.2 Public-Beta Decision Table
+| Area | Recommended Option | Status | Required Before Public Beta? | User Approval Required? |
+| :--- | :--- | :--- | :--- | :--- |
+| Transactional Email | Resend / Postmark / SES | DECISION REQUIRED | **YES** | **YES** |
+| Malware Scanning | ClamAV / Commercial Scanner (`require-clean-scan=true`) | DECISION REQUIRED | **YES** | **YES** |
+| Generative AI | Evaluate Diffusion Models (Stability / Replicate) | DEFERRED | Optional | **YES** |
+| Legal Policies | Terms of Service & Privacy Policy Sign-Off | DECISION REQUIRED | **YES** | **YES** |
+| Centralized Logs | External Log Indexing (e.g. BetterStack) | RECOMMENDED | **YES** | **YES** |
+| Customer Support | Support Desk Workflow | DECISION REQUIRED | **YES** | **YES** |
+
+### 9.3 Commercial-Launch Decision Table
+| Area | Recommended Option | Status | Required Before Commercial? | User Approval Required? |
+| :--- | :--- | :--- | :--- | :--- |
+| Payment Gateway | Razorpay (India-First) | RECOMMENDED | **YES** | **YES** |
+| Pricing Schedule | Finalized Monthly & Annual Rates | DECISION REQUIRED | **YES** | **YES** |
+| Currency | INR (`₹`) Primary | RECOMMENDED | **YES** | **YES** |
+| Billing Periods | Monthly + Annual | RECOMMENDED | **YES** | **YES** |
+| Grace Period | 7 Days (Config Default) | RECOMMENDED | **YES** | **YES** |
+| Upgrade Proration | Prorated Immediate Credit | RECOMMENDED | **YES** | **YES** |
+| Downgrade Invariant | No Data Deletion (Locked) | **LOCKED** | **YES** | Pre-approved |
+| Refund Policy | Defined Refund Terms | DECISION REQUIRED | **YES** | **YES** |
+| GST / Tax Treatment | Qualified Legal / Accounting Review | DECISION REQUIRED | **YES** | **YES** |
+| Data Retention | Formal Legal Retention Policies | DECISION REQUIRED | **YES** | **YES** |
+| RPO / RTO | RPO < 1h / RTO < 2h | RECOMMENDED | **YES** | **YES** |
+
+---
+
+## 10. Future Deployment Execution Sequence (Not Executed)
+
+When user decisions are formally approved, execution will strictly follow this ordered sequence:
+
+1. **User Decision Lock:** User approves items in [PHASE_11_FINAL_USER_APPROVAL_SHEET.md](file:///c:/my%20projects/interior%20design/docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md).
+2. **Domain Registration & DNS:** Register `<ROOT_DOMAIN>` and configure authoritative nameservers.
+3. **Cloud Accounts & Providers:** Provision accounts on selected providers (Vercel, Railway, Cloudflare R2, Google Cloud).
+4. **Production Secret Generation:** Generate 256-bit AES MFA master key, database credentials, and R2 tokens.
+5. **Database Provisioning:** Deploy managed PostgreSQL 17 cluster with SSL mode required.
+6. **Automated Backups:** Verify automated daily snapshots and WAL archiving are active.
+7. **Object Storage Provisioning:** Create private and public R2 buckets with CORS rules.
+8. **Backend API Deployment:** Deploy Spring Boot Docker container to Railway with production environment variables.
+9. **Flyway Migration Execution:** Run migrations `V001` through `V040` on production database.
+10. **RLS Security Verification:** Execute `verify-cloud-db-rls.sql` to confirm all 59 tables have `FORCE ROW LEVEL SECURITY`.
+11. **Frontend Deployment:** Deploy Next.js web application to Vercel with production API and CDN environment variables.
+12. **OIDC Callback Configuration:** Register production redirect URI in Google Cloud Console.
+13. **DNS & Edge TLS:** Map apex/www to frontend, `api.` to backend, and `media.` to public storage.
+14. **Production Smoke Testing:** Execute synthetic end-to-end check (OIDC login, project creation, media upload intent).
+15. **Closed-Beta Invitation Onboarding:** Issue initial designer studio invitation tokens.
+
+---
+
+## 11. Deployment Rollback Plan (Future Operational Runbook)
+
+### 11.1 Application Rollback
+* **Frontend:** Instant rollback to previous Vercel deployment via Vercel dashboard or CLI (`vercel rollback`).
+* **Backend:** Redeploy previous verified Docker image tag on Railway (`railway rollback` or previous image digest).
+
+### 11.2 Database Rollback Strategy
+* **Strict Rule:** **NO BLIND DOWN-MIGRATIONS.** Flyway migrations `V001` through `V040` are additive and backwards-compatible.
+* **Corrupted Schema / Data Event:** Restore database from the pre-deployment automated snapshot or point-in-time recovery (PITR) WAL log.
+
+---
+
+## 12. Final Status & Directive
+
+* **Application Code Status:** Release Candidate Ready (100% verified).
+* **UI/UX Design Freeze:** **ACTIVE & LOCKED**.
+* **Deployment Status:** **DEPLOYMENT NOT PERFORMED.**
+* **Next Action:** Wait for explicit user approval of the decision items in [docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md](file:///c:/my%20projects/interior%20design/docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md).

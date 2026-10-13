@@ -1,8 +1,9 @@
-# Elégance — Phase 11 Provider Decision Matrix
-**Document Status:** Complete / Ready for User Review  
-**Phase:** Phase 11A — Production Decision Lock  
+# Elégance — Phase 11B Provider Decision Matrix
+**Document Status:** Complete / Awaiting User Sign-Off  
+**Phase:** Phase 11B — Final Production Decision Lock  
 **Date:** 2026-10-13  
-**Classification:** Technical & Operational Provider Comparative Matrix  
+**Classification:** Comparative Evaluation & Operational Recommendations  
+**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
 
 ---
 
@@ -10,135 +11,110 @@
 
 This matrix provides a rigorous comparative evaluation of candidate external providers for each subsystem of the Elégance platform.
 
-Evaluation Criteria:
-1. **Architectural Compatibility:** How cleanly the provider interfaces with existing Spring Boot Java 21 / Next.js 16.3.8 adapters.
-2. **Operational Overhead:** Complexity of ongoing maintenance, certificate management, and deployment pipelines.
-3. **Security & Compliance:** Row-level isolation, encryption at rest, GDPR/DPDP alignment, and webhook signature verification.
-4. **Target Market Fit:** Alignment with Indian domestic interior design studios (UPI, GST) and international expansion.
-
-> **CRITICAL RULE:** No provider is automatically selected. Technical recommendations are provided for guidance only; the final choice is designated as **`USER DECISION REQUIRED`**.
+> **CRITICAL RULE:** No provider is automatically selected. Technical recommendations are provided for guidance only; every choice requires explicit user approval. Recommendations are marked **`RECOMMENDED — WAITING USER APPROVAL`**, while public/commercial items are marked **`DEFERRED`**.
 
 ---
 
-## 2. Comparative Subsystem Matrices
+## 2. Subsystem Comparative Evaluations
 
 ### 2.1 Frontend Hosting
-
-| Candidate | Fit with Next.js 16.3.8 | Advantages | Limitations | Operational Complexity | Repo Changes Required | Secrets Required | Recommendation |
-|---|---|---|---|---|---|---|---|
-| **Vercel** | Native First-Party | Zero configuration; instant edge deployment; automatic preview builds; global CDN. | Higher commercial pricing; vendor lock-in for advanced edge middleware. | Minimal (Git push to deploy) | None (`next.config.js` is already compatible) | `NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME` | **RECOMMENDED (Option A)** |
-| **Railway** | Excellent (Docker Standalone) | Unified dashboard and billing with backend API; predictable flat pricing; private networking. | Requires manual CDN configuration if edge caching is desired. | Low (Dockerfile build) | None (Dockerfile in `apps/web`) | `PORT`, `NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME` | **RECOMMENDED (Option B)** |
-| **Render** | Good (Docker Standalone) | Managed web service; automated TLS; simple environment variables. | Slower build times; cold starts on free/low tiers. | Low | None | `NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME` | Viable alternative |
-| **AWS ECS Fargate / CloudFront** | Enterprise Container | Full VPC control; compliance certifications; deep IAM governance. | High setup overhead; requires Route 53, ALB, and CloudFront configuration. | High | Terraform / CDK manifests required | AWS IAM credentials, VPC config | Enterprise only |
+| Candidate | Fit with Next.js 16.3.8 | Advantages | Limitations | Operational Overhead | Secrets / Env Required | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Vercel** | Native First-Party | Zero configuration, automatic edge caching, instant preview URLs, edge image optimization. | Higher commercial bandwidth tier costs. | Minimal | `NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME` | **RECOMMENDED — WAITING USER APPROVAL** |
+| **Railway** | Excellent (Docker Standalone) | Unified dashboard and billing with backend API, predictable flat pricing. | Requires manual CDN configuration for edge caching. | Low | `PORT`, `NEXT_PUBLIC_API_URL`, `APP_CDN_HOSTNAME` | Viable Alternative |
+| **Render** | Good (Docker Standalone) | Managed web service, automated TLS. | Slower builds, cold starts on lower tiers. | Low | Same as Railway | Alternative |
+| **AWS ECS Fargate / CloudFront** | Enterprise Container | Full VPC control, enterprise compliance. | High setup overhead (Route 53, ALB, CloudFront). | High | AWS IAM, VPC, ALB config | Enterprise Alternative |
 
 ---
 
 ### 2.2 Backend API Hosting
-
-| Candidate | Fit with Spring Boot Java 21 | Advantages | Limitations | Operational Complexity | Repo Changes Required | Secrets Required | Recommendation |
-|---|---|---|---|---|---|---|---|
-| **Railway** | Excellent | Multi-stage Docker build; native private networking to PostgreSQL; built-in health checks (`/actuator/health`). | Fixed cloud regions (US-West, EU-Central). | Very Low | None (`apps/api/Dockerfile` ready) | Standard production env vars | **RECOMMENDED (Option A)** |
-| **Render** | Good | Simple Docker runtime; transparent resource scaling; automated TLS. | Limited regional egress routing. | Low | None | Standard production env vars | Viable alternative |
-| **AWS ECS Fargate** | Enterprise Standard | High availability across Availability Zones; private subnets; direct RDS peering; infinite scale. | Steep operational curve; manual secret rotation setup. | High | ECS task definitions, ALB rules | AWS Secrets Manager integration | **RECOMMENDED (Option B - Enterprise)** |
-| **GCP Cloud Run** | Good | Scale-to-zero capability; fast autoscaling. | Cold starts on Java 21 (unless min instances > 0); JVM memory sizing tuning. | Medium | Cloud Run YAML | Secret Manager env vars | Viable alternative |
+| Candidate | Fit with Spring Boot Java 21 | Advantages | Limitations | Operational Overhead | Health Checks & Probes | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Railway** | Excellent | Multi-stage Docker build, native private networking to PostgreSQL, zero-downtime deploys. | Fixed cloud regions. | Very Low | Built-in `/api/v1/actuator/health/liveness` and `/readiness` integration | **RECOMMENDED — WAITING USER APPROVAL** |
+| **AWS ECS Fargate** | Enterprise Standard | High availability across AZs, private VPC subnets, direct RDS peering, infinite scale. | Steep operational curve, manual secret rotation setup. | High | Target Group health checks | Enterprise Alternative |
+| **Render** | Good | Simple Docker runtime, transparent scaling. | Limited regional egress routing. | Low | Native health path | Alternative |
+| **GCP Cloud Run** | Good | Scale-to-zero capability. | Cold starts on Java 21 without min-instances. | Medium | Cloud Run probes | Alternative |
 
 ---
 
-### 2.3 PostgreSQL Database
-
-| Candidate | Version Support | HA / Failover | PITR / Backups | Connection Limits | RLS Support | Operational Complexity | Recommendation |
-|---|---|---|---|---|---|---|---|
-| **AWS RDS PostgreSQL** | 16.x / 17.x | Multi-AZ Automated Failover | Automated daily snapshots + continuous WAL archiving (PITR up to 35 days) | Configurable (Hikari pool fits easily) | Native PostgreSQL RLS verified | Medium (Managed by AWS) | **RECOMMENDED (Enterprise)** |
-| **Supabase** | 16.x | Managed Multi-AZ on Pro | Daily backups + WAL PITR | Built-in Supavisor connection pooler | Native PostgreSQL RLS verified | Low | **RECOMMENDED (Beta)** |
-| **Neon** | 16.x / 17.x | Serverless Multi-AZ | Instant branching, continuous PITR | PgBouncer included | Native PostgreSQL RLS verified | Very Low | Viable alternative |
-| **Railway Managed PG** | 16.x | Single-node default | Automated daily backups | Direct connection limits apply | Native PostgreSQL RLS verified | Very Low | Suitable for Closed Beta only |
+### 2.3 Managed PostgreSQL Database
+| Candidate | PostgreSQL Engine Version | High Availability / Failover | PITR / Automated Backups | Connection Limits & HikariCP | RLS Compatibility | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Railway Managed PostgreSQL** | PostgreSQL 17 | Single-node default, automated daily backups | Automated snapshots, easy restore | Direct connection limits fit beta (Hikari pool = 10) | Native RLS verified on all 59 tables | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Supabase PostgreSQL** | PostgreSQL 17 | Managed Multi-AZ on Pro | Daily backups + continuous WAL PITR | Built-in Supavisor connection pooler | Native RLS verified on all 59 tables | Alternative (Beta / Prod) |
+| **Neon** | PostgreSQL 17 | Serverless Multi-AZ | Instant branching, continuous PITR | PgBouncer included | Native RLS verified on all 59 tables | Alternative |
+| **AWS RDS PostgreSQL** | PostgreSQL 17 | Multi-AZ Automated Failover | Automated daily snapshots + continuous WAL (up to 35 days PITR) | Highly configurable Hikari pool | Native RLS verified on all 59 tables | Enterprise Alternative |
 
 ---
 
 ### 2.4 Object Storage & Media Delivery
-
-| Candidate | S3 Compatibility | Egress Bandwidth Pricing | Private / Quarantine Buckets | CDN Integration | Operational Complexity | Recommendation |
-|---|---|---|---|---|---|---|
-| **Cloudflare R2** | 100% S3 Compatible | **Zero ($0.00) Egress Fees** | Supported via separate bucket namespaces | Native Cloudflare global edge network | Low | **RECOMMENDED** |
-| **AWS S3 + CloudFront** | Native Standard | Standard AWS data transfer fees apply | Supported with fine-grained IAM & KMS | Global AWS CloudFront distribution | Medium | Enterprise alternative |
-| **Backblaze B2** | S3 Compatible | Low egress fees ($0.01/GB) | Supported | Requires third-party Fastly/Cloudflare CDN integration | Medium | Cost alternative |
-
----
-
-### 2.5 OIDC Identity Providers
-
-| Provider | Protocol Support | Studio Designer Workflow | Email Verification Behavior | Code Status | Recommendation |
-|---|---|---|---|---|---|
-| **Google Identity** | OpenID Connect / OAuth2 | One-click login for creative studios using Google Workspace / Gmail | Guaranteed email verification | Fully supported by `OidcService` | **RECOMMENDED (Primary)** |
-| **Apple Sign-In** | OpenID Connect | Essential for iOS / macOS designer users; supports private relay | Email relay handled cleanly | Supported by `OidcService` | **RECOMMENDED (Secondary)** |
-| **GitHub** | OAuth2 | Common for technical users | May have unverified emails | Supported | Optional |
-| **Auth0 / Clerk** | Universal Identity Broker | Aggregates all social providers into single endpoint | Managed user pool | Requires custom adapter | Defer to post-launch |
+| Candidate | S3 API Compatibility | Egress Bandwidth Pricing | Private / Public Buckets | CDN Delivery Integration | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Cloudflare R2** | 100% S3 Compatible with AWS SDK v2 | **Zero ($0.00) Egress Fees** | Separate bucket namespaces (`S3_BUCKET_PRIVATE`, `S3_BUCKET_PUBLIC`) | Native Cloudflare global edge network | **RECOMMENDED — WAITING USER APPROVAL** |
+| **AWS S3** | Native Standard | Standard AWS data transfer fees ($0.09/GB) | Full IAM & bucket policies | AWS CloudFront distribution | Enterprise Alternative |
+| **Backblaze B2** | S3 Compatible | Low egress ($0.01/GB) | Supported | Requires third-party CDN | Alternative |
 
 ---
 
-### 2.6 Transactional Email Providers
-
-| Candidate | Protocol & Webhooks | Deliverability / Reputation | Template Engine Support | Bounce & Complaint Ingestion | Recommendation |
-|---|---|---|---|---|---|
-| **Resend** | REST API + Webhooks | High reputation on modern IP pools; developer-first | Server-side HTML rendered by `EmailTemplateService` | Webhook verification supported (`/webhooks/email/resend`) | **RECOMMENDED (Option A)** |
-| **Postmark** | REST API + Webhooks | Industry gold-standard transactional deliverability | Native HTML templates supported | Webhooks supported | **RECOMMENDED (Option B)** |
-| **AWS SES** | SMTP / AWS SDK | Cost-effective; requires domain warm-up | Raw MIME dispatch | Ingested via SNS / SQS webhook bridge | High complexity |
-| **SendGrid** | REST API + Webhooks | Broad commercial standard | Supported | Webhooks supported | Viable alternative |
-
----
-
-### 2.7 AI Image Generation Providers & Models
-
-| Provider | Input Modalities | Interior Mask Editing | Reference Conditioning | Data Retention & Privacy | Recommendation |
-|---|---|---|---|---|---|
-| **Stability AI** | Image-to-Image, Inpainting | Supported via SDXL Inpaint | Supported via multi-concept LoRAs | Enterprise DPA available (zero training on customer inputs) | **RECOMMENDED (Option A)** |
-| **Replicate (FLUX / SDXL)** | Image-to-Image, Inpainting | Supported via FLUX.1 Fill | Supported via IP-Adapter | Standard API terms; enterprise tier required for zero retention | **RECOMMENDED (Option B)** |
-| **Google Vertex AI (Imagen 3)** | Text-to-Image, Inpainting | Supported | Supported | Enterprise Google Cloud DPA guaranteed zero training | High cost, enterprise fit |
+### 2.5 Identity & Authentication (OIDC)
+| Provider | Protocol Support | Studio Designer Workflow | Code Implementation Status | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google OIDC** | OpenID Connect / OAuth2 | One-click login for creative studios using Google Workspace / Gmail | Supported by `OidcService` | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Apple Sign-In** | OpenID Connect | Useful for iOS / macOS designer demographic | Supported by `OidcService` | DEFERRED TO PUBLIC BETA |
+| **GitHub** | OAuth2 | Useful for developer / technical admin logins | Supported by `OidcService` | Optional / Deferred |
+| **Clerk / Auth0** | Universal Broker | Aggregates multiple social logins | Requires custom bridge | Not Recommended / Deferred |
 
 ---
 
-### 2.8 Malware Scanning Engines
-
-| Candidate | Architecture | Inspection Latency | Fail-Closed Compatibility | Hosting Model | Recommendation |
-|---|---|---|---|---|---|
-| **ClamAV Daemon** | Containerized Daemon (TCP port 3310) | < 500ms for images/PDFs | 100% fail-closed via `require-clean-scan=true` | Co-located Docker container alongside API worker | **RECOMMENDED (Option A)** |
-| **AWS GuardDuty for S3** | Cloud-native S3 event scanning | Asynchronous (1-5 seconds) | Requires upload intent polling or webhook completion | Fully managed by AWS | **RECOMMENDED (Option B - if on AWS)** |
-| **VirusTotal API** | Public Cloud API | 2-10 seconds | Commercial rate limits apply | External SaaS API | Higher operational cost |
-
----
-
-### 2.9 Commercial Payment Gateways
-
-| Candidate | Target Geography | Payment Methods (India & Global) | Recurring Billing / Subscriptions | Webhook Verification | Recommendation |
-|---|---|---|---|---|---|
-| **Razorpay** | India Primary | UPI, Credit/Debit Cards, NetBanking, e-mandates | Native recurring subscriptions with RBI mandate compliance | HMAC-SHA256 signature verification supported | **RECOMMENDED (India Market)** |
-| **Stripe** | Global Primary (India Invite) | Global Cards, Apple Pay, Google Pay, SEPA | Industry standard Stripe Billing & Customer Portal | Native webhook signature verification | **RECOMMENDED (International Market)** |
-| **Cashfree** | India Secondary | UPI, Cards, NetBanking, PayLater | Recurring subscriptions supported | Supported | Secondary alternative |
-| **LemonSqueezy / Paddle** | Global Merchant of Record (MoR) | International cards, PayPal | Handles global VAT/sales tax automatically | Supported | Ideal for international MoR |
+### 2.6 Transactional Email
+| Candidate | Protocol & Webhooks | Deliverability / Reputation | Code Implementation Status | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Disabled Initially** | None | N/A | `DisabledEmailProvider` active | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Resend** | REST API + Webhooks | High reputation on modern IP pools | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
+| **Postmark** | REST API + Webhooks | Industry gold-standard deliverability | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
+| **AWS SES** | SMTP / AWS SDK | Cost-effective; requires domain warm-up | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
 
 ---
 
-### 2.10 Observability & Centralized Logging
-
-| Subsystem | Candidate | Advantages | Operational Complexity | Recommendation |
-|---|---|---|---|---|
-| **Metrics & APM** | **Prometheus + Grafana** | Open source, native Spring Boot Actuator scraping (`/actuator/prometheus`) | Low to Medium | **RECOMMENDED (Self-Hosted / Managed)** |
-| **Metrics & APM** | **Datadog** | Full-stack APM, distributed tracing, automated anomaly alerts | High cost | Enterprise alternative |
-| **Centralized Logging** | **Better Stack (Logtail)** | Fast vector search, built-in log alerting, live tailing | Low | **RECOMMENDED** |
-| **Centralized Logging** | **AWS CloudWatch Logs** | Native integration with ECS Fargate and RDS | Medium | Native AWS choice |
-| **Uptime Monitoring** | **Better Stack Uptime** | Automated synthetic HTTP probes, SSL expiry alarms, public status page | Very Low | **RECOMMENDED** |
+### 2.7 Generative AI Image Provider
+| Provider | Modalities & Masking | Privacy & Training Policy | Code Implementation Status | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Disabled Initially** | None | Zero risk | `DisabledAiImageProvider` active | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Stability AI** | Inpainting, multi-reference | Enterprise DPA (zero customer data training) | Supported via `ConfigurableAiImageProvider` | DEFERRED TO AI EVALUATION |
+| **Replicate (FLUX / SDXL)** | Inpainting, reference conditioning | Enterprise tier required for zero retention | Supported via `ConfigurableAiImageProvider` | DEFERRED TO AI EVALUATION |
+| **Google Vertex AI** | Text-to-Image, Inpainting | Enterprise Google Cloud DPA guaranteed zero training | Supported via `ConfigurableAiImageProvider` | DEFERRED TO AI EVALUATION |
 
 ---
 
-## 3. Summary of Recommendations Awaiting User Approval
+### 2.8 Upload Malware Scanning
+| Policy / Candidate | Inspection Latency | Fail-Closed Compatibility | Operational Profile | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Controlled Beta (Option B)** | Zero | Controlled to trusted beta participants | `REQUIRE_CLEAN_SCAN=false` temporarily during beta | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **ClamAV Container (Option A)** | < 500ms for images | 100% fail-closed via `require-clean-scan=true` | Co-located Docker daemon | Mandatory for Public Beta |
+| **AWS GuardDuty for S3** | 1-5 seconds | Asynchronous bucket scanning | AWS-native | Alternative for AWS deployment |
 
-1. **Frontend:** Vercel (or Railway standalone Docker).
-2. **Backend:** Railway (or AWS ECS Fargate).
-3. **Database:** Supabase / Neon (Beta) or AWS RDS PostgreSQL 16 (Enterprise).
-4. **Storage:** Cloudflare R2 (zero egress fees for high-resolution portfolio imagery).
-5. **CDN:** Cloudflare Edge CDN (bound to `APP_CDN_HOSTNAME`).
-6. **OIDC:** Google Identity (with Apple Sign-In as secondary).
-7. **Email:** Resend (or Postmark) for clean deliverability and modern webhooks.
-8. **AI:** Stability AI or Replicate with strict DPA data-use exclusions.
-9. **Malware:** Containerized ClamAV daemon co-located with API.
-10. **Billing:** Razorpay for India domestic, or Stripe for international commercial operations.
+---
+
+### 2.9 Commercial Payment Gateway
+| Candidate | Target Geography | Payment Methods | Recurring Subscriptions | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Disabled Initially** | N/A | N/A | Complimentary beta access | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Razorpay** | India Primary | UPI, domestic cards, NetBanking, e-mandates | Native recurring subscriptions with RBI mandate compliance & GST invoicing | **RECOMMENDED (Commercial Launch) — WAITING USER APPROVAL** |
+| **Stripe** | Global Primary (India Invite) | Global cards, Apple Pay, Google Pay | Stripe Billing & Customer Portal | Alternative (Commercial Launch) |
+| **LemonSqueezy / Paddle** | Global Merchant of Record | International cards, PayPal | Handles global sales tax automatically | Alternative (International MoR) |
+
+---
+
+## 3. Summary of Authoritative Recommendations
+
+1. **Frontend:** **Vercel** (Alternative: Railway).
+2. **Backend:** **Railway** (Alternative: AWS ECS Fargate).
+3. **Database:** **Railway Managed PostgreSQL 17** or **Supabase PostgreSQL 17**.
+4. **Storage:** **Cloudflare R2** (zero egress fees).
+5. **CDN:** **Cloudflare CDN** (`<MEDIA_DOMAIN>`).
+6. **Domain:** User selection required (placeholder `<ROOT_DOMAIN>`).
+7. **OIDC:** **Google OIDC First**.
+8. **Email:** **Disabled for Closed Beta** $\rightarrow$ Defer provider selection to Public Beta.
+9. **AI:** **Disabled for Closed Beta** $\rightarrow$ Defer to AI quality evaluation.
+10. **Malware:** **Option B (Controlled Closed Beta)** $\rightarrow$ Option A (ClamAV) required before Public Beta.
+11. **Billing:** **Disabled for Closed Beta** $\rightarrow$ Razorpay for India-First Commercial Launch.
