@@ -1,9 +1,9 @@
-# Elégance — Phase 11B Secret and Configuration Matrix
-**Document Status:** Complete / Authoritative Source Truth  
-**Phase:** Phase 11B — Final Production Decision Lock  
+# Elégance — Phase 11B.1 Secret and Configuration Matrix
+**Document Status:** Complete / Source-Truth Corrected  
+**Phase:** Phase 11B.1 — Production Decision Source-Truth Correction  
 **Date:** 2026-10-13  
 **Classification:** Production Credential & Configuration Specification  
-**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
+**Release Candidate Baseline:** `5c3f41772304b9a5ad33dd43607d1d7e2bbd820f` (Flyway `V040`)  
 
 ---
 
@@ -36,7 +36,7 @@ Every variable listed below is mapped directly to actual source code definitions
 | `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE` | NO | Optional | Optional | Optional | `application-production.properties:24` | HikariCP connection pool upper bound (default: `10`). |
 | `APP_SECURITY_ALLOWED_ORIGINS` | NO | **YES** | **YES** | **YES** | `application-production.properties:50` | CORS allowed origin (`https://<ROOT_DOMAIN>`). Startup validator rejects wildcards or localhost. |
 | `APP_SECURITY_DEV_AUTH_ENABLED` | NO | **YES** | **YES** | **YES** | `application-production.properties:47` | Must be `false`. Application fails fast at startup if true in production. |
-| `APP_SECURITY_SESSION_COOKIE_SECURE` | NO | **YES** | **YES** | **YES** | `application-production.properties:49` | Enforces `Secure` flag on `__Host-session` cookie (default: `true`). |
+| `APP_SECURITY_SESSION_COOKIE_SECURE` | NO | **YES** | **YES** | **YES** | `application-production.properties:49` | Enforces `Secure` flag on `__Host-session` cookie (must be `true`). |
 | `APP_SECURITY_MFA_ENCRYPTION_KEY` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | 256-bit AES master key used to encrypt TOTP secrets at rest in PostgreSQL. |
 | `OIDC_GOOGLE_CLIENT_ID` | NO | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client ID for studio owner authentication. |
 | `OIDC_GOOGLE_CLIENT_SECRET` | **YES** | **YES** | **YES** | **YES** | `AuthSecurityProperties.java` | Google OAuth 2.0 Client Secret for token exchange. |
@@ -49,8 +49,8 @@ Every variable listed below is mapped directly to actual source code definitions
 | `S3_BUCKET_PUBLIC` | NO | **YES** | **YES** | **YES** | `application-production.properties:67` | Public bucket for clean derivative photography. |
 | `PUBLIC_MEDIA_BASE_URL` | NO | **YES** | **YES** | **YES** | `application-production.properties:68` | Base URL returned in API responses for public media assets (`https://<MEDIA_DOMAIN>`). |
 | `PRIVACY_EXPORT_TTL_DAYS` | NO | Optional | Optional | Optional | `application-production.properties:71` | Expiration window in days for privacy export ZIP bundles (default: `7`). |
-| `MALWARE_SCANNER_PROVIDER` | NO | Optional | **YES** | **YES** | `application-production.properties:74` | Malware scanner provider (`disabled`, `clamav`, `external`). |
-| `REQUIRE_CLEAN_SCAN` | NO | Optional | **YES** | **YES** | `application-production.properties:75` | Whether uploads fail closed without clean scan (default: `true`). |
+| `MALWARE_SCANNER_PROVIDER` | NO | **YES** | **YES** | **YES** | `application-production.properties:74` | Malware scanner provider (`disabled` fails closed in production; adapter required before uploads). |
+| `REQUIRE_CLEAN_SCAN` | NO | **YES** | **YES** | **YES** | `application-production.properties:75` | Whether uploads fail closed without clean scan (locked: `true`). |
 | `NEXT_PUBLIC_API_URL` | NO | **YES** | **YES** | **YES** | `apps/web/src/lib/env.ts` | Base API URL for Next.js browser client (`https://api.<ROOT_DOMAIN>/api/v1`). |
 | `APP_CDN_HOSTNAME` | NO | **YES** | **YES** | **YES** | `apps/web/next.config.js` | Strict RFC 1123 hostname for Next.js image optimization (`<MEDIA_DOMAIN>`). |
 | `APP_EMAIL_PROVIDER` | NO | NO | **YES** | **YES** | `TransactionalEmailService.java` | Transactional email provider selector (`resend`, `postmark`, `ses`). |

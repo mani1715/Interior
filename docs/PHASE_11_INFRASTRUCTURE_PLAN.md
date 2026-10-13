@@ -1,9 +1,9 @@
-# Elégance — Phase 11B Infrastructure & Deployment Plan
-**Document Status:** Complete / Awaiting User Sign-Off  
-**Phase:** Phase 11B — Final Production Decision Lock  
+# Elégance — Phase 11B.1 Infrastructure & Deployment Plan
+**Document Status:** Complete / Source-Truth Corrected / Awaiting User Sign-Off  
+**Phase:** Phase 11B.1 — Production Decision Source-Truth Correction  
 **Date:** 2026-10-13  
 **Classification:** Cloud Infrastructure Architecture & Operational Runbook  
-**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
+**Release Candidate Baseline:** `5c3f41772304b9a5ad33dd43607d1d7e2bbd820f` (Flyway `V040`)  
 
 ---
 
@@ -11,7 +11,7 @@
 
 This document defines the physical infrastructure architecture, containerization blueprints, database provisioning, storage lifecycle policies, network routing, and deployment execution sequences for the Elégance platform.
 
-> **CRITICAL DIRECTIVE:** This plan is an operational specification. **NO LIVE PROVISIONING IS PERFORMED** during Phase 11B. All deployment steps await explicit user approval of the decisions in [docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md](file:///c:/my%20projects/interior%20design/docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md).
+> **CRITICAL DIRECTIVE:** This plan is an operational specification. **NO LIVE PROVISIONING IS PERFORMED** during Phase 11B.1. All deployment steps await explicit user approval of the decisions in [docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md](file:///c:/my%20projects/interior%20design/docs/PHASE_11_FINAL_USER_APPROVAL_SHEET.md).
 
 ---
 
@@ -64,7 +64,7 @@ This document defines the physical infrastructure architecture, containerization
                  ┌─────────────────────────┘               └──────────────────┐
                  ▼ (Private Network / TLS)                                    ▼ (HTTPS / S3 API)
    ┌──────────────────────────────┐                             ┌───────────────────────────────┐
-   │    POSTGRESQL 17 DATABASE    │                             │   S3-COMPATIBLE STORAGE (R2)  │
+   │  RAILWAY POSTGRESQL SERVICE  │                             │   S3-COMPATIBLE STORAGE (R2)  │
    │    - 40 Flyway Migrations    │                             │   - <BUCKET_PRIVATE>          │
    │    - 59 RLS Entity Tables    │                             │   - <BUCKET_PUBLIC>           │
    │    - Hikari Connection Pool  │                             │     (<MEDIA_DOMAIN>)          │
@@ -83,7 +83,7 @@ This document defines the physical infrastructure architecture, containerization
 ## 4. Production Database Architecture & Runbook
 
 ### 4.1 PostgreSQL Engine Specifications
-- **Target Engine:** PostgreSQL 17 (locally validated on PostgreSQL 18.3, supported min 15).
+- **Target Engine:** PostgreSQL 17 on Railway PostgreSQL service (or Supabase PG 17).
 - **SSL / TLS:** Mandatory encrypted connections (`sslmode=require` or `sslmode=verify-full`).
 - **Connection Pooling:**
   - Application HikariCP: `maximum-pool-size=10`, `minimum-idle=2`, `idle-timeout=30000ms`, `max-lifetime=1200000ms`.
@@ -101,19 +101,20 @@ This document defines the physical infrastructure architecture, containerization
   - Subject to Row Level Security (`FORCE ROW LEVEL SECURITY`).
 
 ### 4.3 Database Deployment Sequence (Future Phase)
-1. **Target Instance Provisioning:** Provision PostgreSQL 17 cluster with automated daily backup enabled.
-2. **Execute Flyway Migrations:**
+1. **Target Instance Provisioning:** Provision Railway PostgreSQL service (PostgreSQL 17).
+2. **Backup & PITR Activation:** Explicitly enable scheduled backups and PITR continuous WAL archiving; verify both in provider dashboard before storing customer data.
+3. **Execute Flyway Migrations:**
    ```bash
    mvnw.cmd flyway:migrate -Dflyway.url=jdbc:postgresql://<host>:5432/<db>?sslmode=require \
                            -Dflyway.user=interior_admin \
                            -Dflyway.password=<admin-password>
    ```
-3. **Verify RLS Security:** Run SQL verification script:
+4. **Verify RLS Security:** Run SQL verification script:
    ```bash
    psql -h <host> -U interior_admin -d <db> -f scripts/verify-cloud-db-rls.sql
    ```
    *Requirement:* Exactly 59 tables must verify with `FORCE ROW LEVEL SECURITY = true`.
-4. **Seed System Catalogs:** Confirm system subscription plan records (`STANDARD`, `PREMIUM`, `PRO`) exist in `system_subscription_plans`.
+5. **Seed System Catalogs:** Confirm system subscription plan records (`STANDARD`, `PREMIUM`, `PRO`) exist in `system_subscription_plans`.
 
 ---
 
@@ -142,7 +143,18 @@ This document defines the physical infrastructure architecture, containerization
  5. API checks scan ──▶ Scan Clean? ──▶ Move to Originals ─────▶ S3
 ```
 
-### 5.3 Automated Storage Lifecycle Policies
+### 5.3 S3 Operations Compatibility (Audit Finding)
+The codebase uses only standard S3 operations in `S3StorageService.java`:
+- `PutObject`
+- `GetObject`
+- `HeadObject`
+- `CopyObject`
+- `DeleteObject`
+- Presigned `PUT` (`PutObjectPresignRequest`)
+
+**R2 Compatibility Status:** **VERIFIED FOR ELÉGANCE CALL SET / REQUIRES DEPLOYMENT VALIDATION**. Cloudflare R2 supports this exact call set. Zero egress fees represent Cloudflare's pricing model, not an architectural guarantee.
+
+### 5.4 Automated Storage Lifecycle Policies
 - **Quarantine Expiration:** Automatically purge abandoned upload intents in `/quarantine/` older than **14 calendar days**.
 - **Privacy Export Expiration:** Automatically delete exported data ZIP bundles in `/privacy-exports/` after **7 calendar days** (matching `app.privacy.export-ttl-days: 7`).
 - **Infected Payloads:** Quarantine files flagged as `INFECTED` are immediately isolated and permanently destroyed after **14 days** of forensic logging.
@@ -182,17 +194,16 @@ If a database or infrastructure emergency occurs:
 3. Read operations remain accessible, preventing platform data corruption.
 
 ### 7.2 Backup & Restoration Strategy
-- Daily automated database snapshots retained for the approved retention period.
-- Point-In-Time Recovery (PITR) WAL logs archived continuously.
-- Annual simulated restoration drill into isolated staging database.
+- **Prerequisite:** Scheduled database backups and continuous WAL archiving (PITR) must be **explicitly enabled and verified** prior to storing customer data.
+- **SLA Reality:** Closed beta operates with **NO CONTRACTUAL SLA**. Commercial RPO and RTO remain **DECISION REQUIRED**.
 
 ---
 
 ## 8. Rollback Runbook (Future Operational Guidance)
 
 ### 8.1 Application Layer Rollback
-- **Frontend:** Instant rollback to previous deployment tag via Vercel dashboard / CLI.
-- **Backend:** Rollback to previous container image tag in Railway dashboard / CLI.
+- **Frontend:** Instant rollback to previous deployment tag via Vercel dashboard / CLI (`vercel rollback`).
+- **Backend:** Rollback to previous container image tag in Railway dashboard / CLI (`railway rollback`).
 
 ### 8.2 Database Layer Rollback
 - **Strict Rule:** **NO BLIND DOWN-MIGRATIONS.** Flyway migrations `V001` through `V040` are additive and backwards-compatible.

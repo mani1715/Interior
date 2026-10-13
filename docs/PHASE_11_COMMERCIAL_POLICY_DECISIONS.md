@@ -1,15 +1,17 @@
-# Elégance — Phase 11B Commercial Policy Decisions
-**Document Status:** Complete / Awaiting User Sign-Off  
-**Phase:** Phase 11B — Final Production Decision Lock  
+# Elégance — Phase 11B.1 Commercial Policy Decisions
+**Document Status:** Complete / Source-Truth Corrected / Awaiting User Sign-Off  
+**Phase:** Phase 11B.1 — Production Decision Source-Truth Correction  
 **Date:** 2026-10-13  
 **Classification:** Commercial & Financial Governance Specification  
-**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
+**Release Candidate Baseline:** `5c3f41772304b9a5ad33dd43607d1d7e2bbd820f` (Flyway `V040`)  
 
 ---
 
 ## 1. Locked Commercial Entitlement Model
 
 The product capacity model is **LOCKED** in application code and database schema (`V030`, `V034`). No changes to these capacities are permitted under feature freeze.
+
+> **SOURCE-TRUTH CORRECTION:** Team member seat counts are **NOT** part of the locked plan entitlement schema (`EntitlementKey.java` does not contain seat limits). Invented seat caps have been removed from the locked specification below.
 
 | Metric / Entitlement | STANDARD | PREMIUM | PRO | BASE (Grandfathered) | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -19,12 +21,19 @@ The product capacity model is **LOCKED** in application code and database schema
 | **Cinematic Presentations** | **0** (Disabled) | **0** (Disabled) | **Max 5** Active Projects | 0 | **LOCKED** |
 | **High-Resolution Zoom & Reticle** | Included | Included | Included | Included | **LOCKED** |
 | **Client Review Workflows** | Included | Included | Included | Included | **LOCKED** |
-| **Studio Team Collaboration** | 1 Designer | Up to 3 Designers | Up to 10 Designers | 1 Designer | **LOCKED** |
 | **Custom Domain Portfolio** | Subdomain only | Subdomain only | Custom domain enabled | Subdomain only | **LOCKED** |
 
 ---
 
-## 2. Pricing Schedule Decision Worksheet
+## 2. Team Member / Seat Limit Policy
+
+- **Status:** **TEAM MEMBER / SEAT LIMIT POLICY — DECISION REQUIRED**.
+- **Source Truth:** Neither database migrations (`V001`-`V040`) nor the `EntitlementKey` enum define a seat quota per plan.
+- **Business Decision:** If commercial monetization will eventually constrain team members per studio (e.g. Standard: 1, Premium: 3, Pro: 10, or unconstrained), a formal business determination must be approved prior to commercial launch.
+
+---
+
+## 3. Pricing Schedule Decision Worksheet
 
 > **NOTICE:** Pricing is NOT hardcoded in application code. The table below represents a decision worksheet for business leadership. Cells marked `[ DECISION REQUIRED ]` must be approved before commercial launch.
 
@@ -39,16 +48,16 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 3. Currency & Payment Methods
+## 4. Currency & Payment Methods
 
 - **Primary Target Geography:** India Interior Design Studios (primary).
 - **Primary Currency Recommendation:** **INR (`₹`) PRIMARY** for India-first commercial launch.
 - **Status:** **RECOMMENDED — USER APPROVAL REQUIRED**.
-- **Multi-Currency:** Architecture supports multi-currency settlement via gateway; international currencies (USD, EUR) remain deferred until international rollout.
+- **Multi-Currency:** Architecture supports multi-currency settlement via gateway; international currencies remain deferred until international rollout.
 
 ---
 
-## 4. Billing Periods
+## 5. Billing Periods
 
 - **Supported Options in Architecture:** Monthly, Annual (Quarterly optional).
 - **Recommendation:** **Monthly and Annual** (with ~15-20% discount on Annual plans).
@@ -56,7 +65,7 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 5. Billing Grace Period
+## 6. Billing Grace Period
 
 - **Current Implementation Truth:**
   - Application configuration defines: `gracePeriodDays = 7` (field default in `BillingService.java`).
@@ -65,15 +74,15 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 6. Upgrade Proration & Downgrade Behavior
+## 7. Upgrade Proration & Downgrade Behavior
 
-### 6.1 Upgrade Proration Policy
+### 7.1 Upgrade Proration Policy
 - **Architectural Capability:** Gateway adapters can support immediate prorated charges or full new billing period resets.
 - **Business Policy Status:** **UPGRADE PRORATION POLICY — DECISION REQUIRED**.
   - Option A: Immediate prorated charge for the remaining duration of the active cycle.
   - Option B: Full charge on upgrade date resetting the monthly billing anniversary.
 
-### 6.2 Downgrade Invariant & Period-End Behavior (LOCKED)
+### 7.2 Downgrade Invariant & Period-End Behavior (LOCKED)
 - **Zero Data Deletion Guarantee (LOCKED INVARIANT):**
   - Downgrading **never deletes** customer projects, photographs, or studio media.
   - If a studio exceeds the new tier's quota (e.g., downgrading from Pro with 20 projects to Standard with a 10-project cap), all 20 existing projects remain publicly accessible and viewable.
@@ -84,7 +93,7 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 7. Refund Policy
+## 8. Refund Policy
 
 - **Current Implementation:** Refund webhook SPI exists; zero refund policies are hardcoded in application logic.
 - **Business Policy Status:** **DECISION REQUIRED**.
@@ -94,7 +103,7 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 8. GST & Tax Treatment (India Domestic)
+## 9. GST & Tax Treatment (India Domestic)
 
 - **Policy Status:** **GST / TAX CONFIGURATION REQUIRES QUALIFIED ACCOUNTING / LEGAL REVIEW**.
   - SAC Code (e.g. 998314) and GST rate (e.g. 18%) must be verified by the business accountant.
@@ -103,7 +112,7 @@ The product capacity model is **LOCKED** in application code and database schema
 
 ---
 
-## 9. Generative AI Commercial Policy
+## 10. Generative AI Commercial Policy
 
 - **Technical Quota Truth:** Application code enforces a strict rate limit of **20 generations / studio / UTC calendar day** (`dailyStudioLimit = 20` in `AiVisualizerProperties.java`).
 - **Commercial Policy Status:** **DEFERRED TO AI QUALITY EVALUATION**.

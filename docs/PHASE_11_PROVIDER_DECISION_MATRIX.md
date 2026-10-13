@@ -1,9 +1,9 @@
-# Elégance — Phase 11B Provider Decision Matrix
-**Document Status:** Complete / Awaiting User Sign-Off  
-**Phase:** Phase 11B — Final Production Decision Lock  
+# Elégance — Phase 11B.1 Provider Decision Matrix
+**Document Status:** Complete / Source-Truth Corrected / Awaiting User Sign-Off  
+**Phase:** Phase 11B.1 — Production Decision Source-Truth Correction  
 **Date:** 2026-10-13  
 **Classification:** Comparative Evaluation & Operational Recommendations  
-**Release Candidate Baseline:** `7db3212fb4b43e507d60e81fd1e235b98bb87821` (Flyway `V040`)  
+**Release Candidate Baseline:** `5c3f41772304b9a5ad33dd43607d1d7e2bbd820f` (Flyway `V040`)  
 
 ---
 
@@ -37,20 +37,20 @@ This matrix provides a rigorous comparative evaluation of candidate external pro
 
 ---
 
-### 2.3 Managed PostgreSQL Database
-| Candidate | PostgreSQL Engine Version | High Availability / Failover | PITR / Automated Backups | Connection Limits & HikariCP | RLS Compatibility | Status |
+### 2.3 PostgreSQL Database
+| Candidate | PostgreSQL Engine Version | High Availability / Failover | Backup & PITR State | Connection Limits & HikariCP | RLS Compatibility | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Railway Managed PostgreSQL** | PostgreSQL 17 | Single-node default, automated daily backups | Automated snapshots, easy restore | Direct connection limits fit beta (Hikari pool = 10) | Native RLS verified on all 59 tables | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
-| **Supabase PostgreSQL** | PostgreSQL 17 | Managed Multi-AZ on Pro | Daily backups + continuous WAL PITR | Built-in Supavisor connection pooler | Native RLS verified on all 59 tables | Alternative (Beta / Prod) |
+| **Railway PostgreSQL service** | PostgreSQL 17 | Single-node default | Scheduled backups & PITR must be explicitly enabled and verified | Direct connection limits fit beta (Hikari pool = 10) | Native RLS verified on all 59 tables | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Supabase PostgreSQL** | PostgreSQL 17 | Managed Multi-AZ on Pro | Scheduled backups & WAL PITR must be enabled and verified | Built-in Supavisor connection pooler | Native RLS verified on all 59 tables | Alternative (Beta / Prod) |
 | **Neon** | PostgreSQL 17 | Serverless Multi-AZ | Instant branching, continuous PITR | PgBouncer included | Native RLS verified on all 59 tables | Alternative |
 | **AWS RDS PostgreSQL** | PostgreSQL 17 | Multi-AZ Automated Failover | Automated daily snapshots + continuous WAL (up to 35 days PITR) | Highly configurable Hikari pool | Native RLS verified on all 59 tables | Enterprise Alternative |
 
 ---
 
 ### 2.4 Object Storage & Media Delivery
-| Candidate | S3 API Compatibility | Egress Bandwidth Pricing | Private / Public Buckets | CDN Delivery Integration | Status |
+| Candidate | S3 API Compatibility | Egress Bandwidth Pricing Behavior | Private / Public Buckets | CDN Delivery Integration | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Cloudflare R2** | 100% S3 Compatible with AWS SDK v2 | **Zero ($0.00) Egress Fees** | Separate bucket namespaces (`S3_BUCKET_PRIVATE`, `S3_BUCKET_PUBLIC`) | Native Cloudflare global edge network | **RECOMMENDED — WAITING USER APPROVAL** |
+| **Cloudflare R2** | Compatible with Elégance S3 operations (`PutObject`, `GetObject`, `HeadObject`, `CopyObject`, `DeleteObject`, presigned `PUT`) | **Zero ($0.00) Egress Fees** under Cloudflare pricing model | Separate bucket namespaces (`S3_BUCKET_PRIVATE`, `S3_BUCKET_PUBLIC`) | Cloudflare custom media domain / CDN | **RECOMMENDED — WAITING USER APPROVAL** |
 | **AWS S3** | Native Standard | Standard AWS data transfer fees ($0.09/GB) | Full IAM & bucket policies | AWS CloudFront distribution | Enterprise Alternative |
 | **Backblaze B2** | S3 Compatible | Low egress ($0.01/GB) | Supported | Requires third-party CDN | Alternative |
 
@@ -69,7 +69,7 @@ This matrix provides a rigorous comparative evaluation of candidate external pro
 ### 2.6 Transactional Email
 | Candidate | Protocol & Webhooks | Deliverability / Reputation | Code Implementation Status | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Disabled Initially** | None | N/A | `DisabledEmailProvider` active | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
+| **Disabled Initially** | None | N/A | `DisabledEmailProvider` active (invitations copyable in UI/admin) | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
 | **Resend** | REST API + Webhooks | High reputation on modern IP pools | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
 | **Postmark** | REST API + Webhooks | Industry gold-standard deliverability | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
 | **AWS SES** | SMTP / AWS SDK | Cost-effective; requires domain warm-up | Adapter required for Public Beta | DEFERRED TO PUBLIC BETA |
@@ -87,11 +87,15 @@ This matrix provides a rigorous comparative evaluation of candidate external pro
 ---
 
 ### 2.8 Upload Malware Scanning
-| Policy / Candidate | Inspection Latency | Fail-Closed Compatibility | Operational Profile | Status |
+| Provider / Implementation | Source Implementation Status | Fail-Closed Compatibility | Operational Profile | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Controlled Beta (Option B)** | Zero | Controlled to trusted beta participants | `REQUIRE_CLEAN_SCAN=false` temporarily during beta | **RECOMMENDED (Closed Beta) — WAITING USER APPROVAL** |
-| **ClamAV Container (Option A)** | < 500ms for images | 100% fail-closed via `require-clean-scan=true` | Co-located Docker daemon | Mandatory for Public Beta |
-| **AWS GuardDuty for S3** | 1-5 seconds | Asynchronous bucket scanning | AWS-native | Alternative for AWS deployment |
+| **DisabledMalwareScanner** | **IMPLEMENTED** (in main source) | Returns `UNAVAILABLE`; fails closed under `require-clean-scan=true` | Does not permit uploads | Active baseline |
+| **FakeMalwareScanner** | **TEST ONLY** (mock/dev profile) | Simulates clean/infected/error/timeout | In-memory simulation only | Test only |
+| **ClamAV Daemon Adapter** | **NOT IMPLEMENTED** | Containerized daemon (TCP 3310) | Requires adapter implementation & container deploy | Mandatory before public uploads |
+| **AWS GuardDuty for S3** | **NOT IMPLEMENTED** | Asynchronous bucket scanning | AWS-native | Alternative for AWS |
+| **VirusTotal API** | **NOT IMPLEMENTED** | External commercial API | Rate-limited external calls | Alternative |
+
+> **SECURITY INVARIANT:** The production invariant remains `require-clean-scan=true` and **NO CLEAN SCAN $\rightarrow$ NO CANONICAL COMMIT**. Invited users cannot be assumed trusted. Uploads in production will fail closed with `MALWARE_SCANNER_NOT_CONFIGURED` until a real scanner adapter is wired.
 
 ---
 
@@ -109,12 +113,14 @@ This matrix provides a rigorous comparative evaluation of candidate external pro
 
 1. **Frontend:** **Vercel** (Alternative: Railway).
 2. **Backend:** **Railway** (Alternative: AWS ECS Fargate).
-3. **Database:** **Railway Managed PostgreSQL 17** or **Supabase PostgreSQL 17**.
-4. **Storage:** **Cloudflare R2** (zero egress fees).
-5. **CDN:** **Cloudflare CDN** (`<MEDIA_DOMAIN>`).
+3. **Database:** **Railway PostgreSQL service** (PostgreSQL 17) or **Supabase PostgreSQL 17**.
+4. **Storage:** **Cloudflare R2** (S3-compatible API for Elégance call set; zero egress fees under Cloudflare pricing model).
+5. **CDN:** **Cloudflare custom media domain / CDN** (`<MEDIA_DOMAIN>`).
 6. **Domain:** User selection required (placeholder `<ROOT_DOMAIN>`).
-7. **OIDC:** **Google OIDC First**.
+7. **OIDC:** **Google OIDC**.
 8. **Email:** **Disabled for Closed Beta** $\rightarrow$ Defer provider selection to Public Beta.
 9. **AI:** **Disabled for Closed Beta** $\rightarrow$ Defer to AI quality evaluation.
-10. **Malware:** **Option B (Controlled Closed Beta)** $\rightarrow$ Option A (ClamAV) required before Public Beta.
+10. **Malware:** **Production scanner adapter required before normal user media uploads**.
 11. **Billing:** **Disabled for Closed Beta** $\rightarrow$ Razorpay for India-First Commercial Launch.
+12. **Backups & PITR:** Must be **explicitly enabled and verified** before storing real customer data.
+13. **Contractual SLAs:** Closed beta operates with **NO CONTRACTUAL SLA**. Commercial SLAs remain `USER / EXECUTIVE DECISION REQUIRED`.

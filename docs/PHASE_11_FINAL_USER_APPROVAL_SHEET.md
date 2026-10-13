@@ -1,6 +1,6 @@
 # ELÉGANCE — PHASE 11 FINAL USER APPROVAL SHEET
 **Document Status:** Ready for User Decision  
-**Phase:** Phase 11B — Production Decision Lock  
+**Phase:** Phase 11B.1 — Production Decision Source-Truth Correction  
 **Date:** 2026-10-13  
 **Classification:** Executive & Operational Decision Sign-Off  
 **Application State:** Release Candidate Ready | Flyway `V040` | Final UI/UX Design Freeze Active  
@@ -16,56 +16,127 @@ Reply with your choice for each item (e.g., `1. Approve`, `2. Approve`, `3. Chan
 
 ---
 
-## Section 1: Closed-Beta Infrastructure & Hosting
+## Section 1: Closed-Beta Core Infrastructure & Hosting
 
 ### 1. Frontend Hosting Platform
-* **Decision Required:** Where to host the Next.js 16.3.8 Turbopack web application (`apps/web`).
 * **Recommendation:** **Vercel**
-* **Alternative:** **Railway** (Docker standalone container)
-* **Why:** First-party platform for Next.js, zero devops overhead, instant edge preview deploys, automatic edge caching and image optimization.
-* **Your Decision:** `[ ] APPROVE (Vercel)  |  [ ] CHANGE (Railway)  |  [ ] OTHER`
+* **Alternative:** Railway (Docker standalone container)
+* **Why:** First-party platform for Next.js, zero devops overhead, instant edge preview deploys, automatic edge caching.
+* **Approve?** `[ ] YES (Vercel)  |  [ ] NO  |  [ ] CHANGE (Railway)`
 
 ---
 
 ### 2. Backend / API Hosting Platform
-* **Decision Required:** Where to host the Spring Boot 3.4.3 / Java 21 Dockerized API (`apps/api/Dockerfile`).
 * **Recommendation:** **Railway**
-* **Alternative:** **AWS ECS Fargate**
-* **Why:** Simplest operational profile for beta, direct Docker support, native private networking to PostgreSQL, automated health probes (`/actuator/health/liveness` and `/readiness`), instant rollbacks, and predictable pricing.
-* **Your Decision:** `[ ] APPROVE (Railway)  |  [ ] CHANGE (AWS ECS)  |  [ ] OTHER`
+* **Alternative:** AWS ECS Fargate
+* **Why:** Simplest operational profile for beta, direct Docker runner (`apps/api/Dockerfile`), native private networking, automated health check integration (`/api/v1/actuator/health/liveness` and `/readiness`).
+* **Approve?** `[ ] YES (Railway)  |  [ ] NO  |  [ ] CHANGE (AWS ECS)`
 
 ---
 
-### 3. Managed PostgreSQL Database Provider & Version
-* **Decision Required:** Which managed cloud database provider and engine version to provision.
-* **Recommendation:** **Railway Managed PostgreSQL 17** (or **Supabase PostgreSQL 17**)
-* **Alternative:** **AWS RDS PostgreSQL 17** / **Neon**
-* **Why:** PostgreSQL 17 provides maximum modern SQL performance and long-term support; Railway/Supabase offer instant provisioning, zero VPC peering friction, automated daily backups, and low operational cost during beta.
-* **Your Decision:** `[ ] APPROVE (Railway PG 17)  |  [ ] CHANGE (Supabase / RDS)  |  [ ] OTHER`
+### 3. Database Provider
+* **Recommendation:** **Railway PostgreSQL service**
+* **Alternative:** Supabase PostgreSQL / AWS RDS / Neon
+* **Why:** Low operational friction for beta, co-located within the same Railway private network as backend, simple provisioning.
+* **Approve?** `[ ] YES (Railway PostgreSQL service)  |  [ ] NO  |  [ ] CHANGE (Supabase / AWS RDS)`
 
 ---
 
-### 4. Object Storage (Media, Original Photographs, Quarantine)
-* **Decision Required:** S3-compatible cloud storage provider for portfolio photography and media assets.
+### 4. PostgreSQL Engine Version
+* **Recommendation:** **PostgreSQL 17**
+* **Alternative:** PostgreSQL 16
+* **Why:** Modern engine performance, supported by all current drivers, fully compatible with all 40 Flyway migrations (`V001`-`V040`) and Row Level Security on 59 tables.
+* **Approve?** `[ ] YES (PostgreSQL 17)  |  [ ] NO  |  [ ] CHANGE (PostgreSQL 16)`
+
+---
+
+### 5. Cloud Object Storage
 * **Recommendation:** **Cloudflare R2**
-* **Alternative:** **AWS S3**
-* **Why:** 100% S3-compatible with AWS SDK v2 (`endpointOverride`), zero ($0.00) egress bandwidth fees (eliminating bandwidth bills for high-resolution interior photography portfolios), and global low-latency distribution.
-* **Your Decision:** `[ ] APPROVE (Cloudflare R2)  |  [ ] CHANGE (AWS S3)  |  [ ] OTHER`
+* **Alternative:** AWS S3
+* **Why:** S3-compatible API for the exact call set used by Elégance (`PutObject`, `GetObject`, `HeadObject`, `CopyObject`, `DeleteObject`, presigned `PUT`), with zero ($0.00) egress fees under Cloudflare's pricing model.
+* **Approve?** `[ ] YES (Cloudflare R2)  |  [ ] NO  |  [ ] CHANGE (AWS S3)`
 
 ---
 
-### 5. Media CDN Delivery & Hostname
-* **Decision Required:** Hostname mapping and CDN distribution for public portfolio images.
-* **Recommendation:** **Cloudflare CDN** via placeholder `media.<ROOT_DOMAIN>` mapped to `APP_CDN_HOSTNAME`.
-* **Alternative:** AWS CloudFront
-* **Why:** Couples natively with Cloudflare R2, provides global edge caching, and satisfies Next.js 16.3.8 strict RFC 1123 image optimization requirements.
-* **Your Decision:** `[ ] APPROVE (Cloudflare CDN)  |  [ ] CHANGE (CloudFront)  |  [ ] OTHER`
+### 6. Primary Authentication Provider (Closed Beta)
+* **Recommendation:** **Google OIDC**
+* **Alternative:** Apple Sign-In / Email magic links
+* **Why:** Lowest friction for design studio professionals; standard OAuth 2.0 flow natively supported in backend `OidcService`. Secondary providers deferred to public launch.
+* **Approve?** `[ ] YES (Google OIDC)  |  [ ] NO  |  [ ] CHANGE`
 
 ---
 
-### 6. Production Domain Selection
-* **Decision Required:** The actual registered root domain for the platform (replaces placeholder `<ROOT_DOMAIN>`).
-* **Current State:** **NOT SELECTED** (e.g., `elegance.design`, `elegancestudio.in`, or your chosen brand domain).
+### 7. Transactional Email for Closed Beta
+* **Recommendation:** **Disabled for closed beta**
+* **Alternative:** Provision Resend / Postmark / AWS SES immediately
+* **Why:** In closed beta, studio invitations generate copyable secure tokens directly in the UI/admin console (`/invite/[rawToken]`). Keeping email disabled avoids DNS domain warmup and spam reputation risks until Public Beta.
+* **Approve?** `[ ] YES (Disabled for Closed Beta)  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 8. Generative AI for Closed Beta
+* **Recommendation:** **Disabled for closed beta**
+* **Alternative:** Configure commercial AI provider immediately
+* **Why:** Eliminates API spend exposure and third-party rate limits while evaluating interior diffusion model quality before client rollout.
+* **Approve?** `[ ] YES (Disabled for Closed Beta)  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 9. Commercial Billing for Closed Beta
+* **Recommendation:** **Disabled for closed beta**
+* **Alternative:** Enable commercial checkout immediately
+* **Why:** Closed beta studios receive complimentary access to test workflows. Commercial billing (Razorpay India-first / Stripe) deferred to commercial launch.
+* **Approve?** `[ ] YES (Disabled for Closed Beta)  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 10. Upload Malware Scanner & Security Boundary
+* **Source-Truth Audit Result:**
+  * Interface: `MalwareScanner`
+  * Implementations in Code: `DisabledMalwareScanner` (Implemented, reports unavailable), `FakeMalwareScanner` (Test/dev only).
+  * Production scanner adapters (ClamAV, GuardDuty, VirusTotal): **0 IMPLEMENTED**.
+  * Production invariant: `require-clean-scan=true` and **NO CLEAN SCAN $\rightarrow$ NO CANONICAL COMMIT**.
+* **Policy Invariant:** Insecure bypass is **PROHIBITED**. Inviting a user does not make their uploaded files trusted.
+* **Status:** **CLOSED-BETA MEDIA UPLOAD BLOCKER — PRODUCTION MALWARE SCANNER IMPLEMENTATION/CONFIGURATION REQUIRED** before normal user media uploads are enabled in production (unless closed-beta uploads remain restricted to pre-scanned administrator fixtures).
+* **Decision:**
+  * Option 1: Implement & deploy containerized ClamAV scanner adapter before enabling closed-beta media uploads.
+  * Option 2: Restrict closed-beta testing to non-upload workflows (portfolio builder with fixtures, navigation, reviews, CRM) until ClamAV adapter is wired.
+* **Your Decision:** `[ ] OPTION 1 (Deploy ClamAV Adapter)  |  [ ] OPTION 2 (Restrict Uploads to Fixtures)`
+
+---
+
+### 11. Database Automated Backups
+* **Requirement:** Scheduled database/volume backups must be **explicitly enabled and verified** before storing real customer data.
+* **Recommendation:** **Enable scheduled backups before beta launch**.
+* **Approve?** `[ ] YES  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 12. Point-In-Time Recovery (PITR)
+* **Requirement:** PostgreSQL continuous WAL archiving and Point-In-Time Recovery must be **explicitly enabled and verified** if selected.
+* **Recommendation:** **Enable PITR before storing real beta data**.
+* **Approve?** `[ ] YES  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 13. Observability & Monitoring for Closed Beta
+* **Recommendation:** **Hosting-native initial health monitoring** (`/api/v1/actuator/health` + hosting uptime alerts).
+* **Alternative:** External APM (Prometheus + Grafana / Datadog)
+* **Why:** Sufficient for initial closed beta; minimizes operational complexity.
+* **Approve?** `[ ] YES (Hosting-Native)  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 14. Centralized Logging for Closed Beta
+* **Recommendation:** **Hosting-native logs for beta** (Vercel deployment logs + Railway container logs).
+* **Alternative:** External centralized logging (BetterStack / Papertrail)
+* **Why:** Avoids third-party log infrastructure setup during beta; structured MDC request logging already active.
+* **Approve?** `[ ] YES (Hosting-Native)  |  [ ] NO  |  [ ] CHANGE`
+
+---
+
+### 15. Production Domain Selection
+* **Status:** **USER ENTRY REQUIRED**
 * **Desired Routing Structure:**
   * Web App: `https://<ROOT_DOMAIN>`
   * Backend API: `https://api.<ROOT_DOMAIN>`
@@ -74,114 +145,25 @@ Reply with your choice for each item (e.g., `1. Approve`, `2. Approve`, `3. Chan
 
 ---
 
-### 7. Primary Authentication Provider (Closed Beta)
-* **Decision Required:** Initial OIDC identity provider for studio owner sign-in.
-* **Recommendation:** **Google OIDC first**
-* **Alternative:** Add Apple OIDC / Email magic links
-* **Why:** Lowest friction for design studio professionals; standard OAuth 2.0 flow natively supported in backend `OidcService`. Secondary providers (Apple, etc.) can be added for public launch.
-* **Your Decision:** `[ ] APPROVE (Google OIDC First)  |  [ ] CHANGE  |  [ ] OTHER`
+## Section 2: Commercial & Governance Decisions (Deferred / Unapproved)
+
+### 16. Team Member / Seat Limit Policy
+* **Status:** **DECISION REQUIRED / DEFERRED**
+* **Source Truth:** Current database schema and `EntitlementKey` enum contain **NO team seat limits**. The plan models currently enforce project, photo, and storage capacity only.
+* **Decision:** Whether commercial monetization will cap team members per studio (e.g. Standard: 1, Premium: 3, Pro: 10, or unconstrained).
+* **Your Decision:** `[ ] DEFER TO COMMERCIAL LAUNCH  |  [ ] SPECIFY LIMITS: ________________`
 
 ---
 
-## Section 2: Subsystem Gates & Security Boundaries
-
-### 8. Transactional Email Policy for Closed Beta
-* **Decision Required:** How to handle invitations and transactional email during invitation-only closed beta.
-* **Recommendation:** **DEFER TO PUBLIC BETA (Remain DISABLED for closed beta)**
-* **Alternative:** Provision Resend / Postmark / AWS SES adapter immediately before beta.
-* **Why:** In closed beta, studio invitations generate copyable secure invitation tokens directly in the admin UI and designer workspace. Keeping email disabled avoids DNS domain warmup, SPF/DKIM/DMARC provisioning delays, and spam reputation risks until public beta.
-* **Your Decision:** `[ ] APPROVE (Keep Disabled for Beta)  |  [ ] CHANGE (Provision Resend/SES now)`
-
----
-
-### 9. Generative AI Policy for Closed Beta
-* **Decision Required:** Whether generative interior AI visualization is active in initial closed beta.
-* **Recommendation:** **DEFER TO AI QUALITY EVALUATION (Keep AI DISABLED initially)**
-* **Alternative:** Configure commercial AI provider (e.g. Stability / Replicate / Vertex) immediately.
-* **Why:** Eliminates API spend exposure, protects closed beta from third-party rate limits, and allows thorough evaluation of interior diffusion model quality before enabling the feature for clients.
-* **Your Decision:** `[ ] APPROVE (Keep AI Disabled for Beta)  |  [ ] CHANGE (Configure Provider now)`
-
----
-
-### 10. Upload Malware Scanning & Security Boundary
-* **Decision Required:** Upload inspection policy for initial beta participants.
-* **Option A (Strict):** Deploy dedicated ClamAV container or external virus scanning service before accepting any uploads (`require-clean-scan=true`).
-* **Option B (Controlled Beta):** Restrict upload access strictly to verified, invited studio participants with `require-clean-scan=false` initially, enforcing fail-closed clean scanning upon Public Beta.
-* **Recommendation:** **Option B for Closed Beta (with trusted participants) $\rightarrow$ Option A required before Public Beta**.
-* **Your Decision:** `[ ] APPROVE OPTION B (Controlled Beta)  |  [ ] SELECT OPTION A (Deploy Scanner Now)`
-
----
-
-### 11. Commercial Billing & Payment Gateway
-* **Decision Required:** Commercial billing status for beta and gateway selection for commercial launch.
-* **Recommendation:** **Keep Billing DISABLED for Closed Beta $\rightarrow$ Launch India-First with Razorpay for Commercial Launch**.
-* **Alternative:** Stripe
-* **Why:** Closed beta studios receive complimentary access to test workflows. For Indian commercial launch, Razorpay natively supports UPI, domestic cards, NetBanking, and RBI-mandated e-mandate recurring debits with GST invoicing.
-* **Your Decision:** `[ ] APPROVE (Disabled for Beta, Razorpay for Launch)  |  [ ] CHANGE (Stripe)  |  [ ] OTHER`
-
----
-
-## Section 3: Commercial & Governance Decisions
-
-### 12. Commercial Subscription Pricing Schedule
-* **Decision Required:** Monthly and Annual pricing for commercial launch (in INR `₹`).
-* **Locked Capacities:**
-  * STANDARD: 10 projects, 15 photos/project, 5 GB storage, 0 Cinematic
-  * PREMIUM: 20 projects, 25 photos/project, 20 GB storage, 0 Cinematic
-  * PRO: 20 projects, 30 photos/project, 50 GB storage, max 5 Cinematic projects
-* **Pricing Worksheet (Please Enter Values):**
-  * STANDARD Monthly: `₹ _______` | Annual: `₹ _______`
-  * PREMIUM Monthly: `₹ _______` | Annual: `₹ _______`
-  * PRO Monthly: `₹ _______` | Annual: `₹ _______`
-
----
-
-### 13. Billing Grace Period Policy
-* **Decision Required:** Number of days studios retain access following an invoice payment failure.
-* **Recommendation:** **7-Day Config Default** (Matches current application configuration).
-* **Alternative:** 0-day instant suspension, or 14-day generous grace.
-* **Your Decision:** `[ ] APPROVE (7 Days)  |  [ ] CHANGE (____ Days)`
-
----
-
-### 14. Upgrade Proration & Downgrade Behavior
-* **Technical Invariant (LOCKED):** Downgrades NEVER delete customer projects or photographs. Over-quota assets remain preserved in read-only state.
-* **Policy Decision Required:**
-  * Upgrade: Apply immediate pro-rata credit towards higher plan (`YES / NO`)?
-  * Downgrade: Take effect at current billing period end (`YES / NO`)?
-* **Recommendation:** **Immediate prorated upgrade; end-of-period downgrade**.
-* **Your Decision:** `[ ] APPROVE (Prorated upgrade / Period-end downgrade)  |  [ ] OTHER`
-
----
-
-### 15. Privacy & Data Retention Schedules
-* **Privacy Export TTL:** Config default is 7 days (`app.privacy.export-ttl-days=7`). Approve? `[ ] 7 Days (Approved)  |  [ ] Other: ____`
-* **Account Deletion Grace Period:** Config default is 14 days before permanent purge. Approve? `[ ] 14 Days (Approved)  |  [ ] Other: ____`
-* **Audit Ledger Retention:** Immutable administrative audit logs. Recommendation: 3 years. Approve? `[ ] 3 Years  |  [ ] Other: ____`
-* **Support Ticket Retention:** Closed customer support tickets. Recommendation: 2 years. Approve? `[ ] 2 Years  |  [ ] Other: ____`
-
----
-
-### 16. Disaster Recovery Objectives (RPO & RTO)
-* **Recovery Point Objective (RPO):** Maximum acceptable data loss window in a disaster.
-  * *Option 1:* < 1 Hour (Requires continuous WAL archiving / PITR enabled on database).
-  * *Option 2:* Up to 24 Hours (Daily snapshot backup only; simpler, lower cost).
-  * **Recommendation:** **Option 1 (< 1 Hour with PITR)**.
-  * **Your Decision:** `[ ] Option 1 (< 1 Hour)  |  [ ] Option 2 (Daily Snapshot)`
-* **Recovery Time Objective (RTO):** Target time to restore service after catastrophic failure.
-  * *Option 1:* < 2 Hours (Automated container redeploy + point-in-time database restore).
-  * *Option 2:* < 8 Hours (Standard operational business-hours restore).
-  * **Recommendation:** **Option 1 (< 2 Hours)**.
-  * **Your Decision:** `[ ] Option 1 (< 2 Hours)  |  [ ] Option 2 (< 8 Hours)`
-
----
-
-### 17. Monitoring & Logging Infrastructure
-* **Closed Beta Logging:** Use native hosting logs (Vercel deployment logs + Railway container logs). Approve? `[ ] YES  |  [ ] NO`
-* **Uptime Monitoring:** External lightweight uptime check pinging `/actuator/health` and `/health`. Recommendation: BetterStack / UptimeRobot. Approve? `[ ] YES  |  [ ] NO`
-
----
-
-## Sign-Off Summary
-
-Once you have reviewed and indicated your decisions on the items above, submit your choices. No cloud commands, resource provisioning, or code changes will be executed until your decisions are recorded.
+### 17. Commercial Subscription Pricing & Policies
+* **Status:** **DEFERRED TO COMMERCIAL LAUNCH**
+* **Items Requiring Eventual User Sign-Off:**
+  * Standard, Premium, and Pro monthly/annual rates in INR (`₹`).
+  * Billing periods (Monthly + Annual).
+  * Primary currency (INR `₹` India-first).
+  * Grace period policy (7-day config default).
+  * Upgrade proration policy.
+  * Refund policy.
+  * GST / tax compliance review.
+  * Contractual RPO & RTO SLAs (Closed beta operates with **NO CONTRACTUAL SLA**).
+  * Data retention schedules.
