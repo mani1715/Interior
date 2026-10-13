@@ -178,7 +178,7 @@ function DesignSystemContent() {
               <div className="flex items-center gap-2">
                 <h1 className="font-serif text-lg font-bold tracking-wide">ELÉGANCE</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--brand-muted)] text-[var(--brand)] border border-[var(--brand)]/30">
-                  PHASE 04 DESIGN SYSTEM
+                  CANONICAL DESIGN SYSTEM
                 </span>
               </div>
               <p className="text-xs text-[var(--muted)]">

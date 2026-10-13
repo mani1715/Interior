@@ -18,6 +18,7 @@ export function PublicHeader({ navLinks = defaultNavLinks, currentPath = '/', on
   const panel = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout } = useAuth();
   const professional = user && (user.roles.includes('DESIGNER') || user.roles.includes('DESIGNER_TEAM'));
+  const isAdmin = user && (user.roles.includes('ADMIN') || user.roles.includes('SUPER_ADMIN'));
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
@@ -43,10 +44,10 @@ export function PublicHeader({ navLinks = defaultNavLinks, currentPath = '/', on
   const actions = <>
     {isAuthenticated && user ? <>
       <NotificationBell />
-      {user.roles.includes('PLATFORM_ADMIN') ? <Link href="/admin" onClick={close}>Admin</Link> : null}
+      {isAdmin ? <Link href="/admin" onClick={close}>Admin Console</Link> : null}
       {professional ? <Link href="/workspace" onClick={close}>Workspace</Link> : user.studios.length === 0 ? <Link href="/onboarding/professional" onClick={close}>Register as Professional</Link> : null}
       <Link href="/account/collections" onClick={close}>Collections</Link>
-      <Link href="/account" onClick={close}><span>{user.displayName}</span><small>{user.roles.includes('DESIGNER') ? 'DESIGNER' : user.roles.includes('PLATFORM_ADMIN') ? 'ADMIN' : user.roles[0] || 'CUSTOMER'}</small></Link>
+      <Link href="/account" onClick={close}><span>{user.displayName}</span><small>{user.roles.includes('SUPER_ADMIN') ? 'SUPER_ADMIN' : user.roles.includes('ADMIN') ? 'ADMIN' : user.roles.includes('DESIGNER') ? 'DESIGNER' : user.roles[0] || 'CUSTOMER'}</small></Link>
       <button onClick={() => { void logout(); close(); }}>Sign Out</button>
     </> : <>
       <Link href="/sign-in" onClick={() => { close(); onSignInClick?.(); }}>Sign In</Link>

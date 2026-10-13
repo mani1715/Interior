@@ -65,20 +65,20 @@ function ReviewSubmitForm() {
 
   if (submittedSuccess) {
     return (
-      <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-zinc-50">
-        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm text-center space-y-4">
+      <div className="workspace-editorial min-h-screen flex items-center justify-center p-4 bg-sand-50">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-sand-200 shadow-sm text-center space-y-4">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
             ✓
           </div>
-          <h2 className="text-xl font-bold text-zinc-900">Thank You for Your Feedback!</h2>
-          <p className="text-sm text-zinc-600 leading-relaxed">
-            Your review for <span className="font-semibold text-zinc-900">{studioName}</span> has been submitted and verified. It is now published directly on their portfolio profile.
+          <h2 className="text-xl font-bold text-charcoal-900">Thank You for Your Feedback!</h2>
+          <p className="text-sm text-charcoal-600 leading-relaxed">
+            Your review for <span className="font-semibold text-charcoal-900">{studioName}</span> has been submitted and verified. It is now published directly on their portfolio profile.
           </p>
           <div className="pt-4">
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="px-5 py-2 text-xs font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="px-5 py-2 text-xs font-medium text-white bg-charcoal-900 rounded-lg hover:bg-charcoal-800 transition-colors"
             >
               Back to Home
             </button>
@@ -89,17 +89,17 @@ function ReviewSubmitForm() {
   }
 
   return (
-    <div className="workspace-editorial min-h-screen bg-zinc-50 py-12 px-4 flex justify-center items-center">
-      <div className="max-w-xl w-full bg-white rounded-2xl p-8 border border-zinc-200/80 shadow-sm space-y-6">
+    <div className="workspace-editorial min-h-screen bg-[#FAF8F5] py-12 px-4 flex justify-center items-center">
+      <div className="max-w-xl w-full bg-white rounded-2xl p-8 border border-sand-200 shadow-sm space-y-6">
         <div className="space-y-1 text-center">
-          <span className="text-[11px] font-semibold tracking-wider uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-bronze-700 bg-bronze-50 px-2.5 py-0.5 rounded-full border border-bronze-200">
             Verified Client Review
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 pt-2">
+          <h1 className="text-2xl font-bold tracking-tight text-charcoal-900 pt-2">
             Share Your Experience
           </h1>
-          <p className="text-xs text-zinc-500">
-            You are reviewing <span className="font-semibold text-zinc-800">{studioName}</span>
+          <p className="text-xs text-charcoal-500">
+            You are reviewing <span className="font-semibold text-charcoal-800">{studioName}</span>
           </p>
         </div>
 
@@ -112,7 +112,7 @@ function ReviewSubmitForm() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Rating Stars Selector */}
           <div className="space-y-2 text-center">
-            <label className="block text-xs font-semibold text-zinc-700">
+            <label className="block text-xs font-semibold text-charcoal-700">
               Overall Rating (1 to 5)
             </label>
             <div className="flex items-center justify-center gap-2">
@@ -129,8 +129,8 @@ function ReviewSubmitForm() {
                   <svg
                     className={`w-8 h-8 transition-colors ${
                       star <= (hoverRating || rating)
-                        ? 'text-amber-400 fill-amber-400'
-                        : 'text-zinc-300'
+                        ? 'text-bronze-500 fill-bronze-500'
+                        : 'text-sand-300'
                     }`}
                     viewBox="0 0 20 20"
                     fill="currentColor"
@@ -140,7 +140,7 @@ function ReviewSubmitForm() {
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-zinc-400 font-medium">
+            <p className="text-[11px] text-charcoal-400 font-medium">
               {['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating - 1]}
             </p>
           </div>
@@ -148,7 +148,7 @@ function ReviewSubmitForm() {
           {/* Project Details (optional) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">
+              <label className="block text-xs font-medium text-charcoal-700 mb-1">
                 Project Title (optional)
               </label>
               <input
@@ -156,11 +156,11 @@ function ReviewSubmitForm() {
                 value={projectTitle}
                 onChange={(e) => setProjectTitle(e.target.value)}
                 placeholder="e.g. 3BHK Modular Kitchen & Wardrobe"
-                className="w-full text-xs p-2.5 border border-zinc-300 rounded-lg focus:ring-1 focus:ring-zinc-900"
+                className="w-full text-xs p-2.5 border border-sand-300 rounded-lg focus:ring-1 focus:ring-bronze-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">
+              <label className="block text-xs font-medium text-charcoal-700 mb-1">
                 Completion Year (optional)
               </label>
               <input
@@ -169,14 +169,14 @@ function ReviewSubmitForm() {
                 max={new Date().getFullYear()}
                 value={completedYear}
                 onChange={(e) => setCompletedYear(parseInt(e.target.value) || new Date().getFullYear())}
-                className="w-full text-xs p-2.5 border border-zinc-300 rounded-lg focus:ring-1 focus:ring-zinc-900"
+                className="w-full text-xs p-2.5 border border-sand-300 rounded-lg focus:ring-1 focus:ring-bronze-500"
               />
             </div>
           </div>
 
           {/* Review Text */}
           <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1">
+            <label className="block text-xs font-medium text-charcoal-700 mb-1">
               Your Detailed Review <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -185,16 +185,16 @@ function ReviewSubmitForm() {
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="Describe the design quality, adherence to timelines, communication, and overall outcome..."
-              className="w-full text-xs p-3 border border-zinc-300 rounded-lg focus:ring-1 focus:ring-zinc-900 leading-relaxed"
+              className="w-full text-xs p-3 border border-sand-300 rounded-lg focus:ring-1 focus:ring-bronze-500 leading-relaxed"
             />
           </div>
 
           {/* Display Name Privacy Mode */}
-          <div className="space-y-2 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
-            <label className="block text-xs font-semibold text-zinc-800">
+          <div className="space-y-2 p-4 bg-sand-50 rounded-xl border border-sand-200">
+            <label className="block text-xs font-semibold text-charcoal-800">
               Reviewer Name Privacy
             </label>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-charcoal-500">
               Choose how your name appears publicly on the review.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
@@ -209,17 +209,17 @@ function ReviewSubmitForm() {
                   onClick={() => setDisplayNameMode(opt.mode)}
                   className={`p-2.5 rounded-lg border text-xs text-center transition-all ${
                     displayNameMode === opt.mode
-                      ? 'border-zinc-900 bg-white font-semibold text-zinc-900 shadow-xs'
-                      : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300'
+                      ? 'border-bronze-700 bg-white font-semibold text-charcoal-900 shadow-xs'
+                      : 'border-sand-200 bg-sand-50 text-charcoal-600 hover:border-sand-300'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-zinc-500 pt-1">
+            <p className="text-[11px] text-charcoal-500 pt-1">
               Appears as:{' '}
-              <span className="font-semibold text-zinc-900">{getDisplayNamePreview()}</span>
+              <span className="font-semibold text-charcoal-900">{getDisplayNamePreview()}</span>
             </p>
           </div>
 
@@ -228,11 +228,11 @@ function ReviewSubmitForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg disabled:opacity-50 transition-colors shadow-sm"
+              className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-charcoal-900 hover:bg-charcoal-800 rounded-lg disabled:opacity-50 transition-colors shadow-sm"
             >
               {isSubmitting ? 'Publishing Review...' : 'Publish Verified Review'}
             </button>
-            <p className="text-[10px] text-zinc-400 text-center mt-2">
+            <p className="text-[10px] text-charcoal-400 text-center mt-2">
               Reviews cannot be altered by designers or studios. They reflect honest client experiences.
             </p>
           </div>
@@ -244,7 +244,7 @@ function ReviewSubmitForm() {
 
 export default function ReviewSubmitPage() {
   return (
-    <Suspense fallback={<div className="workspace-editorial min-h-screen bg-zinc-50 flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="workspace-editorial min-h-screen bg-[#FAF8F5] flex items-center justify-center">Loading...</div>}>
       <ReviewSubmitForm />
     </Suspense>
   );

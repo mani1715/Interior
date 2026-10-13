@@ -37,6 +37,12 @@
   --charcoal: #1F1F1F;
   --muted: #6B6B6B;
   --surface-raised: #F4F4F4;
+  --surface-sunken: #FAF8F5;
+  --page-background: #FAF8F5;
+  --surface-primary: #FFFFFF;
+  --surface-subtle: #F4F4F4;
+  --border-subtle: #E7E1D8;
+  --accent-bronze: #B88A5A;
   /* ==========================================================================
      LOCKED PLATFORM PALETTE
      Approved invariants — do NOT alter or add undocumented colors.

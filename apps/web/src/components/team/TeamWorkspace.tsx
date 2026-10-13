@@ -247,23 +247,23 @@ export function TeamWorkspace() {
     const r = role?.toUpperCase();
     if (r === 'OWNER') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-          <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-bronze-100 text-bronze-900 border border-bronze-300">
+          <ShieldCheck className="w-3.5 h-3.5 text-bronze-700" />
           Owner
         </span>
       );
     }
     if (r === 'ADMIN' || r === 'DESIGNER_ADMIN') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-          <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sand-100 text-charcoal-900 border border-sand-300">
+          <Shield className="w-3.5 h-3.5 text-bronze-700" />
           Admin
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-        <User className="w-3.5 h-3.5 text-zinc-500" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sand-100 text-charcoal-800 border border-sand-200">
+        <User className="w-3.5 h-3.5 text-charcoal-500" />
         Member
       </span>
     );
@@ -271,8 +271,8 @@ export function TeamWorkspace() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-zinc-500 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-charcoal-500 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-bronze-700" />
         <p className="text-sm">Loading studio team workspace...</p>
       </div>
     );
@@ -281,14 +281,14 @@ export function TeamWorkspace() {
   if (error || !teamData) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-red-700 dark:text-red-400 flex items-start gap-3">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-sm">Unable to load team</h3>
             <p className="text-xs mt-1">{error || 'Studio team data is unavailable.'}</p>
             <button
               onClick={loadTeamData}
-              className="mt-3 px-3 py-1.5 text-xs font-medium bg-red-100 dark:bg-red-900/60 rounded border border-red-300 dark:border-red-800 hover:bg-red-200 transition"
+              className="mt-3 px-3 py-1.5 text-xs font-medium bg-red-100 rounded border border-red-300 hover:bg-red-200 transition"
             >
               Try Again
             </button>
@@ -304,10 +304,10 @@ export function TeamWorkspace() {
       {actionSuccess && (
         <div
           role="status"
-          className="p-3.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-lg text-sm flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2"
+          className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2"
         >
           <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Check className="w-4 h-4 text-emerald-600" />
             <span>{actionSuccess}</span>
           </div>
           <button
@@ -322,10 +322,10 @@ export function TeamWorkspace() {
       {actionError && (
         <div
           role="alert"
-          className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 rounded-lg text-sm flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2"
+          className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2"
         >
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <AlertTriangle className="w-4 h-4 text-red-600" />
             <span>{actionError}</span>
           </div>
           <button
@@ -338,29 +338,29 @@ export function TeamWorkspace() {
       )}
 
       {/* Header Banner */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 sm:p-6 shadow-sm">
+      <div className="bg-white border border-sand-200 rounded-xl p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 rounded-lg">
-                <Users2 className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+              <div className="p-2 bg-bronze-50 border border-bronze-200 rounded-lg">
+                <Users2 className="w-6 h-6 text-bronze-700" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                <h1 className="text-xl sm:text-2xl font-bold text-charcoal-900">
                   {teamData.studioName}
                 </h1>
-                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs sm:text-sm text-charcoal-500">
                   Team Members & Collaborative Access
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 pt-2">
-              <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              <span className="text-xs font-medium text-charcoal-600">
                 Your Role:
               </span>
               {getRoleBadge(teamData.currentUserRole)}
-              <span className="text-zinc-300 dark:text-zinc-700">•</span>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+              <span className="text-sand-300">•</span>
+              <span className="text-xs text-charcoal-500 font-medium">
                 {teamData.totalActiveMembers}{' '}
                 {teamData.totalActiveMembers === 1 ? 'Active Member' : 'Active Members'}
               </span>
@@ -375,7 +375,7 @@ export function TeamWorkspace() {
                   setInviteSuccessData(null);
                   setShowInviteModal(true);
                 }}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg bg-bronze-700 hover:bg-bronze-800 text-white text-sm font-medium transition shadow-sm focus:outline-none focus:ring-2 focus:ring-bronze-500 focus:ring-offset-2"
               >
                 <UserPlus className="w-4 h-4" />
                 Invite Member
@@ -385,9 +385,9 @@ export function TeamWorkspace() {
             <button
               type="button"
               onClick={() => setShowLeaveModal(true)}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-zinc-400"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-lg border border-sand-200 text-charcoal-700 hover:bg-sand-50 :bg-sand-200/60 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-bronze-500"
             >
-              <LogOut className="w-4 h-4 text-zinc-500" />
+              <LogOut className="w-4 h-4 text-charcoal-500" />
               Leave Studio
             </button>
           </div>
@@ -396,13 +396,13 @@ export function TeamWorkspace() {
 
       {/* Solo Member Empty State Guidance */}
       {teamData.members.length === 1 && (
-        <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/50 rounded-xl p-4 sm:p-5 flex items-start gap-3.5">
-          <Info className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+        <div className="bg-bronze-50/70 border border-bronze-200/80 rounded-xl p-4 sm:p-5 flex items-start gap-3.5">
+          <Info className="w-5 h-5 text-bronze-700 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+            <h4 className="text-sm font-semibold text-bronze-900">
               You are currently the only member of this studio
             </h4>
-            <p className="text-xs text-amber-800/90 dark:text-amber-400 leading-relaxed">
+            <p className="text-xs text-bronze-900/90 leading-relaxed">
               Invite design assistants, 3D visualizers, or partners to collaborate on client revision boards, AI visualizer prompts, and portfolio showcases together.
             </p>
           </div>
@@ -411,18 +411,18 @@ export function TeamWorkspace() {
 
       {/* Pending Invitations Section */}
       {teamData.pendingInvitations.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+        <div className="bg-white border border-sand-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-sand-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-amber-600 dark:text-amber-500" />
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <Mail className="w-4 h-4 text-bronze-700" />
+              <h2 className="text-sm font-semibold text-charcoal-900">
                 Pending Invitations ({teamData.pendingInvitations.length})
               </h2>
             </div>
-            <span className="text-xs text-zinc-500">Awaiting acceptance</span>
+            <span className="text-xs text-charcoal-500">Awaiting acceptance</span>
           </div>
 
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="divide-y divide-sand-100">
             {teamData.pendingInvitations.map((inv) => (
               <div
                 key={inv.id}
@@ -430,16 +430,16 @@ export function TeamWorkspace() {
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 font-mono">
+                    <span className="text-sm font-medium text-charcoal-900 font-mono">
                       {inv.invitedEmail}
                     </span>
                     {getRoleBadge(inv.role)}
                   </div>
-                  <div className="text-xs text-zinc-500 flex items-center gap-2 flex-wrap">
+                  <div className="text-xs text-charcoal-500 flex items-center gap-2 flex-wrap">
                     <span>Invited by {inv.invitedByEmail}</span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-zinc-400" />
+                      <Calendar className="w-3 h-3 text-charcoal-400" />
                       Expires {new Date(inv.expiresAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -450,7 +450,7 @@ export function TeamWorkspace() {
                     <button
                       type="button"
                       onClick={() => handleRevokeInvite(inv.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[44px] text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded border border-red-200 dark:border-red-900 transition"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[44px] text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 :bg-red-950/40 rounded border border-red-200 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Revoke
@@ -464,11 +464,11 @@ export function TeamWorkspace() {
       )}
 
       {/* Team Members List */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+      <div className="bg-white border border-sand-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-sand-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users2 className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <Users2 className="w-4 h-4 text-charcoal-600" />
+            <h2 className="text-sm font-semibold text-charcoal-900">
               Active Studio Members ({teamData.members.length})
             </h2>
           </div>
@@ -478,14 +478,14 @@ export function TeamWorkspace() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50/60 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+              <tr className="bg-sand-50/60 border-b border-sand-100 text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider">
                 <th className="py-3 px-5">Member</th>
                 <th className="py-3 px-5">Role</th>
                 <th className="py-3 px-5">Joined</th>
                 {isAdminOrOwner && <th className="py-3 px-5 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+            <tbody className="divide-y divide-sand-100 text-sm">
               {teamData.members.map((member) => {
                 const isTargetSelf = user?.email?.toLowerCase() === member.email?.toLowerCase();
                 const isTargetAdmin = isStudioAdmin(member.role);
@@ -494,25 +494,25 @@ export function TeamWorkspace() {
                 return (
                   <tr
                     key={member.id}
-                    className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors"
+                    className="hover:bg-sand-50/50 :bg-sand-200/30 transition-colors"
                   >
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white font-medium text-xs shadow-sm">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-bronze-600 to-bronze-800 flex items-center justify-center text-white font-medium text-xs shadow-sm">
                           {member.fullName
                             ? member.fullName.slice(0, 2).toUpperCase()
                             : member.email.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                          <div className="font-medium text-charcoal-900 flex items-center gap-1.5">
                             {member.fullName || 'Studio Member'}
                             {isTargetSelf && (
-                              <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-normal">
+                              <span className="text-[10px] bg-sand-100 text-charcoal-600 px-1.5 py-0.5 rounded font-normal">
                                 You
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                          <div className="text-xs text-charcoal-500 font-mono">
                             {member.email}
                           </div>
                         </div>
@@ -521,7 +521,7 @@ export function TeamWorkspace() {
 
                     <td className="py-3.5 px-5">{getRoleBadge(member.role)}</td>
 
-                    <td className="py-3.5 px-5 text-xs text-zinc-500 dark:text-zinc-400">
+                    <td className="py-3.5 px-5 text-xs text-charcoal-500">
                       {new Date(member.joinedAt).toLocaleDateString()}
                     </td>
 
@@ -529,10 +529,10 @@ export function TeamWorkspace() {
                       <td className="py-3.5 px-5 text-right">
                         {isSoleAdminTarget ? (
                           <span
-                            className="inline-flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500 italic"
+                            className="inline-flex items-center gap-1 text-xs text-charcoal-400 italic"
                             title="Cannot modify the sole administrator of this studio"
                           >
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                            <ShieldAlert className="w-3.5 h-3.5 text-bronze-600" />
                             Sole Admin
                           </span>
                         ) : (
@@ -547,7 +547,7 @@ export function TeamWorkspace() {
                                     : 'DESIGNER_ADMIN'
                                 );
                               }}
-                              className="px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 transition"
+                              className="px-2.5 py-1.5 text-xs font-medium text-charcoal-700 hover:bg-sand-100 :bg-sand-200 rounded border border-sand-200 transition"
                             >
                               Change Role
                             </button>
@@ -555,7 +555,7 @@ export function TeamWorkspace() {
                             <button
                               type="button"
                               onClick={() => setMemberToRemove(member)}
-                              className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                              className="p-1.5 text-charcoal-400 hover:text-red-600 :text-red-400 rounded hover:bg-red-50 :bg-red-950/30 transition"
                               title="Remove member"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -572,7 +572,7 @@ export function TeamWorkspace() {
         </div>
 
         {/* Mobile Responsive Cards (Screens < 768px, optimized for 360px-430px) */}
-        <div className="block md:hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div className="block md:hidden divide-y divide-sand-100">
           {teamData.members.map((member) => {
             const isTargetSelf = user?.email?.toLowerCase() === member.email?.toLowerCase();
             const isTargetAdmin = isStudioAdmin(member.role);
@@ -582,21 +582,21 @@ export function TeamWorkspace() {
               <div key={member.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white font-medium text-xs shadow-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-bronze-600 to-bronze-800 flex items-center justify-center text-white font-medium text-xs shadow-sm flex-shrink-0">
                       {member.fullName
                         ? member.fullName.slice(0, 2).toUpperCase()
                         : member.email.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                      <div className="font-medium text-sm text-charcoal-900 flex items-center gap-1.5">
                         {member.fullName || 'Studio Member'}
                         {isTargetSelf && (
-                          <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded font-normal">
+                          <span className="text-[10px] bg-sand-100 text-charcoal-600 px-1.5 py-0.2 rounded font-normal">
                             You
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate max-w-[200px]">
+                      <div className="text-xs text-charcoal-500 font-mono truncate max-w-[200px]">
                         {member.email}
                       </div>
                     </div>
@@ -604,14 +604,14 @@ export function TeamWorkspace() {
                   <div>{getRoleBadge(member.role)}</div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-1 border-t border-zinc-50 dark:border-zinc-800/60">
+                <div className="flex items-center justify-between text-xs text-charcoal-500 pt-1 border-t border-sand-100">
                   <span>Joined {new Date(member.joinedAt).toLocaleDateString()}</span>
 
                   {isAdminOrOwner && (
                     <div>
                       {isSoleAdminTarget ? (
-                        <span className="text-[11px] text-zinc-400 flex items-center gap-1 italic">
-                          <ShieldAlert className="w-3 h-3 text-amber-500" />
+                        <span className="text-[11px] text-charcoal-400 flex items-center gap-1 italic">
+                          <ShieldAlert className="w-3 h-3 text-bronze-600" />
                           Sole Admin
                         </span>
                       ) : (
@@ -626,14 +626,14 @@ export function TeamWorkspace() {
                                   : 'DESIGNER_ADMIN'
                               );
                             }}
-                            className="px-3 py-2 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                            className="px-3 py-2 min-h-[44px] text-xs font-medium text-charcoal-700 border border-sand-200 rounded-lg hover:bg-sand-100 :bg-sand-200"
                           >
                             Change Role
                           </button>
                           <button
                             type="button"
                             onClick={() => setMemberToRemove(member)}
-                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg border border-red-200 dark:border-red-900"
+                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 :bg-red-950/40 rounded-lg border border-red-200"
                             title="Remove member"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -656,21 +656,21 @@ export function TeamWorkspace() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
         >
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+          <div className="bg-white border border-sand-200 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
             {!inviteSuccessData ? (
               <>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-lg font-bold text-charcoal-900 flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-bronze-700" />
                     Invite Studio Member
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-charcoal-500">
                     Generate a single-use secure link for your colleague to join {teamData.studioName}.
                   </p>
                 </div>
 
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
-                  <Info className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
+                <div className="p-3 bg-sand-50 border border-sand-200 rounded-lg text-xs text-charcoal-600 flex items-start gap-2">
+                  <Info className="w-4 h-4 text-charcoal-400 flex-shrink-0 mt-0.5" />
                   <span>
                     Email delivery is not configured in this local environment. A secure invite link will be generated for you to copy and share directly.
                   </span>
@@ -678,7 +678,7 @@ export function TeamWorkspace() {
 
                 <form onSubmit={handleCreateInvite} className="space-y-4 pt-1">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-charcoal-700 mb-1.5">
                       Colleague&apos;s Email Address
                     </label>
                     <input
@@ -687,12 +687,12 @@ export function TeamWorkspace() {
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="designer@studio.com"
-                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-3 py-2 text-sm bg-sand-50 border border-sand-300 rounded-lg text-charcoal-900 placeholder-charcoal-400 focus:outline-none focus:ring-2 focus:ring-bronze-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-charcoal-700 mb-1.5">
                       Studio Role
                     </label>
                     <select
@@ -700,14 +700,14 @@ export function TeamWorkspace() {
                       onChange={(e) =>
                         setInviteRole(e.target.value as 'DESIGNER_ADMIN' | 'DESIGNER_MEMBER')
                       }
-                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-3 py-2 text-sm bg-sand-50 border border-sand-300 rounded-lg text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-bronze-500"
                     >
                       <option value="DESIGNER_MEMBER">Designer Member (Standard Access)</option>
                       <option value="DESIGNER_ADMIN">Designer Admin (Full Studio Management)</option>
                     </select>
 
                     {inviteRole === 'DESIGNER_ADMIN' && (
-                      <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <p className="mt-2 text-xs text-bronze-700 flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                         Admins can invite members, change roles, and modify studio configuration.
                       </p>
@@ -719,14 +719,14 @@ export function TeamWorkspace() {
                       type="button"
                       onClick={() => setShowInviteModal(false)}
                       disabled={isInviting}
-                      className="px-4 py-2 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition"
+                      className="px-4 py-2 min-h-[44px] text-xs font-medium text-charcoal-700 hover:bg-sand-100 :bg-sand-200 rounded-lg transition"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isInviting || !inviteEmail.trim()}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-xs font-medium text-white bg-bronze-700 hover:bg-bronze-800 rounded-lg transition disabled:opacity-50"
                     >
                       {isInviting ? (
                         <>
@@ -743,23 +743,23 @@ export function TeamWorkspace() {
             ) : (
               <div className="space-y-4">
                 <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                     <Check className="w-6 h-6" />
                   </div>
-                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                  <h3 className="text-base font-bold text-charcoal-900">
                     Invitation Link Created!
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-charcoal-500">
                     Copy and share this link directly with{' '}
-                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                    <span className="font-semibold text-charcoal-800">
                       {inviteSuccessData.invitedEmail}
                     </span>
                     . Valid for 7 days.
                   </p>
                 </div>
 
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
-                  <label className="block text-[11px] font-semibold text-zinc-500 uppercase">
+                <div className="p-3 bg-sand-50 border border-sand-200 rounded-lg space-y-2">
+                  <label className="block text-[11px] font-semibold text-charcoal-500 uppercase">
                     Invitation URL
                   </label>
                   <div className="flex items-center gap-2">
@@ -767,12 +767,12 @@ export function TeamWorkspace() {
                       type="text"
                       readOnly
                       value={inviteSuccessData.inviteLink}
-                      className="w-full text-xs bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded px-2.5 py-2 font-mono text-zinc-800 dark:text-zinc-200 select-all"
+                      className="w-full text-xs bg-white border border-sand-300 rounded px-2.5 py-2 font-mono text-charcoal-800 select-all"
                     />
                     <button
                       type="button"
                       onClick={() => handleCopyLink(inviteSuccessData.inviteLink)}
-                      className="px-3 py-2 min-h-[40px] text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded flex items-center gap-1.5 transition flex-shrink-0"
+                      className="px-3 py-2 min-h-[40px] text-xs font-medium text-white bg-bronze-700 hover:bg-bronze-800 rounded flex items-center gap-1.5 transition flex-shrink-0"
                     >
                       {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       {copiedLink ? 'Copied' : 'Copy'}
@@ -787,7 +787,7 @@ export function TeamWorkspace() {
                       setShowInviteModal(false);
                       setInviteSuccessData(null);
                     }}
-                    className="px-4 py-2 min-h-[44px] text-xs font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-800 dark:text-zinc-200 rounded-lg transition"
+                    className="px-4 py-2 min-h-[44px] text-xs font-medium bg-sand-100 hover:bg-sand-200 text-charcoal-800 rounded-lg transition"
                   >
                     Done
                   </button>
@@ -805,13 +805,13 @@ export function TeamWorkspace() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
         >
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+          <div className="bg-white border border-sand-200 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-charcoal-900">
               Update Member Role
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-charcoal-500">
               Change the studio permissions for{' '}
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+              <span className="font-semibold text-charcoal-800">
                 {roleChangeTarget.fullName || roleChangeTarget.email}
               </span>
               .
@@ -819,7 +819,7 @@ export function TeamWorkspace() {
 
             <div className="space-y-3 pt-1">
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <label className="block text-xs font-semibold text-charcoal-700 mb-1.5">
                   Select Role
                 </label>
                 <select
@@ -827,7 +827,7 @@ export function TeamWorkspace() {
                   onChange={(e) =>
                     setNewSelectedRole(e.target.value as 'DESIGNER_ADMIN' | 'DESIGNER_MEMBER')
                   }
-                  className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-sm bg-sand-50 border border-sand-300 rounded-lg text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-bronze-500"
                 >
                   <option value="DESIGNER_MEMBER">Designer Member</option>
                   <option value="DESIGNER_ADMIN">Designer Admin</option>
@@ -838,7 +838,7 @@ export function TeamWorkspace() {
               {adminCount <= 1 &&
                 isStudioAdmin(roleChangeTarget.role) &&
                 newSelectedRole === 'DESIGNER_MEMBER' && (
-                  <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
                     <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>
                       Cannot demote: This is the sole administrator in this studio. Assign another administrator before demoting.
@@ -852,7 +852,7 @@ export function TeamWorkspace() {
                 type="button"
                 onClick={() => setRoleChangeTarget(null)}
                 disabled={isChangingRole}
-                className="px-4 py-2 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition"
+                className="px-4 py-2 min-h-[44px] text-xs font-medium text-charcoal-700 hover:bg-sand-100 :bg-sand-200 rounded-lg transition"
               >
                 Cancel
               </button>
@@ -865,7 +865,7 @@ export function TeamWorkspace() {
                     isStudioAdmin(roleChangeTarget.role) &&
                     newSelectedRole === 'DESIGNER_MEMBER')
                 }
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-xs font-medium text-white bg-bronze-700 hover:bg-bronze-800 rounded-lg transition disabled:opacity-50"
               >
                 {isChangingRole ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save Role'}
               </button>
@@ -881,18 +881,18 @@ export function TeamWorkspace() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
         >
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
-            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <div className="bg-white border border-sand-200 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
               <Trash2 className="w-5 h-5" />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-base font-bold text-charcoal-900">
                 Remove Studio Member?
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className="text-xs text-charcoal-500 mt-1">
                 Are you sure you want to remove{' '}
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                <span className="font-semibold text-charcoal-800">
                   {memberToRemove.fullName || memberToRemove.email}
                 </span>{' '}
                 from {teamData.studioName}? They will immediately lose access to this workspace.
@@ -904,7 +904,7 @@ export function TeamWorkspace() {
                 type="button"
                 onClick={() => setMemberToRemove(null)}
                 disabled={isRemoving}
-                className="px-4 py-2 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition"
+                className="px-4 py-2 min-h-[44px] text-xs font-medium text-charcoal-700 hover:bg-sand-100 :bg-sand-200 rounded-lg transition"
               >
                 Cancel
               </button>
@@ -928,21 +928,21 @@ export function TeamWorkspace() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
         >
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+          <div className="bg-white border border-sand-200 rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div className="w-10 h-10 rounded-full bg-bronze-100 text-bronze-700 flex items-center justify-center">
               <LogOut className="w-5 h-5" />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-base font-bold text-charcoal-900">
                 Leave {teamData.studioName}?
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className="text-xs text-charcoal-500 mt-1">
                 You will forfeit access to projects, media, and client reviews associated with this studio.
               </p>
 
               {isSoleAdmin && (
-                <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
                   <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>
                     Cannot leave studio: You are the sole administrator. Promote another member or assign ownership before leaving.
@@ -956,7 +956,7 @@ export function TeamWorkspace() {
                 type="button"
                 onClick={() => setShowLeaveModal(false)}
                 disabled={isLeaving}
-                className="px-4 py-2 min-h-[44px] text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition"
+                className="px-4 py-2 min-h-[44px] text-xs font-medium text-charcoal-700 hover:bg-sand-100 :bg-sand-200 rounded-lg transition"
               >
                 Cancel
               </button>

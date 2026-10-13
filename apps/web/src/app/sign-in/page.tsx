@@ -72,14 +72,14 @@ function SignInContent() {
   };
 
   return (
-    <div className="auth-editorial min-h-[80vh] flex items-center justify-center px-4 py-12 bg-sand-50/50">
+    <div className="auth-editorial min-h-[80vh] flex items-center justify-center px-4 py-12 bg-[#FAF8F5]">
       <div className="w-full max-w-md bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <span className="text-xs font-semibold tracking-widest uppercase text-bronze-700 mb-2 block">
             Secure Platform Access
           </span>
           <h1 className="font-serif text-3xl text-charcoal-900 tracking-tight">
-            Sign In to Atelier
+            Sign In to Elégance
           </h1>
           <p className="text-sm text-charcoal-600 mt-2">
             Access your interior architecture projects, studio workspace, or client inquiries.

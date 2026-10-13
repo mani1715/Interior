@@ -43,7 +43,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
   switchStudio?: (studioId: string) => Promise<void>;
-  loginDevPersona: (persona: string) => Promise<void>;
+  loginDevPersona: (persona: string) => Promise<AuthUser | null | void>;
   logout: () => Promise<void>;
   revokeAllSessions: () => Promise<void>;
 }
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const loginDevPersona = async (persona: string) => {
+  const loginDevPersona = async (persona: string): Promise<AuthUser | null> => {
     setIsLoading(true);
     try {
       const data = await apiFetch<AuthResponse>('/auth/dev-login', {
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ persona }),
       });
       if (data && data.id) {
-        setUser({
+        const authUser: AuthUser = {
           id: data.id,
           displayName: data.displayName || 'User',
           email: data.email || null,
@@ -139,8 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           activeStudioRole: data.activeStudioRole || null,
           studios: data.studios || [],
           assurance: data.assurance || 'PASSWORD',
-        });
+        };
+        setUser(authUser);
+        return authUser;
       }
+      return null;
     } finally {
       setIsLoading(false);
     }

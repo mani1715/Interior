@@ -1438,9 +1438,9 @@ export default function ProfessionalOnboardingPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-charcoal-500">Next Phase</dt>
+                  <dt className="text-charcoal-500">Next Step</dt>
                   <dd className="font-semibold text-bronze-800 mt-0.5">
-                    Phase 09: Studio Workspace
+                    Studio Workspace
                   </dd>
                 </div>
               </dl>

@@ -3,17 +3,24 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { PublicHeader } from '../navigation/PublicHeader';
 
+let mockAuthState = {
+  user: null as any,
+  isAuthenticated: false,
+  logout: vi.fn(),
+};
+
 // Mock auth context
 vi.mock('@/lib/auth/auth-context', () => ({
-  useAuth: () => ({
-    user: null,
-    isAuthenticated: false,
-    logout: vi.fn(),
-  }),
+  useAuth: () => mockAuthState,
 }));
 
 describe('PublicHeader Navigation', () => {
   beforeEach(() => {
+    mockAuthState = {
+      user: null,
+      isAuthenticated: false,
+      logout: vi.fn(),
+    };
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: false,
       addEventListener: vi.fn(),
@@ -48,5 +55,76 @@ describe('PublicHeader Navigation', () => {
     const closeBtn = screen.getByRole('button', { name: /close navigation/i });
     fireEvent.click(closeBtn);
     expect(screen.queryByRole('dialog', { name: /navigation menu/i })).toBeNull();
+  });
+
+  it('displays Admin Console link for ADMIN role', () => {
+    mockAuthState = {
+      isAuthenticated: true,
+      logout: vi.fn(),
+      user: {
+        id: 'usr-admin-1',
+        displayName: 'Platform Admin',
+        email: 'admin@elegance.test',
+        status: 'ACTIVE',
+        roles: ['ADMIN'],
+        permissions: [],
+        activeStudioId: null,
+        activeStudioRole: null,
+        studios: [],
+        assurance: 'PASSWORD',
+      },
+    };
+
+    render(<PublicHeader />);
+    const adminLink = screen.getAllByRole('link', { name: /admin console/i });
+    expect(adminLink.length).toBeGreaterThan(0);
+    expect(adminLink[0].getAttribute('href')).toBe('/admin');
+  });
+
+  it('displays Admin Console link for SUPER_ADMIN role', () => {
+    mockAuthState = {
+      isAuthenticated: true,
+      logout: vi.fn(),
+      user: {
+        id: 'usr-super-1',
+        displayName: 'Super Admin',
+        email: 'super@elegance.test',
+        status: 'ACTIVE',
+        roles: ['SUPER_ADMIN'],
+        permissions: [],
+        activeStudioId: null,
+        activeStudioRole: null,
+        studios: [],
+        assurance: 'PASSWORD',
+      },
+    };
+
+    render(<PublicHeader />);
+    const adminLink = screen.getAllByRole('link', { name: /admin console/i });
+    expect(adminLink.length).toBeGreaterThan(0);
+    expect(adminLink[0].getAttribute('href')).toBe('/admin');
+  });
+
+  it('hides Admin Console link for CUSTOMER and standard DESIGNER roles', () => {
+    mockAuthState = {
+      isAuthenticated: true,
+      logout: vi.fn(),
+      user: {
+        id: 'usr-cust-1',
+        displayName: 'Client User',
+        email: 'client@elegance.test',
+        status: 'ACTIVE',
+        roles: ['CUSTOMER'],
+        permissions: [],
+        activeStudioId: null,
+        activeStudioRole: null,
+        studios: [],
+        assurance: 'PASSWORD',
+      },
+    };
+
+    render(<PublicHeader />);
+    const adminLinks = screen.queryAllByRole('link', { name: /admin console/i });
+    expect(adminLinks.length).toBe(0);
   });
 });

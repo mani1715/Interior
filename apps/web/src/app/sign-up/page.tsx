@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
+import { sanitizeRedirectUrl, resolveAuthDestination } from '@/lib/auth/redirect';
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
   const { loginDevPersona } = useAuth();
   const [selectedIntent, setSelectedIntent] = useState<'CUSTOMER' | 'DESIGNER'>('CUSTOMER');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -16,15 +19,25 @@ export default function SignUpPage() {
     try {
       // In dev/test environment, route directly to the respective persona
       const persona = selectedIntent === 'DESIGNER' ? 'designer_owner' : 'customer';
-      await loginDevPersona(persona);
-      router.push('/account');
+      const loggedResult = await loginDevPersona(persona);
+      const loggedUser = loggedResult || null;
+      if (selectedIntent === 'DESIGNER') {
+        const dest = resolveAuthDestination(loggedUser, returnUrl);
+        if (dest === '/account') {
+          router.push('/onboarding/professional');
+        } else {
+          router.push(dest);
+        }
+      } else {
+        router.push(returnUrl ? sanitizeRedirectUrl(returnUrl, '/account') : '/account');
+      }
     } catch {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-editorial min-h-[80vh] flex items-center justify-center px-4 py-12 bg-sand-50/50">
+    <div className="auth-editorial min-h-[80vh] flex items-center justify-center px-4 py-12 bg-[#FAF8F5]">
       <div className="w-full max-w-lg bg-white border border-sand-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <span className="text-xs font-semibold tracking-widest uppercase text-bronze-700 mb-2 block">
@@ -87,7 +100,7 @@ export default function SignUpPage() {
         <div className="p-4 rounded-xl bg-sand-50 border border-sand-200 text-xs text-charcoal-600 mb-6 space-y-1">
           <p className="font-semibold text-charcoal-800">Security Architecture Notice</p>
           <p>
-            Under the principle of least privilege, initial account registration grants Customer access. Designer studio verification, team member assignments, and elevated studio permissions are provisioned during Phase 08 Studio Onboarding.
+            Under the principle of least privilege, initial account registration grants Customer access. Designer studio verification, team member assignments, and elevated studio permissions are set up during Studio Onboarding and Verification.
           </p>
         </div>
 
@@ -109,5 +122,19 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[80vh] flex items-center justify-center bg-[#FAF8F5]">
+          <div className="w-8 h-8 border-4 border-bronze-200 border-t-bronze-600 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SignUpContent />
+    </Suspense>
   );
 }

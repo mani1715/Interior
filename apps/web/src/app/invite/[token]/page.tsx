@@ -110,56 +110,56 @@ export default function InviteAcceptancePage() {
     user.email.toLowerCase() !== validation.invitedEmail.toLowerCase();
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
-      <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
+      <div className="max-w-md w-full bg-white border border-sand-200 rounded-2xl shadow-xl overflow-hidden">
         {/* Brand Header */}
-        <div className="bg-gradient-to-r from-amber-600 to-amber-700 p-6 text-white text-center">
+        <div className="bg-gradient-to-r from-bronze-700 to-bronze-800 p-6 text-white text-center">
           <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center mx-auto mb-3 border border-white/20">
             <Users2 className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-xl font-bold tracking-tight">Studio Team Invitation</h1>
-          <p className="text-amber-100 text-xs mt-1">
+          <p className="text-bronze-100 text-xs mt-1">
             Join a professional interior design workspace
           </p>
         </div>
 
         <div className="p-6 sm:p-8 space-y-6">
           {loading || authLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-zinc-500 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+            <div className="flex flex-col items-center justify-center py-12 text-charcoal-500 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-bronze-700" />
               <p className="text-sm">Validating invitation credentials...</p>
             </div>
           ) : success ? (
             <div className="text-center py-8 space-y-4">
-              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-lg font-bold text-charcoal-900">
                   Welcome to {validation?.studioName}!
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-charcoal-500">
                   Your membership has been verified. Redirecting to workspace...
                 </p>
               </div>
             </div>
           ) : error || !validation?.valid ? (
             <div className="text-center py-6 space-y-4">
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-base font-bold text-charcoal-900">
                   Invitation Unavailable
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-charcoal-500">
                   {error || 'This invitation has expired or has already been used.'}
                 </p>
               </div>
               <div className="pt-2">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-bronze-700 hover:text-bronze-800"
                 >
                   Return to Home
                 </Link>
@@ -168,16 +168,16 @@ export default function InviteAcceptancePage() {
           ) : (
             <div className="space-y-5">
               {/* Studio & Invitation Details */}
-              <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 space-y-3">
+              <div className="bg-sand-50 border border-sand-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Studio</span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  <span className="text-xs text-charcoal-500">Studio</span>
+                  <span className="text-sm font-bold text-charcoal-900">
                     {validation.studioName}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Invited Role</span>
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                  <span className="text-xs text-charcoal-500">Invited Role</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-bronze-100 text-bronze-900">
                     {validation.role === 'DESIGNER_ADMIN' || validation.role === 'ADMIN' ? (
                       <>
                         <Shield className="w-3 h-3" /> {formatStudioRoleLabel(validation.role)}
@@ -191,8 +191,8 @@ export default function InviteAcceptancePage() {
                 </div>
                 {displayedEmail && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Recipient</span>
-                    <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300">
+                    <span className="text-xs text-charcoal-500">Recipient</span>
+                    <span className="text-xs font-mono text-charcoal-700">
                       {displayedEmail}
                     </span>
                   </div>
@@ -202,12 +202,12 @@ export default function InviteAcceptancePage() {
               {/* Authentication Conditions */}
               {!isAuthenticated ? (
                 <div className="space-y-3 text-center">
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  <p className="text-xs text-charcoal-600">
                     To accept this invitation and access {validation.studioName}, please sign in or register with your invited email address.
                   </p>
                   <Link
                     href="/sign-in?returnUrl=/invite/accept"
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-bronze-700 hover:bg-bronze-800 text-white text-sm font-semibold rounded-xl shadow-sm transition"
                   >
                     Sign In to Accept
                     <ArrowRight className="w-4 h-4" />
@@ -215,18 +215,18 @@ export default function InviteAcceptancePage() {
                 </div>
               ) : isEmailMismatch ? (
                 <div className="space-y-4">
-                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 space-y-2">
+                  <div className="p-3.5 bg-bronze-50 border border-bronze-200 rounded-lg text-xs text-bronze-900 space-y-2">
                     <div className="flex items-center gap-2 font-semibold">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-bronze-700 flex-shrink-0" />
                       Email Address Mismatch
                     </div>
                     <p>
                       You are currently signed in as{' '}
-                      <span className="font-mono font-bold text-amber-950 dark:text-amber-100">
+                      <span className="font-mono font-bold text-amber-950">
                         {user?.email}
                       </span>
                       , but this invitation was issued to{' '}
-                      <span className="font-mono font-bold text-amber-950 dark:text-amber-100">
+                      <span className="font-mono font-bold text-amber-950">
                         {displayedEmail}
                       </span>
                       .
@@ -239,7 +239,7 @@ export default function InviteAcceptancePage() {
                       await logout();
                       window.location.href = '/sign-in?returnUrl=/invite/accept';
                     }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold rounded-lg transition"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] border border-sand-300 hover:bg-sand-50 :bg-sand-100 text-charcoal-700 text-xs font-semibold rounded-lg transition"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Switch Account to {displayedEmail}
@@ -247,7 +247,7 @@ export default function InviteAcceptancePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <span>
                       Authenticated as <span className="font-mono font-semibold">{user?.email}</span>.
@@ -258,7 +258,7 @@ export default function InviteAcceptancePage() {
                     type="button"
                     disabled={accepting}
                     onClick={handleAccept}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-bronze-700 hover:bg-bronze-800 text-white text-sm font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
                   >
                     {accepting ? (
                       <>

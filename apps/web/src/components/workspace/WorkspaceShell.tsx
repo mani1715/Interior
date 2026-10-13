@@ -294,7 +294,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const studio = summary?.studio;
 
   return (
-    <div className="workspace-editorial min-h-screen bg-[var(--surface-sunken,#fbfaf8)] flex flex-col md:flex-row">
+    <div className="workspace-editorial min-h-screen bg-[#FAF8F5] flex flex-col md:flex-row">
       {/* ============================================================ */}
       {/* DESKTOP SIDEBAR (Visible at md / 768px+)                     */}
       {/* ============================================================ */}
@@ -609,7 +609,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1" id="main-content" tabIndex={-1}>
+        <main className="flex-1 pb-20 md:pb-0" id="main-content" tabIndex={-1}>
           {children}
         </main>
       </div>

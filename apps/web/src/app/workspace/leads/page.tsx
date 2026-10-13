@@ -282,7 +282,7 @@ export default function LeadsWorkspacePage() {
         );
       case 'ARCHIVED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-800 border border-zinc-300">
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sand-100 text-charcoal-700 border border-sand-300">
             Archived
           </span>
         );
@@ -408,11 +408,11 @@ export default function LeadsWorkspacePage() {
           onClick={() => setActiveTab('ARCHIVED')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             activeTab === 'ARCHIVED'
-              ? 'bg-zinc-700 text-white border-zinc-700 shadow-sm'
+              ? 'bg-charcoal-800 text-white border-charcoal-800 shadow-sm'
               : 'bg-white text-charcoal-800 border-sand-200 hover:border-sand-300'
           }`}
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wider block text-zinc-500">
+          <span className="text-[10px] font-semibold uppercase tracking-wider block text-charcoal-500">
             Archived
           </span>
           <span className="font-serif text-2xl font-bold">{counts.archived}</span>

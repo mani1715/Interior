@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-sand-50 flex items-center justify-center p-6 text-charcoal-700">
+      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-6 text-charcoal-700">
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-bronze-600 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-medium">Verifying administrator session...</span>
@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   if (!user || !isPlatformAdmin) {
     return (
-      <main className="min-h-screen bg-sand-50 flex items-center justify-center p-6">
+      <main className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white border border-sand-300 rounded-xl p-8 shadow-sm text-center">
           <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShieldAlert className="w-6 h-6" />
@@ -86,7 +86,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-sand-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
       <aside
         className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-sand-200 flex flex-col shrink-0"
