@@ -36,6 +36,10 @@ services:
       APP_SECURITY_SESSION_COOKIE_SECURE: "${APP_SECURITY_SESSION_COOKIE_SECURE:-false}"
       APP_SECURITY_ALLOWED_ORIGINS: ${APP_SECURITY_ALLOWED_ORIGINS:-http://localhost:3000}
       APP_STORAGE_LOCAL_BASE_DIR: /app/storage
+      MALWARE_SCANNER_PROVIDER: ${MALWARE_SCANNER_PROVIDER:-clamav}
+      REQUIRE_CLEAN_SCAN: "${REQUIRE_CLEAN_SCAN:-true}"
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
     ports:
       - "8080:8080"
     volumes:
@@ -47,6 +51,21 @@ services:
       start_period: 40s
       retries: 3
     restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:1.4.1
+    container_name: interior-platform-clamav
+    restart: unless-stopped
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "echo PING | nc -w 2 127.0.0.1 3310 | grep -q PONG || exit 1"]
+      interval: 20s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
 
   web:
     build:
@@ -75,3 +94,4 @@ services:
 volumes:
   postgres_data:
   api_storage:
+  clamav_data:

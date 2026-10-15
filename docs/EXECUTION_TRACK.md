@@ -176,15 +176,19 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Operational Diagnostics & Reconciler: Stuck-job reconciler transitioning overdue processing jobs to `TIMED_OUT` after 5 minutes and refunding reservations.
   - Verification: 505/505 backend tests PASS (0 failures, 0 errors, 0 skipped), 33/33 PostgreSQL RLS tests across 9 classes PASS, 368/368 frontend tests PASS, TypeScript PASS, ESLint PASS, Next.js build PASS.
 
-- **Phase 11A: Production Decision Lock (Antigravity)**
-  - Authored comprehensive Phase 11A Production Decision Package, Provider Decision Matrix, Commercial Policy Decisions, Infrastructure Plan, and Secret/Config Matrix.
-  - Reconciled all source-truth abstractions across billing, email, AI, storage, OIDC, and malware scanning.
-  - Release candidate locked at commit `ccbbcec534f466c8f40fbfe86d63915e66ecbb9e` (Flyway V040).
-  - Feature freeze active; DEPLOYMENT NOT PERFORMED.
+- **Phase 12A.1: Real Cloud Media Storage & Production Malware Scanner Foundation (Antigravity)**
+  - Cloudflare R2 S3-compatible architecture: Verified complete 6-operation contract in `S3StorageContractTest` (PutObject, GetObject, HeadObject, CopyObject, DeleteObject, Presigned PUT/GET).
+  - Production ClamAV streaming malware adapter: Implemented `ClamAvMalwareScanner` using private TCP socket `zINSTREAM` chunked streaming protocol with fail-closed result mapping.
+  - Fail-closed upload pipeline: Reordered `MediaService` commit gates so malware scan strictly executes before raw byte dimension/image parsing (`ImageProcessingService`).
+  - Containerization & Isolation: Configured private ClamAV container on internal Docker bridge network (`interior_network`, port 3310 internal only) in `docker-compose.yml` and `docker-compose.prod.yml`.
+  - Spring Boot Actuator: Added `MalwareScannerHealthIndicator` for non-blocking health monitoring.
+  - Production Configuration Validator: Hardened startup checks rejecting `fake` scanner in production profile and enforcing S3 endpoint/credentials when S3 is active.
+  - Verification: 13/13 ClamAvMalwareScanner tests PASS, 8/8 S3StorageContract tests PASS, 6/6 MediaMalwareScanning tests PASS, 8/8 ProductionHardening tests PASS, 5/5 PostgreSQL RLS media tests PASS (`PostgreSqlMediaMalwareSecurityTest`, `PostgreSqlMediaLifecycleRlsTest`).
+  - Live Validation Script: Created `scripts/verify-r2-live-integration.ps1` with dry-run Phase 12A.1 foundation check and opt-in Phase 12A.2 live runner. Zero secrets committed.
 
 ## Current Next Step:
 
-- Phase 11B: User Production Decision Approval → Live Cloud Infrastructure Provisioning → Deployment → Live Smoke Test.
+- Phase 12A.2: Live Cloudflare R2 Credential & Cloud Storage Contract Validation via `scripts/verify-r2-live-integration.ps1`.
 
 ---
 

@@ -28,6 +28,47 @@ public class MediaSecurityProperties {
      */
     private int maxScanRetries = 2;
 
+    private ClamAvProperties clamav = new ClamAvProperties();
+
+    public static class ClamAvProperties {
+        private String host = "localhost";
+        private int port = 3310;
+        private int connectionTimeoutMs = 3000;
+        private int readTimeoutMs = 10000;
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public int getConnectionTimeoutMs() {
+            return connectionTimeoutMs;
+        }
+
+        public void setConnectionTimeoutMs(int connectionTimeoutMs) {
+            this.connectionTimeoutMs = connectionTimeoutMs;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+        }
+    }
+
     public String getScanner() {
         return scanner;
     }
@@ -58,5 +99,13 @@ public class MediaSecurityProperties {
 
     public void setMaxScanRetries(int maxScanRetries) {
         this.maxScanRetries = maxScanRetries;
+    }
+
+    public ClamAvProperties getClamav() {
+        return clamav;
+    }
+
+    public void setClamav(ClamAvProperties clamav) {
+        this.clamav = clamav;
     }
 }

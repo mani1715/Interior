@@ -270,13 +270,13 @@ public class MediaService {
             throw new BadRequestException("Uploaded file data is empty");
         }
 
-        // Validate and get image dimensions (magic bytes, dimensions, pixel limit)
-        ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(rawBytes);
-
-        // Security scan gate: ensure payload is clean before committing to canonical storage
+        // 1. Security scan gate: ensure payload is clean before any parsing or processing
         if (mediaSecurityScanService != null) {
             mediaSecurityScanService.scanAndEnforce(intent, rawBytes, actor.userId());
         }
+
+        // 2. Validate and get image dimensions (magic bytes, dimensions, pixel limit)
+        ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(rawBytes);
 
         // Visibility rules
         MediaType mediaType = intent.mediaType();

@@ -3,6 +3,7 @@ package com.interior.platform.admin;
 import com.interior.platform.common.filter.RequestCorrelationFilter;
 import com.interior.platform.common.filter.SecurityHeadersFilter;
 import com.interior.platform.config.ProductionConfigurationValidator;
+import com.interior.platform.media.config.MediaSecurityProperties;
 import com.interior.platform.email.domain.EmailMessage;
 import com.interior.platform.email.domain.EmailSendResult;
 import com.interior.platform.email.provider.DisabledEmailProvider;
@@ -110,5 +111,66 @@ class ProductionHardeningTest {
         org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
 
         assertThrows(IllegalStateException.class, () -> validator.run(null));
+    }
+
+    @Test
+    @DisplayName("ProductionConfigurationValidator rejects FakeMalwareScanner in production")
+    void productionConfigurationValidatorRejectsFakeScannerInProd() {
+        MockEnvironment prodEnv = new MockEnvironment();
+        prodEnv.setActiveProfiles("production");
+
+        MediaSecurityProperties secProps = new MediaSecurityProperties();
+        secProps.setScanner("fake");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(prodEnv, secProps);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", false);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "storageProvider", "LOCAL");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.run(null));
+        assertTrue(ex.getMessage().contains("FakeMalwareScanner MUST NOT be used in production"));
+    }
+
+    @Test
+    @DisplayName("ProductionConfigurationValidator rejects missing S3_ENDPOINT when S3_COMPATIBLE is enabled in production")
+    void productionConfigurationValidatorRejectsMissingS3Endpoint() {
+        MockEnvironment prodEnv = new MockEnvironment();
+        prodEnv.setActiveProfiles("production");
+
+        MediaSecurityProperties secProps = new MediaSecurityProperties();
+        secProps.setScanner("disabled");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(prodEnv, secProps);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", false);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "storageProvider", "S3_COMPATIBLE");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "s3Endpoint", "");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.run(null));
+        assertTrue(ex.getMessage().contains("S3_ENDPOINT is not configured"));
+    }
+
+    @Test
+    @DisplayName("ProductionConfigurationValidator rejects missing S3 credentials when S3_COMPATIBLE is enabled in production")
+    void productionConfigurationValidatorRejectsMissingS3Credentials() {
+        MockEnvironment prodEnv = new MockEnvironment();
+        prodEnv.setActiveProfiles("production");
+
+        MediaSecurityProperties secProps = new MediaSecurityProperties();
+        secProps.setScanner("disabled");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(prodEnv, secProps);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", false);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "storageProvider", "S3_COMPATIBLE");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "s3Endpoint", "https://r2.cloudflarestorage.com");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "s3AccessKeyId", "");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "s3SecretAccessKey", "");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.run(null));
+        assertTrue(ex.getMessage().contains("S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is not configured"));
     }
 }

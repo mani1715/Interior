@@ -1,5 +1,6 @@
 package com.interior.platform.media.config;
 
+import com.interior.platform.media.security.scanner.ClamAvMalwareScanner;
 import com.interior.platform.media.security.scanner.DisabledMalwareScanner;
 import com.interior.platform.media.security.scanner.FakeMalwareScanner;
 import com.interior.platform.media.security.scanner.MalwareScanner;
@@ -23,6 +24,12 @@ public class MediaSecurityConfiguration {
         return switch (provider) {
             case "disabled" -> new DisabledMalwareScanner();
             case "fake" -> new FakeMalwareScanner();
+            case "clamav" -> new ClamAvMalwareScanner(
+                    properties.getClamav().getHost(),
+                    properties.getClamav().getPort(),
+                    properties.getClamav().getConnectionTimeoutMs(),
+                    properties.getClamav().getReadTimeoutMs()
+            );
             default -> {
                 log.warn("Unknown malware scanner provider '{}', falling back to DisabledMalwareScanner", provider);
                 yield new DisabledMalwareScanner();
