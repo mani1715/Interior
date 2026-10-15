@@ -19,6 +19,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
 
     private final Environment environment;
     private final MediaSecurityProperties mediaSecurityProperties;
+    private final com.interior.platform.security.config.AuthSecurityProperties authSecurityProperties;
 
     @Value("${app.security.dev-auth-enabled:false}")
     private boolean devAuthEnabled;
@@ -42,13 +43,22 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private String s3SecretAccessKey;
 
     public ProductionConfigurationValidator(Environment environment) {
-        this(environment, new MediaSecurityProperties());
+        this(environment, new MediaSecurityProperties(), new com.interior.platform.security.config.AuthSecurityProperties());
+    }
+
+    public ProductionConfigurationValidator(Environment environment, MediaSecurityProperties mediaSecurityProperties) {
+        this(environment, mediaSecurityProperties, new com.interior.platform.security.config.AuthSecurityProperties());
     }
 
     @org.springframework.beans.factory.annotation.Autowired
-    public ProductionConfigurationValidator(Environment environment, MediaSecurityProperties mediaSecurityProperties) {
+    public ProductionConfigurationValidator(
+            Environment environment,
+            MediaSecurityProperties mediaSecurityProperties,
+            com.interior.platform.security.config.AuthSecurityProperties authSecurityProperties
+    ) {
         this.environment = environment;
         this.mediaSecurityProperties = mediaSecurityProperties != null ? mediaSecurityProperties : new MediaSecurityProperties();
+        this.authSecurityProperties = authSecurityProperties != null ? authSecurityProperties : new com.interior.platform.security.config.AuthSecurityProperties();
     }
 
     @Override
@@ -77,12 +87,32 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             scannerStatus = mediaSecurityProperties.isRequireCleanScan() ? "DISABLED (Fail-Closed Default)" : "DISABLED (Bypassed)";
         }
 
+        String oidcStatus;
+        int readyProviders = 0;
+        if (authSecurityProperties.getOidc().getProviders() != null) {
+            for (var entry : authSecurityProperties.getOidc().getProviders().entrySet()) {
+                var p = entry.getValue();
+                boolean hasId = p.getClientId() != null && !p.getClientId().isBlank();
+                boolean hasSecret = p.getClientSecret() != null && !p.getClientSecret().isBlank();
+                if (hasId && hasSecret && !isPlaceholder(p.getClientId()) && !isPlaceholder(p.getClientSecret())) {
+                    readyProviders++;
+                }
+            }
+        }
+        if (readyProviders > 0) {
+            oidcStatus = "CONFIGURED (" + readyProviders + " active provider(s))";
+        } else if (isProduction) {
+            oidcStatus = "NOT_CONFIGURED (Phase 15 Provider Activation Pending)";
+        } else {
+            oidcStatus = devAuthEnabled ? "DEV_PERSONA_SANDBOX" : "DISABLED";
+        }
+
         log.info("================================================================================");
         log.info("           PLATFORM SYSTEM STARTUP & CONFIGURATION MATRIX                       ");
         log.info("================================================================================");
         log.info(" Active Profiles       : {}", activeProfiles.isEmpty() ? "[default]" : activeProfiles);
         log.info(" Database (PostgreSQL) : CONFIGURED");
-        log.info(" Auth (OIDC)           : {}", isProduction ? "NOT_CONFIGURED (Requires OIDC Client ID)" : "DEV_PERSONA_SANDBOX");
+        log.info(" Auth (OIDC)           : {}", oidcStatus);
         log.info(" Object Storage        : {}", storageStatus);
         log.info(" Malware Scanner       : {}", scannerStatus);
         log.info(" AI Visualizer         : NOT_CONFIGURED (DisabledAiImageProvider)");
@@ -96,6 +126,42 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                 String errorMsg = "CRITICAL SECURITY FAULT: app.security.dev-auth-enabled MUST NOT be true in production!";
                 log.error(errorMsg);
                 throw new IllegalStateException(errorMsg);
+            }
+
+            if (authSecurityProperties.getOidc().getProviders() != null) {
+                for (var entry : authSecurityProperties.getOidc().getProviders().entrySet()) {
+                    var p = entry.getValue();
+                    boolean hasClientId = p.getClientId() != null && !p.getClientId().isBlank();
+                    boolean hasSecret = p.getClientSecret() != null && !p.getClientSecret().isBlank();
+
+                    if (hasClientId || hasSecret) {
+                        if (!hasClientId || isPlaceholder(p.getClientId())) {
+                            String errorMsg = "CRITICAL CONFIGURATION FAULT: OIDC provider '" + entry.getKey() + "' is enabled but clientId is missing or placeholder.";
+                            log.error(errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        if (!hasSecret || isPlaceholder(p.getClientSecret())) {
+                            String errorMsg = "CRITICAL CONFIGURATION FAULT: OIDC provider '" + entry.getKey() + "' is enabled but clientSecret is missing or placeholder.";
+                            log.error(errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        if (p.getIssuer() == null || p.getIssuer().isBlank()) {
+                            String errorMsg = "CRITICAL CONFIGURATION FAULT: OIDC provider '" + entry.getKey() + "' is enabled but issuer is not configured.";
+                            log.error(errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        if (p.getTokenUri() == null || p.getTokenUri().isBlank()) {
+                            String errorMsg = "CRITICAL CONFIGURATION FAULT: OIDC provider '" + entry.getKey() + "' is enabled but tokenUri is not configured.";
+                            log.error(errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        if (p.getRedirectUri() == null || p.getRedirectUri().isBlank()) {
+                            String errorMsg = "CRITICAL CONFIGURATION FAULT: OIDC provider '" + entry.getKey() + "' is enabled but redirectUri is not configured.";
+                            log.error(errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                    }
+                }
             }
 
             if (!sessionCookieSecure) {
@@ -148,4 +214,11 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             }
         }
     }
+
+    private boolean isPlaceholder(String val) {
+        if (val == null) return true;
+        String lower = val.toLowerCase().trim();
+        return lower.startsWith("your-") || lower.contains("placeholder") || lower.equals("change-me");
+    }
 }
+

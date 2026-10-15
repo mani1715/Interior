@@ -195,9 +195,17 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Multilingual UTF-8: Verified roundtrip persistence for English, Telugu, Hindi, and Tamil text.
   - Provider-Neutral Harness: Authored `scripts/verify-managed-postgres-integration.ps1`. Live managed cloud activation deferred to Phase 15.
 
+- **Phase 12C: Production Authentication & OIDC Readiness Without Real Google Credentials (Antigravity)**
+  - Confidential Server-to-Server OIDC Flow: Implemented `DefaultOidcTokenClient` using Java 21 `HttpClient` executing authorization code exchange with S256 PKCE verifier against provider token endpoint.
+  - RFC 7517 Caching JWKS Resolver: Implemented `DefaultJwksResolver` with thread-safe in-memory caching and automatic dynamic key rotation recovery upon receiving unknown `kid`.
+  - RS256 Cryptographic Signature Verification: Implemented `DefaultIdTokenValidator` using native `java.security.Signature` verifying RS256 signatures against public keys, validating `iss`, `aud`, `exp`, `iat`, `nonce`, and mandatory `email_verified`.
+  - Anti-Takeover Identity Resolution: Enforced `(issuer, subject)` database anchor in `identity_external_identities`. Rejects unlinked email collisions with `AUTH_EMAIL_COLLISION_REJECTED` to prevent account takeover.
+  - Fail-Fast Production Startup Hardening: Hardened `ProductionConfigurationValidator` to reject `dev-auth` in production, reject insecure session cookies, and reject placeholder credentials (`your-client-id`), while permitting clean start with deferred Phase 15 activation notice when unconfigured.
+  - Test Harnesses & Quality Gates: 16/16 `LocalOidcIntegrationTest` PASS, 5/5 `ProductionConfigurationValidatorOidcTest` PASS, 6/6 `OidcDestinationRoutingTest` PASS, 603/603 Backend tests PASS, 373/373 Frontend Vitest tests PASS. Live Google activation deferred to Phase 15.
+
 ## Current Next Step:
 
-- Phase 12C: Production Authentication & OIDC Readiness (Without Real Google Credentials).
+- Phase 12D: Production AI Visualization Provider Readiness (or User Directed Next Phase).
 
 ---
 

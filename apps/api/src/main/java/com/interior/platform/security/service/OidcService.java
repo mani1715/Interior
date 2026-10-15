@@ -58,6 +58,8 @@ public class OidcService {
     private final SecurityRepository securityRepository;
     private final AuditService auditService;
     private final Clock clock;
+    private final com.interior.platform.security.oidc.OidcTokenClient oidcTokenClient;
+    private final com.interior.platform.security.oidc.IdTokenValidator idTokenValidator;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public OidcService(
@@ -67,11 +69,38 @@ public class OidcService {
             AuditService auditService,
             Clock clock
     ) {
+        this(
+                properties,
+                transactionStore,
+                securityRepository,
+                auditService,
+                clock,
+                new com.interior.platform.security.oidc.DefaultOidcTokenClient(new com.fasterxml.jackson.databind.ObjectMapper()),
+                new com.interior.platform.security.oidc.DefaultIdTokenValidator(
+                        new com.interior.platform.security.oidc.DefaultJwksResolver(new com.fasterxml.jackson.databind.ObjectMapper(), clock),
+                        clock,
+                        new com.fasterxml.jackson.databind.ObjectMapper()
+                )
+        );
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public OidcService(
+            AuthSecurityProperties properties,
+            OidcTransactionStore transactionStore,
+            SecurityRepository securityRepository,
+            AuditService auditService,
+            Clock clock,
+            com.interior.platform.security.oidc.OidcTokenClient oidcTokenClient,
+            com.interior.platform.security.oidc.IdTokenValidator idTokenValidator
+    ) {
         this.properties = properties;
         this.transactionStore = transactionStore;
         this.securityRepository = securityRepository;
         this.auditService = auditService;
         this.clock = clock;
+        this.oidcTokenClient = oidcTokenClient;
+        this.idTokenValidator = idTokenValidator;
     }
 
     /**
@@ -116,7 +145,7 @@ public class OidcService {
         String codeChallenge = generateCodeChallenge(codeVerifier);
 
         Instant expiresAt = clock.instant().plus(TRANSACTION_TTL);
-        OidcTransaction tx = new OidcTransaction(state, nonce, codeVerifier, safeReturnUrl, intentRole, expiresAt);
+        OidcTransaction tx = new OidcTransaction(state, nonce, codeVerifier, providerId, safeReturnUrl, intentRole, clock.instant(), expiresAt);
         transactionStore.save(tx);
 
         String authUrl = UriComponentsBuilder.fromUriString(provider.getAuthorizationUri())
@@ -142,9 +171,27 @@ public class OidcService {
             throw new AccessDeniedException("Authorization code missing from callback");
         }
 
-        // Production provider implementation exchanges code with tokenUri using codeVerifier and validates ID token.
-        // In the absence of live provider credentials in Phase 07, throw configuration exception.
-        throw new IllegalStateException("Production OIDC token exchange requires live provider credentials and endpoints");
+        AuthSecurityProperties.OidcProviderProperties provider = null;
+        if (properties.getOidc().getProviders() != null) {
+            provider = properties.getOidc().getProviders().get(tx.providerId());
+        }
+        if (provider == null || !isProviderReady(provider)) {
+            throw new IllegalStateException("OIDC Provider '" + tx.providerId() + "' is not configured on this platform");
+        }
+
+        // 1. Exchange authorization code with provider token endpoint using PKCE verifier
+        var tokenResponse = oidcTokenClient.exchangeAuthorizationCode(provider, code, tx.codeVerifier());
+
+        // 2. Cryptographically validate ID token against JWKS & claims
+        var parsedToken = idTokenValidator.validateAndParse(tokenResponse.idToken(), tx, provider);
+
+        // 3. Claims validation & assurance derivation
+        var claims = validateIdTokenClaims(parsedToken, tx, provider);
+
+        // 4. Resolve or register external user (least privilege CUSTOMER baseline)
+        UserRecord user = resolveExternalUser(claims.issuer(), claims.subject(), claims.email(), claims.name());
+
+        return new OidcAuthResult(user, tx.returnUrl(), claims.assurance());
     }
 
     /**

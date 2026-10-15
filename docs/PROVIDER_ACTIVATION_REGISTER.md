@@ -18,7 +18,7 @@ Per project policy:
 | :--- | :--- | :--- | :--- | :--- |
 | **Object Storage** | **Cloudflare R2** | IMPLEMENTATION READY & LOCALLY CONTRACT TESTED (`S3StorageService`, `ClamAvMalwareScanner`) | LIVE VALIDATION DEFERRED | Phase 15 |
 | **Relational Database** | **Managed PostgreSQL (17.x)** *(Railway / AWS RDS / Supabase / Neon)* | IMPLEMENTATION READY & LOCALLY CONTRACT TESTED (Flyway V001..V040, 59 Forced RLS Tables, Backup/Restore Drills) | LIVE VALIDATION DEFERRED | Phase 15 |
-| **Identity & Auth (OIDC)** | **Google Identity Services** | ARCHITECTURE & CONTRACT READY (Dev Persona sandbox active) | LIVE VALIDATION DEFERRED | Phase 15 |
+| **Identity & Auth (OIDC)** | **Google Identity Services** | IMPLEMENTATION READY & LOCALLY CONTRACT TESTED (PKCE S256, RFC 7517 JWKS Caching, RS256 Verification, MFA Step-Up) | LIVE VALIDATION DEFERRED | Phase 15 |
 | **AI Visualizer** | **Google Vertex AI / Imagen 3** | ARCHITECTURE READY & BUDGET HARDENED (`DisabledAiImageProvider`) | LIVE VALIDATION DEFERRED | Phase 15 |
 | **Transactional Email** | **Resend / Postmark** | ARCHITECTURE & ADAPTER READY (`DisabledEmailProvider`, `FakeEmailProvider`) | LIVE VALIDATION DEFERRED | Phase 15 |
 | **Commercial Billing** | **Stripe / Razorpay** | ARCHITECTURE READY (`DisabledBillingProvider`, `FakeBillingProvider`) | LIVE VALIDATION DEFERRED | Phase 15 |

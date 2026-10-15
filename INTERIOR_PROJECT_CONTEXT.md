@@ -79,15 +79,16 @@ Current completed milestone:
 
 - Phase 12A: Cloud Media Storage & Malware Scanning Foundation (Cloudflare R2 selected as production object storage provider; S3StorageService full contract verified; ClamAvMalwareScanner verified; live cloud credentials deferred to Phase 15 pre-launch activation).
 - Phase 12B: PostgreSQL Database Production Readiness (Clean bootstrap V001..V040 from zero verified in 1.49s; 59 tenant/user tables forced Row Level Security verified across 14 test classes; pg_dump and pg_restore tooling verified; real destructive restore drill verified with 100% data fidelity and schema re-validation; HikariCP leak detection and in-memory H2 rejection in production profile; managed cloud DB activation deferred to Phase 15).
+- Phase 12C: Production Authentication & OIDC Readiness (Server-side confidential authorization code flow, PKCE S256, RFC 7517 caching JWKS resolver with key rotation auto-recovery, RS256 native cryptographic ID token verification, claim enforcement, anti-takeover collision defense, destination routing, privileged MFA step-up, ProductionConfigurationValidator OIDC hardening; 16/16 Mock OIDC integration tests PASS, 603/603 backend tests PASS, 373/373 frontend tests PASS; live Google cloud activation deferred to Phase 15).
 
 Current Flyway:
 V040 (`V040__support_and_operations_foundation.sql` - exactly 40 canonical PostgreSQL migrations)
 
 Whole-Product Release Status:
-PHASE 12B POSTGRESQL PRODUCTION READINESS COMPLETE. CLOUD PROVIDER ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). FEATURE FREEZE ACTIVE. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
+PHASE 12C AUTHENTICATION & OIDC PRODUCTION READINESS COMPLETE. CLOUD PROVIDER ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). FEATURE FREEZE ACTIVE. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
 
 Next planned milestone:
-PHASE 12C: PRODUCTION AUTHENTICATION & OIDC READINESS (WITHOUT REAL GOOGLE CREDENTIALS).
+PHASE 12D: PRODUCTION AI VISUALIZATION PROVIDER READINESS (OR USER DIRECTED NEXT PHASE).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

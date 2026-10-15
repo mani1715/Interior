@@ -38,8 +38,11 @@ public class AuthSecurityProperties {
         private String clientSecret;
         private String authorizationUri;
         private String tokenUri;
+        private String jwkSetUri;
         private String redirectUri;
         private List<String> scopes = List.of("openid", "email", "profile");
+        private int connectTimeoutMs = 5000;
+        private int readTimeoutMs = 5000;
 
         public String getIssuer() {
             return issuer;
@@ -81,6 +84,14 @@ public class AuthSecurityProperties {
             this.tokenUri = tokenUri;
         }
 
+        public String getJwkSetUri() {
+            return jwkSetUri;
+        }
+
+        public void setJwkSetUri(String jwkSetUri) {
+            this.jwkSetUri = jwkSetUri;
+        }
+
         public String getRedirectUri() {
             return redirectUri;
         }
@@ -95,6 +106,22 @@ public class AuthSecurityProperties {
 
         public void setScopes(List<String> scopes) {
             this.scopes = scopes;
+        }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
         }
     }
 
