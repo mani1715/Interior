@@ -108,6 +108,16 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                 log.warn("PRODUCTION WARNING: app.security.allowed-origins contains localhost or wildcard: '{}'. Lock this down to the canonical production domain before public traffic.", allowedOrigins);
             }
 
+            String datasourceUrl = environment.getProperty("spring.datasource.url", "");
+            if (datasourceUrl.startsWith("jdbc:h2:")) {
+                String errorMsg = "CRITICAL CONFIGURATION FAULT: Production cannot run against in-memory H2 database!";
+                log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
+            }
+            if (!datasourceUrl.isBlank() && !datasourceUrl.contains("sslmode=require") && !datasourceUrl.contains("ssl=true") && !datasourceUrl.contains("localhost")) {
+                log.warn("PRODUCTION DATABASE SECURITY WARNING: Database connection string does not explicitly specify sslmode=require. Ensure your cloud provider enforces SSL encryption at the network boundary.");
+            }
+
             if ("LOCAL".equalsIgnoreCase(storageProvider)) {
                 log.warn("PRODUCTION STORAGE WARNING: Running with LOCAL filesystem storage in production. Container storage is ephemeral. Set app.storage.provider=S3_COMPATIBLE for persistent media.");
             } else if ("S3_COMPATIBLE".equalsIgnoreCase(storageProvider)) {

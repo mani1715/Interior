@@ -176,19 +176,28 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Operational Diagnostics & Reconciler: Stuck-job reconciler transitioning overdue processing jobs to `TIMED_OUT` after 5 minutes and refunding reservations.
   - Verification: 505/505 backend tests PASS (0 failures, 0 errors, 0 skipped), 33/33 PostgreSQL RLS tests across 9 classes PASS, 368/368 frontend tests PASS, TypeScript PASS, ESLint PASS, Next.js build PASS.
 
-- **Phase 12A.1: Real Cloud Media Storage & Production Malware Scanner Foundation (Antigravity)**
+- **Phase 12A: Real Cloud Media Storage & Production Malware Scanner Foundation (Antigravity)**
   - Cloudflare R2 S3-compatible architecture: Verified complete 6-operation contract in `S3StorageContractTest` (PutObject, GetObject, HeadObject, CopyObject, DeleteObject, Presigned PUT/GET).
   - Production ClamAV streaming malware adapter: Implemented `ClamAvMalwareScanner` using private TCP socket `zINSTREAM` chunked streaming protocol with fail-closed result mapping.
   - Fail-closed upload pipeline: Reordered `MediaService` commit gates so malware scan strictly executes before raw byte dimension/image parsing (`ImageProcessingService`).
   - Containerization & Isolation: Configured private ClamAV container on internal Docker bridge network (`interior_network`, port 3310 internal only) in `docker-compose.yml` and `docker-compose.prod.yml`.
   - Spring Boot Actuator: Added `MalwareScannerHealthIndicator` for non-blocking health monitoring.
   - Production Configuration Validator: Hardened startup checks rejecting `fake` scanner in production profile and enforcing S3 endpoint/credentials when S3 is active.
-  - Verification: 13/13 ClamAvMalwareScanner tests PASS, 8/8 S3StorageContract tests PASS, 6/6 MediaMalwareScanning tests PASS, 8/8 ProductionHardening tests PASS, 5/5 PostgreSQL RLS media tests PASS (`PostgreSqlMediaMalwareSecurityTest`, `PostgreSqlMediaLifecycleRlsTest`).
-  - Live Validation Script: Created `scripts/verify-r2-live-integration.ps1` with dry-run Phase 12A.1 foundation check and opt-in Phase 12A.2 live runner. Zero secrets committed.
+  - Live Provider Activation Strategy: Real Cloudflare R2 credentials deferred to Phase 15 pre-launch activation.
+
+- **Phase 12B: PostgreSQL Production Readiness Without Cloud Credentials (Antigravity)**
+  - Clean Bootstrap Verification: Applied Flyway V001..V040 from clean scratch in 1.49s; 0 missing migrations, 0 duplicate versions, 0 checksum mismatch; repeat startup idempotency verified.
+  - Forced Row Level Security: Verified catalog and test isolation across 77 tables (59 tenant/user tables forced RLS, 18 global control-plane tables).
+  - Multi-Tenant RLS Test Suites: 46/46 tests PASS across 14 dedicated PostgreSQL RLS test classes.
+  - Backup & Restore Tooling: Authored `scripts/backup-postgresql.ps1` (custom compressed format `-Fc`) and `scripts/restore-postgresql.ps1`.
+  - Real Destructive Restore Drill: Executed `PostgreSqlDestructiveRestoreDrillTest` verifying 100% data fidelity of State A, elimination of corrupted State B, post-restore Flyway schema validation, and immediate post-restore RLS enforcement (backup: 1.8s, 349 KB; restore: 4.7s).
+  - Connection Pool & Hardening: HikariCP pool (10 max, 2 min-idle, 30s leak detection); ProductionConfigurationValidator rejects in-memory H2 and enforces SSL warnings.
+  - Multilingual UTF-8: Verified roundtrip persistence for English, Telugu, Hindi, and Tamil text.
+  - Provider-Neutral Harness: Authored `scripts/verify-managed-postgres-integration.ps1`. Live managed cloud activation deferred to Phase 15.
 
 ## Current Next Step:
 
-- Phase 12A.2: Live Cloudflare R2 Credential & Cloud Storage Contract Validation via `scripts/verify-r2-live-integration.ps1`.
+- Phase 12C: Production Authentication & OIDC Readiness (Without Real Google Credentials).
 
 ---
 

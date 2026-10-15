@@ -32,6 +32,10 @@ logs/
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+backups/
+storage/backups/
+*.dump
+*.sql.gz
 
 # Editor and operating-system files.
 .idea/

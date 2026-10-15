@@ -173,4 +173,24 @@ class ProductionHardeningTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.run(null));
         assertTrue(ex.getMessage().contains("S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is not configured"));
     }
+
+    @Test
+    @DisplayName("ProductionConfigurationValidator rejects in-memory H2 database in production")
+    void productionConfigurationValidatorRejectsH2InProduction() {
+        MockEnvironment prodEnv = new MockEnvironment();
+        prodEnv.setActiveProfiles("production");
+        prodEnv.setProperty("spring.datasource.url", "jdbc:h2:mem:testdb");
+
+        MediaSecurityProperties secProps = new MediaSecurityProperties();
+        secProps.setScanner("disabled");
+
+        ProductionConfigurationValidator validator = new ProductionConfigurationValidator(prodEnv, secProps);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "devAuthEnabled", false);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "sessionCookieSecure", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "allowedOrigins", "https://platform.com");
+        org.springframework.test.util.ReflectionTestUtils.setField(validator, "storageProvider", "LOCAL");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.run(null));
+        assertTrue(ex.getMessage().contains("Production cannot run against in-memory H2 database"));
+    }
 }

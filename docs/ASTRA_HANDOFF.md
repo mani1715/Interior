@@ -936,13 +936,14 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 
 ---
 
-## 48. NEXT: PHASE 2 — PUBLIC ROOM GALLERY & FULL-SCREEN VIEWER (ASTRA DESIGN)
+---
 
-Astra is now cleared to proceed with **Phase 2 Design**:
-- Public Room Gallery & Space Navigation across portfolio templates.
-- Full-Screen Cinematic Photo Viewer respecting `motion_enabled` and `(focal_x, focal_y)`.
-- Responsive desktop & mobile viewer interactions.
+## 49. PRODUCTION READINESS UPDATE & STRATEGY LOCK (PHASE 12B)
 
-READY FOR ASTRA PUBLIC ROOM GALLERY + FULL-SCREEN VIEWER DESIGN.
+- **Launch Timeline**: Commercial launch scheduled ~3 months post-hardening.
+- **Provider Policy**: Zero external cloud accounts/credentials created during current readiness phases. All code, adapters, and validation harnesses are implemented and locally tested now. Live cloud validation is deferred to **Phase 15 (Real Provider Activation)**.
+- **Storage Status**: Cloudflare R2 selected as production object storage provider. Locally contract tested with ClamAV malware scanning.
+- **Database Status**: PostgreSQL production readiness verified. Clean Flyway V001..V040 bootstrap, 59 forced RLS tenant tables, backup/restore tooling, and real destructive restore drill verified. Managed cloud DB activation deferred to Phase 15.
+- **Next Phase**: Phase 12C (Production Authentication & OIDC Readiness).
 
 

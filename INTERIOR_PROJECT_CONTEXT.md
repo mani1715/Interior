@@ -77,16 +77,17 @@ Current completed milestone:
 
 - Phase 10: Final 100% Production Release Audit & Defect Closure (Exhaustive 166-point audit across 30 domains; Pre-flight remediations: RPO/RTO, Backup Retention, Support Retention, Malware Retention marked DECISION REQUIRED in runbooks; payment provider corrected to neutral NOT_SELECTED; MaintenanceModeInterceptor hardened to restrict Super Admin mutations to control-plane endpoints during READ_ONLY; canonical Flyway verified at exactly 40 migrations V001-V040; account closure/deletion recovery period designated as DECISION REQUIRED with 14 days as CONFIG DEFAULT ONLY; maintenance states strictly NORMAL and READ_ONLY; local PostgreSQL 18.3 drills executed: fresh DB migration of V001-V040, upgrade migration from V033 to V040, backup and restore drill with pg_dump/pg_restore; Next.js security patch to 16.3.8 and sharp 0.35.5; strict remote image host validation with wildcard elimination; fail-closed audit semantics on all admin/privacy mutations; quality gates: 545/545 Backend tests PASS, 45/45 PostgreSQL 18.3 RLS tests PASS across 13 classes, 368/368 Frontend Vitest tests PASS across 52 suites, 0 TypeScript errors, 0 ESLint warnings/errors, clean 28-route Next.js 16.3.8 production build, 0 committed secrets; Release Candidate Approved).
 
-- Phase 12A.1: Real Cloud Media Storage & Production Malware Scanner Foundation (Cloudflare R2 S3-compatible architecture verified in S3StorageContractTest; production ClamAV streaming malware adapter implemented in ClamAvMalwareScanner via zINSTREAM protocol; MediaService commit gate reordered to scan before image parsing; Docker Compose updated with isolated private ClamAV container; Actuator MalwareScannerHealthIndicator added; ProductionConfigurationValidator updated; verify-r2-live-integration.ps1 created; zero committed secrets; all tests PASS).
+- Phase 12A: Cloud Media Storage & Malware Scanning Foundation (Cloudflare R2 selected as production object storage provider; S3StorageService full contract verified; ClamAvMalwareScanner verified; live cloud credentials deferred to Phase 15 pre-launch activation).
+- Phase 12B: PostgreSQL Database Production Readiness (Clean bootstrap V001..V040 from zero verified in 1.49s; 59 tenant/user tables forced Row Level Security verified across 14 test classes; pg_dump and pg_restore tooling verified; real destructive restore drill verified with 100% data fidelity and schema re-validation; HikariCP leak detection and in-memory H2 rejection in production profile; managed cloud DB activation deferred to Phase 15).
 
 Current Flyway:
 V040 (`V040__support_and_operations_foundation.sql` - exactly 40 canonical PostgreSQL migrations)
 
 Whole-Product Release Status:
-PHASE 12A.1 CLOUD MEDIA STORAGE & MALWARE SCANNER FOUNDATION COMPLETE. FEATURE FREEZE ACTIVE EXCEPT APPROVED INTEGRATIONS. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
+PHASE 12B POSTGRESQL PRODUCTION READINESS COMPLETE. CLOUD PROVIDER ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). FEATURE FREEZE ACTIVE. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
 
 Next planned milestone:
-PHASE 12A.2: CLOUDFLARE R2 CREDENTIAL PROVISIONING & LIVE CLOUD STORAGE CONTRACT VALIDATION.
+PHASE 12C: PRODUCTION AUTHENTICATION & OIDC READINESS (WITHOUT REAL GOOGLE CREDENTIALS).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)
