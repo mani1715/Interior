@@ -179,7 +179,7 @@ public class MediaService {
                 expiresAt,
                 actor.userId(),
                 Instant.now(),
-                mediaAssetId
+                null
         );
 
         mediaRepository.createUploadIntent(intentRecord);

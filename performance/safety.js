@@ -22,6 +22,7 @@ function assertTargetSafety(targetUrl) {
       console.error('='.repeat(70) + '\n');
       process.exit(1);
     }
+    console.log(`[TARGET GUARD] Scheme: ${parsed.protocol.replace(':', '')} | Host: ${hostname} | Port: ${parsed.port || (parsed.protocol === 'https:' ? '443' : '80')} | Status: CONFIRMED LOCAL TARGET`);
   } catch (err) {
     console.error(`[FATAL] Invalid target URL: ${targetUrl} (${err.message})`);
     process.exit(1);

@@ -12,10 +12,10 @@ const { assertTargetSafety, calculatePercentiles } = require('./safety');
 const { authenticatePersona } = require('./authenticated-read');
 
 async function runAuthenticatedWrite(options = {}) {
-  const baseUrl = options.baseUrl || 'http://localhost:8080';
+  const baseUrl = options.baseUrl || 'http://localhost:8080/api/v1';
   const concurrency = parseInt(options.concurrency || '5', 10);
   const durationSec = parseInt(options.duration || '10', 10);
-  const studioSlug = options.slug || 'concurrency-test-studio';
+  const studioSlug = options.slug || 'dev-studio-atelier';
 
   assertTargetSafety(baseUrl);
 
@@ -27,7 +27,7 @@ async function runAuthenticatedWrite(options = {}) {
   console.log(` Target Studio  : ${studioSlug}`);
   console.log(`============================================================\n`);
 
-  const { cookie, csrfToken } = await authenticatePersona(baseUrl);
+  const { cookie, csrfToken, studioId } = await authenticatePersona(baseUrl);
 
   const results = {
     totalRequests: 0,
@@ -48,17 +48,10 @@ async function runAuthenticatedWrite(options = {}) {
       const reqStart = performance.now();
 
       try {
-        const leadPayload = {
-          clientName: `Test Client ${idx}`,
-          email: `client_${workerId}_${idx}@example.com`,
-          phone: "+919876543210",
-          projectScope: "FULL_INTERIOR",
-          propertyType: "APARTMENT",
-          preferredStyle: "MODERN_MINIMALIST",
-          budgetCurrency: "INR",
-          budgetMin: 500000,
-          budgetMax: 1500000,
-          notes: `Automated load test inquiry #${idx} from worker ${workerId}`
+        const projectPayload = {
+          title: `Load Test Project ${workerId}-${idx}`,
+          categoryCode: 'COMPLETE_HOME_INTERIOR',
+          shortDescription: `Automated concurrency write stress project ${idx}`
         };
 
         const headers = {
@@ -68,11 +61,12 @@ async function runAuthenticatedWrite(options = {}) {
         };
         if (cookie) headers['Cookie'] = cookie;
         if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+        if (studioId) headers['X-Studio-Id'] = studioId;
 
-        const response = await fetch(`${baseUrl}/api/v1/public/studios/${studioSlug}/leads`, {
+        const response = await fetch(`${baseUrl}/projects`, {
           method: 'POST',
           headers,
-          body: JSON.stringify(leadPayload)
+          body: JSON.stringify(projectPayload)
         });
 
         const reqDuration = performance.now() - reqStart;

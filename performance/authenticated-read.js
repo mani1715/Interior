@@ -12,7 +12,7 @@
 
 const { assertTargetSafety, calculatePercentiles } = require('./safety');
 
-async function authenticatePersona(baseUrl, persona = 'DESIGNER_ADMIN') {
+async function authenticatePersona(baseUrl, persona = 'designer_owner') {
   try {
     const res = await fetch(`${baseUrl}/auth/dev-login`, {
       method: 'POST',
@@ -25,7 +25,7 @@ async function authenticatePersona(baseUrl, persona = 'DESIGNER_ADMIN') {
 
     if (!res.ok) {
       console.warn(`[WARN] Dev login returned ${res.status}. Running in unauthenticated fallback.`);
-      return { cookie: null, csrfToken: null };
+      return { cookie: null, csrfToken: null, user: null };
     }
 
     const cookieHeader = res.headers.get('set-cookie');
@@ -38,19 +38,30 @@ async function authenticatePersona(baseUrl, persona = 'DESIGNER_ADMIN') {
       });
       if (csrfRes.ok) {
         const csrfData = await csrfRes.json();
-        csrfToken = csrfData.token;
+        csrfToken = csrfData.csrfToken || csrfData.token;
       }
     } catch (_) {}
 
-    return { cookie, csrfToken };
+    let studioId = null;
+    try {
+      const meRes = await fetch(`${baseUrl}/auth/me`, {
+        headers: cookie ? { 'Cookie': cookie } : {}
+      });
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        studioId = meData.activeStudioId;
+      }
+    } catch (_) {}
+
+    return { cookie, csrfToken, studioId };
   } catch (err) {
     console.warn(`[WARN] Dev login error: ${err.message}. Proceeding with mock/fallback headers.`);
-    return { cookie: null, csrfToken: null };
+    return { cookie: null, csrfToken: null, studioId: null };
   }
 }
 
 async function runAuthenticatedRead(options = {}) {
-  const baseUrl = options.baseUrl || 'http://localhost:8080';
+  const baseUrl = options.baseUrl || 'http://localhost:8080/api/v1';
   const concurrency = parseInt(options.concurrency || '10', 10);
   const durationSec = parseInt(options.duration || '10', 10);
 
@@ -67,10 +78,10 @@ async function runAuthenticatedRead(options = {}) {
 
   const endpoints = [
     { name: 'Current Identity', path: '/auth/me' },
-    { name: 'Studio Projects', path: '/api/v1/studio/projects?page=0&size=20' },
-    { name: 'Studio Team', path: '/api/v1/studio/team' },
-    { name: 'Studio Leads CRM', path: '/api/v1/studio/leads?page=0&size=20' },
-    { name: 'Studio Analytics', path: '/api/v1/studio/analytics/overview' }
+    { name: 'Studio Projects', path: '/projects?page=0&size=20' },
+    { name: 'Studio Team', path: '/workspace/team' },
+    { name: 'Studio Leads CRM', path: '/leads?page=0&size=20' },
+    { name: 'Studio Analytics', path: '/studio/analytics' }
   ];
 
   const results = {

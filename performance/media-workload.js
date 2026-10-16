@@ -12,7 +12,7 @@ const { assertTargetSafety, calculatePercentiles } = require('./safety');
 const { authenticatePersona } = require('./authenticated-read');
 
 async function runMediaWorkload(options = {}) {
-  const baseUrl = options.baseUrl || 'http://localhost:8080';
+  const baseUrl = options.baseUrl || 'http://localhost:8080/api/v1';
   const concurrency = parseInt(options.concurrency || '5', 10);
   const durationSec = parseInt(options.duration || '10', 10);
 
@@ -25,7 +25,20 @@ async function runMediaWorkload(options = {}) {
   console.log(` Duration       : ${durationSec} seconds`);
   console.log(`============================================================\n`);
 
-  const { cookie, csrfToken } = await authenticatePersona(baseUrl);
+  const { cookie, csrfToken, studioId } = await authenticatePersona(baseUrl);
+
+  let activeProjectId = null;
+  try {
+    const projRes = await fetch(`${baseUrl}/projects`, {
+      headers: cookie ? { 'Cookie': cookie, 'Accept': 'application/json' } : {}
+    });
+    if (projRes.ok) {
+      const projs = await projRes.json();
+      if (projs && projs.length > 0) {
+        activeProjectId = projs[0].id;
+      }
+    }
+  } catch (_) {}
 
   const results = {
     totalRequests: 0,
@@ -48,11 +61,11 @@ async function runMediaWorkload(options = {}) {
 
       try {
         const intentPayload = {
-          projectId: "01923000-0000-7000-8000-000000000010", // sample UUIDv7
+          projectId: activeProjectId || "01923000-0000-7000-8000-000000000010",
           mediaType: "REAL_PROJECT",
           expectedContentType: "image/jpeg",
           expectedSizeBytes: 500000,
-          filename: `photo_${workerId}_${idx}.jpg`
+          clientFileName: `photo_${workerId}_${idx}.jpg`
         };
 
         const headers = {
@@ -62,8 +75,9 @@ async function runMediaWorkload(options = {}) {
         };
         if (cookie) headers['Cookie'] = cookie;
         if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+        if (studioId) headers['X-Studio-Id'] = studioId;
 
-        const response = await fetch(`${baseUrl}/api/v1/studio/media/upload-intent`, {
+        const response = await fetch(`${baseUrl}/media/upload-intent`, {
           method: 'POST',
           headers,
           body: JSON.stringify(intentPayload)

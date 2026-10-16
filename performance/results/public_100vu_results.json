@@ -1,0 +1,23 @@
+{
+  "scenario": "Public Portfolio Browsing (100 VU Burst/Sustained)",
+  "concurrency": 100,
+  "durationSec": 61.4,
+  "totalRequests": 24570,
+  "successes": 24509,
+  "errors": 61,
+  "errorRatePct": 0.25,
+  "throughputRps": 400.01,
+  "p50Ms": 147.16,
+  "p90Ms": 226.73,
+  "p95Ms": 276.12,
+  "p99Ms": 644.95,
+  "heapUsedBeforeMb": 155.9,
+  "heapUsedAfterMb": 214.6,
+  "peakHikariActive": 30,
+  "postHikariActive": 0,
+  "cpuUsagePct": 8.2,
+  "statusCodes": {
+    "200": 24509,
+    "500": 61
+  }
+}
