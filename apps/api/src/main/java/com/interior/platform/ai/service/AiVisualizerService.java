@@ -418,7 +418,7 @@ public class AiVisualizerService {
         );
 
         // 11. Dispatch async job execution
-        executor.submit(() -> executeJobInternal(jobId));
+        submitAsyncJob(jobId);
 
         emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
                 com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_QUEUED,
@@ -721,6 +721,22 @@ public class AiVisualizerService {
     // ============================================================================
     // EXECUTION PIPELINE
     // ============================================================================
+
+    private void submitAsyncJob(UUID jobId) {
+        java.util.Map<String, String> mdcContext = org.slf4j.MDC.getCopyOfContextMap();
+        executor.submit(() -> {
+            if (mdcContext != null) {
+                org.slf4j.MDC.setContextMap(mdcContext);
+            } else {
+                org.slf4j.MDC.put("requestId", "ai-job-" + jobId);
+            }
+            try {
+                executeJobInternal(jobId);
+            } finally {
+                org.slf4j.MDC.clear();
+            }
+        });
+    }
 
     public void executeJobInternal(UUID jobId) {
         Optional<AiJobRecord> jobOpt = aiJobRepository.findByIdGlobal(jobId);
@@ -1531,7 +1547,7 @@ public class AiVisualizerService {
                 null
         );
 
-        executor.submit(() -> executeJobInternal(job.id()));
+        submitAsyncJob(job.id());
 
         emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent.ofStudio(
                 com.interior.platform.realtime.domain.RealtimeEventType.AI_JOB_QUEUED,

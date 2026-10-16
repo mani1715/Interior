@@ -37,6 +37,8 @@ public class PlatformOperationsService {
     private final TransactionalEmailService transactionalEmailService;
     private final AiImageProvider aiImageProvider;
     private final MalwareScanner malwareScanner;
+    private final com.interior.platform.billing.provider.BillingProvider billingProvider;
+    private final com.interior.platform.common.metrics.PlatformMetrics platformMetrics;
 
     public PlatformOperationsService(
             PlatformOperationsRepository operationsRepository,
@@ -49,6 +51,23 @@ public class PlatformOperationsService {
             @Autowired(required = false) AiImageProvider aiImageProvider,
             @Autowired(required = false) MalwareScanner malwareScanner
     ) {
+        this(operationsRepository, authorizationService, auditService, jdbcTemplate, mfaService, storageService, transactionalEmailService, aiImageProvider, malwareScanner, null, null);
+    }
+
+    @Autowired
+    public PlatformOperationsService(
+            PlatformOperationsRepository operationsRepository,
+            AuthorizationService authorizationService,
+            AuditService auditService,
+            JdbcTemplate jdbcTemplate,
+            @Autowired(required = false) MfaService mfaService,
+            @Autowired(required = false) StorageService storageService,
+            @Autowired(required = false) TransactionalEmailService transactionalEmailService,
+            @Autowired(required = false) AiImageProvider aiImageProvider,
+            @Autowired(required = false) MalwareScanner malwareScanner,
+            @Autowired(required = false) com.interior.platform.billing.provider.BillingProvider billingProvider,
+            @Autowired(required = false) com.interior.platform.common.metrics.PlatformMetrics platformMetrics
+    ) {
         this.operationsRepository = operationsRepository;
         this.authorizationService = authorizationService;
         this.auditService = auditService;
@@ -58,6 +77,8 @@ public class PlatformOperationsService {
         this.transactionalEmailService = transactionalEmailService;
         this.aiImageProvider = aiImageProvider;
         this.malwareScanner = malwareScanner;
+        this.billingProvider = billingProvider;
+        this.platformMetrics = platformMetrics;
     }
 
     public PlatformOperationalStateRecord getOperationalState() {
@@ -121,7 +142,12 @@ public class PlatformOperationsService {
                 ua
         );
 
-        return getOperationalState();
+        PlatformOperationalStateRecord updated = getOperationalState();
+        if (platformMetrics != null) {
+            platformMetrics.setMaintenanceMode("READ_ONLY".equalsIgnoreCase(updated.maintenanceMode()));
+        }
+
+        return updated;
     }
 
     public ProviderMatrixResponse getProviderMatrix(ActorContext actor) {
@@ -190,11 +216,19 @@ public class PlatformOperationsService {
         matrix.put("malwareScanner", new ProviderMatrixResponse.ProviderStatusDetail(scannerStatus, scannerName, scannerDetails));
 
         // 6. Commercial Payment Gateway
-        matrix.put("payment", new ProviderMatrixResponse.ProviderStatusDetail(
-                ProviderOperationalStatus.NOT_CONFIGURED,
-                "NOT_SELECTED",
-                "Commercial payment provider not selected; live payment keys pending Phase 11 production provisioning"
-        ));
+        ProviderOperationalStatus billingStatus = ProviderOperationalStatus.NOT_CONFIGURED;
+        String billingProviderName = "disabled";
+        String billingDetails = "Commercial payment provider disabled (Phase 15 Provider Activation Pending)";
+        if (billingProvider != null) {
+            billingProviderName = billingProvider.getProviderName();
+            if (billingProvider.isConfigured()) {
+                billingStatus = ProviderOperationalStatus.AVAILABLE;
+                billingDetails = "Configured and operational";
+            } else {
+                billingDetails = "Provider selected (" + billingProviderName + ") but credentials pending Phase 15 activation";
+            }
+        }
+        matrix.put("payment", new ProviderMatrixResponse.ProviderStatusDetail(billingStatus, billingProviderName, billingDetails));
 
         return new ProviderMatrixResponse(matrix, Instant.now());
     }

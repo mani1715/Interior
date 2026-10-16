@@ -33,6 +33,11 @@ export default function GlobalErrorBoundary({
           <p className="text-xs sm:text-sm text-[#6B6B6B] leading-relaxed">
             An unexpected error occurred while loading this view. You can retry the request or return to the homepage.
           </p>
+          {error.digest && (
+            <p className="text-[11px] font-mono text-[#8C827A] pt-1">
+              Reference ID: {error.digest}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

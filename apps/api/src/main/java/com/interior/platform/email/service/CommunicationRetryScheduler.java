@@ -43,6 +43,10 @@ public class CommunicationRetryScheduler {
             return;
         }
 
+        String jobId = "job-comm-retry-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        org.slf4j.MDC.put("requestId", jobId);
+        org.slf4j.MDC.put("correlationId", jobId);
+
         try {
             List<CommunicationDeliveryRecord> batch = deliveryRepository.claimNextRetryBatch(batchSize, Instant.now());
             if (!batch.isEmpty()) {
@@ -58,6 +62,8 @@ public class CommunicationRetryScheduler {
             }
         } catch (Exception e) {
             log.error("Error executing communication retry batch: {}", e.getMessage());
+        } finally {
+            org.slf4j.MDC.clear();
         }
     }
 }

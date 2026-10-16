@@ -50,6 +50,9 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     @Value("${app.storage.s3.secret-access-key:}")
     private String s3SecretAccessKey;
 
+    @Value("${management.endpoints.web.exposure.include:health,info,metrics}")
+    private String actuatorExposedEndpoints;
+
     public ProductionConfigurationValidator(Environment environment) {
         this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties(), new BillingProperties());
     }
@@ -432,6 +435,24 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                 }
             } else {
                 log.info("Production Commercial Billing is disabled/unconfigured. Platform starting safely with commercial checkout disabled (Phase 15 Provider Activation Pending).");
+            }
+
+            // Actuator Endpoint Security Validation
+            validateActuatorExposure();
+        }
+    }
+
+    private void validateActuatorExposure() {
+        if (actuatorExposedEndpoints == null || actuatorExposedEndpoints.isBlank()) {
+            return;
+        }
+        Set<String> dangerousEndpoints = Set.of("env", "beans", "configprops", "heapdump", "threaddump", "mappings", "conditions", "flyway", "logfile", "*");
+        for (String endpoint : actuatorExposedEndpoints.split(",")) {
+            String clean = endpoint.trim().toLowerCase();
+            if (dangerousEndpoints.contains(clean)) {
+                String errorMsg = "CRITICAL SECURITY FAULT: Dangerous Actuator endpoint '" + clean + "' MUST NOT be exposed in production profile! Only health, info, metrics, prometheus are permitted.";
+                log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
             }
         }
     }

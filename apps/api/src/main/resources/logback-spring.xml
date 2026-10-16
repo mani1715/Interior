@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <springProfile name="!production">
+        <appender name="CONSOLE_DEV" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{requestId:-none}] %cyan(%logger{36}) : %msg%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_DEV" />
+        </root>
+
+        <logger name="com.interior.platform" level="DEBUG" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.hibernate.SQL" level="INFO" />
+        <logger name="org.hibernate.type.descriptor.sql" level="INFO" />
+    </springProfile>
+
+    <springProfile name="production">
+        <appender name="CONSOLE_PROD" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+                <layout class="com.interior.platform.common.logging.JsonLoggingLayout">
+                    <environment>production</environment>
+                </layout>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_PROD" />
+        </root>
+
+        <!-- Hardened Production Logging Levels: Strictly Prevent SQL Bind Value & Debug Secret Leaks -->
+        <logger name="com.interior.platform" level="INFO" />
+        <logger name="org.springframework" level="INFO" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.hibernate.SQL" level="WARN" />
+        <logger name="org.hibernate.type.descriptor.sql" level="WARN" />
+        <logger name="org.hibernate.orm.jdbc.bind" level="WARN" />
+        <logger name="org.apache.http" level="WARN" />
+        <logger name="software.amazon.awssdk" level="WARN" />
+    </springProfile>
+
+</configuration>

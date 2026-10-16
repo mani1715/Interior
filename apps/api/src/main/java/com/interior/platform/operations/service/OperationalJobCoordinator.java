@@ -21,6 +21,9 @@ public class OperationalJobCoordinator {
     private final JdbcTemplate jdbcTemplate;
     private final String instanceId;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.common.metrics.PlatformMetrics platformMetrics;
+
     public OperationalJobCoordinator(PlatformOperationsRepository operationsRepository, JdbcTemplate jdbcTemplate) {
         this.operationsRepository = operationsRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -31,6 +34,10 @@ public class OperationalJobCoordinator {
         this.instanceId = host + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
+    public void setPlatformMetrics(com.interior.platform.common.metrics.PlatformMetrics platformMetrics) {
+        this.platformMetrics = platformMetrics;
+    }
+
     @FunctionalInterface
     public interface JobTask {
         int run() throws Exception;
@@ -39,6 +46,9 @@ public class OperationalJobCoordinator {
     public OperationalJobRunRecord executeJob(String jobKey, JobTask task) {
         if (!operationsRepository.tryAcquireJobLock(jobKey)) {
             log.info("Job {} is already locked by another node/process. Skipping.", jobKey);
+            if (platformMetrics != null) {
+                platformMetrics.recordJobExecution(jobKey, "skipped_locked");
+            }
             return null;
         }
 
@@ -57,11 +67,18 @@ public class OperationalJobCoordinator {
         );
         operationsRepository.recordJobRun(run);
 
+        String jobId = "job-" + jobKey.toLowerCase() + "-" + runId.toString().substring(0, 8);
+        org.slf4j.MDC.put("requestId", jobId);
+        org.slf4j.MDC.put("correlationId", jobId);
+
         try {
             int count = task.run();
             Instant end = Instant.now();
             operationsRepository.updateJobRun(runId, "SUCCEEDED", end, count, null, null);
             log.info("Job {} succeeded: processed {} items in {}ms", jobKey, count, (end.toEpochMilli() - start.toEpochMilli()));
+            if (platformMetrics != null) {
+                platformMetrics.recordJobExecution(jobKey, "succeeded");
+            }
             return new OperationalJobRunRecord(runId, jobKey, instanceId, "SUCCEEDED", start, end, count, null, null);
         } catch (Exception e) {
             Instant end = Instant.now();
@@ -69,9 +86,13 @@ public class OperationalJobCoordinator {
             String errorSummary = e.getMessage() != null && e.getMessage().length() > 255 ? e.getMessage().substring(0, 255) : e.getMessage();
             operationsRepository.updateJobRun(runId, "FAILED", end, 0, failureCode, errorSummary);
             log.error("Job {} failed: {}", jobKey, e.getMessage(), e);
+            if (platformMetrics != null) {
+                platformMetrics.recordJobExecution(jobKey, "failed");
+            }
             return new OperationalJobRunRecord(runId, jobKey, instanceId, "FAILED", start, end, 0, failureCode, errorSummary);
         } finally {
             operationsRepository.releaseJobLock(jobKey);
+            org.slf4j.MDC.clear();
         }
     }
 

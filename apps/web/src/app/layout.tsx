@@ -20,6 +20,7 @@ export const viewport: Viewport = {
 import { AuthProvider } from '@/lib/auth/auth-context';
 import { RealtimeProvider } from '@/lib/realtime/RealtimeProvider';
 import { UnsavedChangesProvider } from '@/lib/workspace/unsaved-changes-context';
+import { WebVitals } from '@/components/common/WebVitals';
 
 export default function RootLayout({
   children,
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <WebVitals />
         <AuthProvider>
           <UnsavedChangesProvider>
             <RealtimeProvider>
