@@ -84,14 +84,16 @@ Current completed milestone:
 
 - Phase 12E & 12E.1: Transactional Email & Communication Delivery Production Readiness (Strictly transactional operational communications: studio invitations, client review invites, lead alerts, feedback alerts, subscription lifecycle, security alerts, privacy export notices; Resend REST API provider via native Java 21 HttpClient; AWS SES provider via AWS SES v2 SDK; OWASP HTML entity escaping; CRLF header injection neutralization; out-of-order webhook delivery defense with monotonic status guard; secret-safe masked logging; canonical base URL normalization; fail-fast production startup validator; opt-in live integration verification harness; Phase 12E.1 source-truth closure: disabled provider records `NOT_CONFIGURED`, `deliveredAt = null`, `providerMessageId = null`, `attemptCount = 0`; initial `SENT` status keeps `deliveredAt = null`; cryptographic webhook authenticity: Resend Svix HMAC-SHA256 validator with 300s replay window, AWS SES SNS RSA signature validator with strict SSRF cert host whitelist; 60/60 dedicated email tests PASS, 687/687 backend tests PASS, 373/373 frontend tests PASS; live email provider activation deferred to Phase 15).
 
+- Phase 12F: Commercial Billing, Payments & Entitlements Production Readiness (Provider-neutral `BillingProvider` SPI; `DisabledBillingProvider` fail-fast default; `RazorpayBillingProvider` with HMAC-SHA256 signature verification; `StripeBillingProvider` with timestamped `t=..., v1=...` replay defense; server-authoritative checkout with zero client price/amount trust; open redirect defense via `sanitizeRedirectUrl`; durable webhook idempotency via `billing_events (provider, provider_event_id)` unique constraint; single active subscription guarantee via `idx_studio_single_active_sub`; CRITICAL INVARIANT: zero data loss on plan downgrade with 100% existing project/photo retention; locked entitlement capacities verified for STANDARD, PREMIUM, PRO, and internal BASE; commercial pricing, currency, period, team-seat limits, proration, and refund policy preserved as DECISION REQUIRED / DEFERRED per source-truth rule; `ProductionConfigurationValidator` billing hardening; opt-in live validation harness `scripts/verify-payment-provider-live-integration.ps1`; 60/60 dedicated billing tests PASS, 373/373 frontend tests PASS; live provider activation deferred to Phase 15).
+
 Current Flyway:
 V040 (`V040__support_and_operations_foundation.sql` - exactly 40 canonical PostgreSQL migrations)
 
 Whole-Product Release Status:
-PHASE 12E & 12E.1 FULLY CLOSED — DISABLED EMAIL SOURCE-TRUTH AND PROVIDER WEBHOOK AUTHENTICITY VERIFIED. CLOUD PROVIDER ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). FEATURE FREEZE ACTIVE. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
+PHASE 12F FULLY CLOSED — COMMERCIAL BILLING, PAYMENTS & ENTITLEMENTS PRODUCTION READINESS COMPLETE WITHOUT REAL CREDENTIALS. CLOUD PROVIDER ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). COMMERCIAL DECISIONS SAFELY DOCUMENTED AS DECISION REQUIRED. FEATURE FREEZE ACTIVE. UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
 
 Next planned milestone:
-READY FOR PHASE 12F: COMMERCIAL BILLING / PAYMENT GATEWAY PRODUCTION READINESS.
+READY FOR NEXT PLANNED ARCHITECTURE PHASE (OR PHASE 13).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

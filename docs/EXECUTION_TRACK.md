@@ -220,9 +220,20 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Fail-Fast Startup Hardening: Enhanced `ProductionConfigurationValidator` to reject `mock`/`fake`/`test` email providers, reject placeholder API keys, reject invalid sender addresses, and reject unconfigured SES regions when email is active in `production` profile.
   - Test Harnesses & Quality Gates: 7/7 `ResendWebhookSecurityTest` PASS, 10/10 `AwsSnsWebhookSecurityTest` PASS, 6/6 `EmailDisabledWorkflowTest` PASS, 11/11 `ResendEmailProviderContractTest` PASS, 8/8 `SesEmailProviderContractTest` PASS, 7/7 `EmailSecurityAndEscapingTest` PASS, 9/9 `ProductionConfigurationValidatorEmailTest` PASS (60/60 email tests PASS; 687/687 full API test suite PASS; 373/373 frontend Vitest tests PASS). Live email activation deferred to Phase 15.
 
+- **Phase 12F: Commercial Billing, Payments & Entitlements Production Readiness (Antigravity)**
+  - Decoupled Provider SPI Architecture: `BillingProvider` interface with `DisabledBillingProvider` fail-fast default, `RazorpayBillingProvider` (HMAC-SHA256 signature verification), `StripeBillingProvider` (timestamped `t=..., v1=...` with 300s replay tolerance), and `FakeBillingProvider` (for testing, forbidden in production).
+  - Server-Authoritative Checkout: Client parameter validation strictly ignores client-supplied pricing, currency, and quotas, resolving them authoritatively from database table `billing_plans`.
+  - Open Redirect Defense: Implemented `BillingService.sanitizeRedirectUrl` to neutralize malicious external redirect vectors, phishing targets, and CRLF header injection, while safely preserving trusted application workspace paths and configured origins.
+  - Durable Idempotency & Lifecycle Ledgers: Enforced database unique constraints `uq_checkout_studio_idempotency` on checkout sessions and `uq_billing_event_provider` on webhook events, with single active subscription partial index `idx_studio_single_active_sub`.
+  - Zero-Data-Loss Downgrade Invariant: 100% preservation of over-quota projects, photos, and media upon plan downgrade or expiration; restricts only new creations when quotas are exceeded.
+  - Entitlement Matrix Verification: Locked technical capacities verified across STANDARD (10 proj, 15 photos, 5GB, 0 Cinematic), PREMIUM (20 proj, 25 photos, 20GB, 0 Cinematic), PRO (20 proj, 30 photos, 50GB, 5 Cinematic), and internal BASE.
+  - Commercial Policy Source-Truth: Preserved subscription pricing, currency, periods, team-seat limits, proration, refund policy, and GST handling as DECISION REQUIRED / DEFERRED per source-truth rule.
+  - Production Validator Hardening: Enhanced `ProductionConfigurationValidator` to reject mock/fake providers, placeholder keys, and missing webhook secrets in `production` profile, while permitting unconfigured `disabled` mode with Phase 15 Pending notice.
+  - Quality Gates & Live Harness: 16/16 `BillingSecurityAndAuthenticityTest` PASS, 10/10 `CommercialBillingLifecycleTest` PASS, 6/6 `EntitlementQuotaIntegrationTest` PASS, 4/4 `BillingIntegrationTest` PASS (60/60 dedicated billing tests PASS; 373/373 frontend Vitest tests PASS). Opt-in verification script `scripts/verify-payment-provider-live-integration.ps1` verified clean (Exit 0).
+
 ## Current Next Step:
 
-- Phase 12F: Commercial Billing / Payment Gateway Production Readiness.
+- Next planned architecture milestone (or Phase 13).
 
 ---
 

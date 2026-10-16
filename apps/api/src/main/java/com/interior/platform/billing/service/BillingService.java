@@ -42,6 +42,9 @@ public class BillingService {
     @Value("${app.billing.grace-period-days:7}")
     private int gracePeriodDays = 7;
 
+    @Value("${app.security.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins = "http://localhost:3000";
+
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.media.repository.MediaRepository mediaRepository;
 
@@ -211,6 +214,9 @@ public class BillingService {
         String currency = plan.currency();
         Instant expiresAt = now.plus(30, ChronoUnit.MINUTES);
 
+        String safeSuccessUrl = sanitizeRedirectUrl(req.successUrl(), "/workspace/billing?checkout=success");
+        String safeCancelUrl = sanitizeRedirectUrl(req.cancelUrl(), "/workspace/billing?checkout=cancelled");
+
         BillingCheckoutSessionRecord sessionRecord = new BillingCheckoutSessionRecord(
                 UuidV7.randomUuid(),
                 studioId,
@@ -221,8 +227,8 @@ public class BillingService {
                 "PENDING",
                 amountMinor,
                 currency,
-                req.successUrl(),
-                req.cancelUrl(),
+                safeSuccessUrl,
+                safeCancelUrl,
                 expiresAt,
                 now,
                 now
@@ -232,8 +238,8 @@ public class BillingService {
         CheckoutSessionResponse response = billingProvider.createCheckoutSession(
                 studio,
                 plan,
-                req.successUrl(),
-                req.cancelUrl(),
+                safeSuccessUrl,
+                safeCancelUrl,
                 idempotencyKey
         );
 
@@ -785,6 +791,71 @@ public class BillingService {
         }
         if (!actor.isStudioOwnerOrAdmin(studioId)) {
             throw new AccessDeniedException("Only studio owners and administrators can manage subscriptions or checkout");
+        }
+    }
+
+    public String sanitizeRedirectUrl(String url, String defaultFallback) {
+        if (url == null || url.isBlank()) {
+            return defaultFallback;
+        }
+        String trimmed = url.trim();
+
+        // Reject CRLF header injection
+        if (trimmed.contains("\r") || trimmed.contains("\n")) {
+            return defaultFallback;
+        }
+
+        // Relative path validation
+        if (trimmed.startsWith("/")) {
+            if (trimmed.startsWith("//") || trimmed.startsWith("/\\") || trimmed.startsWith("\\")) {
+                return defaultFallback;
+            }
+            String lower = trimmed.toLowerCase(Locale.ROOT);
+            if (lower.contains("javascript:") || lower.contains("data:") || lower.contains("\\")
+                    || lower.contains("%2f") || lower.contains("%5c")) {
+                return defaultFallback;
+            }
+            return trimmed;
+        }
+
+        // Absolute URL validation
+        try {
+            java.net.URI uri = java.net.URI.create(trimmed);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+                return defaultFallback;
+            }
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return defaultFallback;
+            }
+            String lowerHost = host.toLowerCase(Locale.ROOT);
+
+            // Permitted local/test hosts
+            if ("localhost".equals(lowerHost) || "127.0.0.1".equals(lowerHost)
+                    || "app".equals(lowerHost) || lowerHost.endsWith(".local") || lowerHost.endsWith(".internal")) {
+                return trimmed;
+            }
+
+            // Permitted production/staging domains from allowed origins
+            if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+                for (String origin : allowedOrigins.split(",")) {
+                    try {
+                        java.net.URI originUri = java.net.URI.create(origin.trim());
+                        if (originUri.getHost() != null && originUri.getHost().equalsIgnoreCase(lowerHost)) {
+                            return trimmed;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            // External untrusted host rejected -> safe fallback
+            log.warn("Unrecognized redirect host rejected in checkout initiation: {}", host);
+            return defaultFallback;
+        } catch (Exception e) {
+            log.warn("Invalid redirect URI rejected in checkout initiation: {}", trimmed);
+            return defaultFallback;
         }
     }
 }

@@ -11,9 +11,21 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Deterministic in-memory / local test provider for commercial billing tests.
+ * Forbidden in production by ProductionConfigurationValidator.
+ */
 public class FakeBillingProvider implements BillingProvider {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public FakeBillingProvider() {
+        this(new ObjectMapper());
+    }
+
+    public FakeBillingProvider(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
 
     @Override
     public String getProviderName() {

@@ -4,13 +4,15 @@ import com.interior.platform.billing.domain.BillingPlanRecord;
 import com.interior.platform.billing.domain.StudioSubscriptionRecord;
 import com.interior.platform.billing.dto.CheckoutSessionResponse;
 import com.interior.platform.designers.domain.StudioDetailRecord;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-@Component
-@ConditionalOnMissingBean(type = "com.interior.platform.billing.provider.CustomBillingProviderMarker")
+/**
+ * Disabled billing provider implementation.
+ * Ensures zero external network requests occur when billing is disabled or pending Phase 15 activation.
+ * Commercial checkout requests fail-fast with an informative error.
+ * Webhook parsing fails-fast with UnsupportedOperationException to guarantee zero state mutation.
+ */
 public class DisabledBillingProvider implements BillingProvider {
 
     @Override

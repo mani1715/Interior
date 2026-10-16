@@ -1,6 +1,7 @@
 package com.interior.platform.config;
 
 import com.interior.platform.ai.config.AiVisualizerProperties;
+import com.interior.platform.billing.config.BillingProperties;
 import com.interior.platform.email.config.EmailProperties;
 import com.interior.platform.media.config.MediaSecurityProperties;
 import com.interior.platform.security.config.AuthSecurityProperties;
@@ -26,6 +27,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private final AuthSecurityProperties authSecurityProperties;
     private final AiVisualizerProperties aiVisualizerProperties;
     private final EmailProperties emailProperties;
+    private final BillingProperties billingProperties;
 
     @Value("${app.security.dev-auth-enabled:false}")
     private boolean devAuthEnabled;
@@ -49,11 +51,11 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private String s3SecretAccessKey;
 
     public ProductionConfigurationValidator(Environment environment) {
-        this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties());
+        this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties(), new BillingProperties());
     }
 
     public ProductionConfigurationValidator(Environment environment, MediaSecurityProperties mediaSecurityProperties) {
-        this(environment, mediaSecurityProperties, new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties());
+        this(environment, mediaSecurityProperties, new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties(), new BillingProperties());
     }
 
     public ProductionConfigurationValidator(
@@ -61,7 +63,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             MediaSecurityProperties mediaSecurityProperties,
             AuthSecurityProperties authSecurityProperties
     ) {
-        this(environment, mediaSecurityProperties, authSecurityProperties, new AiVisualizerProperties(), new EmailProperties());
+        this(environment, mediaSecurityProperties, authSecurityProperties, new AiVisualizerProperties(), new EmailProperties(), new BillingProperties());
     }
 
     public ProductionConfigurationValidator(
@@ -70,7 +72,17 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             AuthSecurityProperties authSecurityProperties,
             AiVisualizerProperties aiVisualizerProperties
     ) {
-        this(environment, mediaSecurityProperties, authSecurityProperties, aiVisualizerProperties, new EmailProperties());
+        this(environment, mediaSecurityProperties, authSecurityProperties, aiVisualizerProperties, new EmailProperties(), new BillingProperties());
+    }
+
+    public ProductionConfigurationValidator(
+            Environment environment,
+            MediaSecurityProperties mediaSecurityProperties,
+            AuthSecurityProperties authSecurityProperties,
+            AiVisualizerProperties aiVisualizerProperties,
+            EmailProperties emailProperties
+    ) {
+        this(environment, mediaSecurityProperties, authSecurityProperties, aiVisualizerProperties, emailProperties, new BillingProperties());
     }
 
     @Autowired
@@ -79,13 +91,15 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             @Autowired(required = false) MediaSecurityProperties mediaSecurityProperties,
             @Autowired(required = false) AuthSecurityProperties authSecurityProperties,
             @Autowired(required = false) AiVisualizerProperties aiVisualizerProperties,
-            @Autowired(required = false) EmailProperties emailProperties
+            @Autowired(required = false) EmailProperties emailProperties,
+            @Autowired(required = false) BillingProperties billingProperties
     ) {
         this.environment = environment;
         this.mediaSecurityProperties = mediaSecurityProperties != null ? mediaSecurityProperties : new MediaSecurityProperties();
         this.authSecurityProperties = authSecurityProperties != null ? authSecurityProperties : new AuthSecurityProperties();
         this.aiVisualizerProperties = aiVisualizerProperties != null ? aiVisualizerProperties : new AiVisualizerProperties();
         this.emailProperties = emailProperties != null ? emailProperties : new EmailProperties();
+        this.billingProperties = billingProperties != null ? billingProperties : new BillingProperties();
     }
 
     @Override
@@ -163,6 +177,24 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             emailStatus = "UNKNOWN (" + emailProv + ")";
         }
 
+        String billingStatus;
+        String billProv = billingProperties != null && billingProperties.getProvider() != null
+                ? billingProperties.getProvider().trim().toLowerCase()
+                : "disabled";
+        if ("disabled".equals(billProv) || "none".equals(billProv) || billProv.isEmpty()) {
+            billingStatus = isProduction ? "NOT_CONFIGURED (Phase 15 Provider Activation Pending)" : "DISABLED (DisabledBillingProvider)";
+        } else if ("fake".equals(billProv) || "mock".equals(billProv) || "test".equals(billProv)) {
+            billingStatus = isProduction ? "FORBIDDEN (Mock provider in Production)" : "TEST_ONLY (Fake Billing Provider)";
+        } else if ("razorpay".equals(billProv)) {
+            boolean hasKeys = billingProperties.getRazorpay().isConfigured();
+            billingStatus = hasKeys ? "CONFIGURED (Razorpay)" : "NOT_CONFIGURED (Missing/Placeholder Key or Webhook Secret)";
+        } else if ("stripe".equals(billProv)) {
+            boolean hasKeys = billingProperties.getStripe().isConfigured();
+            billingStatus = hasKeys ? "CONFIGURED (Stripe)" : "NOT_CONFIGURED (Missing/Placeholder Key or Webhook Secret)";
+        } else {
+            billingStatus = "UNKNOWN (" + billProv + ")";
+        }
+
         log.info("================================================================================");
         log.info("           PLATFORM SYSTEM STARTUP & CONFIGURATION MATRIX                       ");
         log.info("================================================================================");
@@ -173,7 +205,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         log.info(" Malware Scanner       : {}", scannerStatus);
         log.info(" AI Visualizer         : {}", aiStatus);
         log.info(" WhatsApp              : MODE_A_ACTIVE (Direct wa.me) | MODE_B_NOT_CONFIGURED");
-        log.info(" Billing Gateway       : NOT_CONFIGURED (DisabledBillingProvider)");
+        log.info(" Billing Gateway       : {}", billingStatus);
         log.info(" Transactional Email   : {}", emailStatus);
         log.info("================================================================================");
 
@@ -340,6 +372,34 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                 }
             } else {
                 log.info("Production Transactional Email is disabled/unconfigured. Platform starting safely with email disabled (Phase 15 Provider Activation Pending).");
+            }
+
+            // Commercial Billing Production Validation
+            if (!"disabled".equals(billProv) && !"none".equals(billProv) && !billProv.isEmpty()) {
+                if ("fake".equals(billProv) || "mock".equals(billProv) || "test".equals(billProv)) {
+                    String errorMsg = "CRITICAL SECURITY FAULT: Mock billing provider ('" + billProv + "') MUST NOT be used in production!";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+                if ("razorpay".equals(billProv)) {
+                    if (!billingProperties.getRazorpay().isConfigured()) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Razorpay billing provider is selected in production but keyId, keySecret, or webhookSecret is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                } else if ("stripe".equals(billProv)) {
+                    if (!billingProperties.getStripe().isConfigured()) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Stripe billing provider is selected in production but apiKey or webhookSecret is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                } else {
+                    String errorMsg = "CRITICAL CONFIGURATION FAULT: Unsupported production billing provider: '" + billProv + "'";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+            } else {
+                log.info("Production Commercial Billing is disabled/unconfigured. Platform starting safely with commercial checkout disabled (Phase 15 Provider Activation Pending).");
             }
         }
     }
