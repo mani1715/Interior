@@ -203,9 +203,18 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Fail-Fast Production Startup Hardening: Hardened `ProductionConfigurationValidator` to reject `dev-auth` in production, reject insecure session cookies, and reject placeholder credentials (`your-client-id`), while permitting clean start with deferred Phase 15 activation notice when unconfigured.
   - Test Harnesses & Quality Gates: 16/16 `LocalOidcIntegrationTest` PASS, 5/5 `ProductionConfigurationValidatorOidcTest` PASS, 6/6 `OidcDestinationRoutingTest` PASS, 603/603 Backend tests PASS, 373/373 Frontend Vitest tests PASS. Live Google activation deferred to Phase 15.
 
+- **Phase 12D: Production AI Visualizer & Image Editing Readiness Without Paid AI Credentials (Antigravity)**
+  - Interior Visualization Focus: Purpose-built for wardrobe/cupboard recoloring, cabinet/door material swaps, wall finishes, and reference material swatches with room geometry preservation.
+  - Provider-Neutral Architecture: Hardened `ConfigurableAiImageProvider` with HTTP bounded streaming (15MB cap), retry with exponential backoff, circuit-breaker awareness, magic-byte image validation (JPEG, PNG, WebP), and error normalization (`AI_AUTH_FAILED`, `AI_SAFETY_REJECTED`, `AI_INVALID_REQUEST`, `PROVIDER_QUOTA_REACHED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_TIMEOUT`, `MALFORMED_PROVIDER_OUTPUT`).
+  - SSRF Defense Integration: Intercepts all provider output URLs and user reference images with `SsrfProtectionService`, blocking loopback, RFC 1918 private IPs, link-local, cloud metadata IPs (`169.254.169.254`), and non-HTTP protocols.
+  - In-Memory Malware Inspection: Output image payloads are scanned via `MalwareScanner` before persistence to object storage. Infected outputs are aborted with `MALWARE_DETECTED`.
+  - Quota & Cost Controls: Enforced default 20 generations/studio/day, global platform daily budget ceiling, studio monthly budget, and immutable ledger recording in `ai_generation_cost_ledger`.
+  - Fail-Fast Startup Validator: Upgraded `ProductionConfigurationValidator` to reject `mock` provider, empty/placeholder keys, and rogue model selections in production profile.
+  - Test Harnesses & Quality Gates: 13/13 `LocalAiIntegrationTest` PASS, 5/5 `AiSsrfAndOutputSecurityTest` PASS, 6/6 `ProductionConfigurationValidatorAiTest` PASS. Live AI activation deferred to Phase 15.
+
 ## Current Next Step:
 
-- Phase 12D: Production AI Visualization Provider Readiness (or User Directed Next Phase).
+- Phase 12E: Production Transactional Email Readiness (or User Directed Next Phase).
 
 ---
 

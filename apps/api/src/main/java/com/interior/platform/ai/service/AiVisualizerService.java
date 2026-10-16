@@ -84,6 +84,12 @@ public class AiVisualizerService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.operations.service.PlatformOperationsService platformOperationsService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.media.security.scanner.MalwareScanner malwareScanner;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.media.config.MediaSecurityProperties mediaSecurityProperties;
+
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
@@ -96,6 +102,14 @@ public class AiVisualizerService {
 
     public void setPlatformOperationsService(com.interior.platform.operations.service.PlatformOperationsService platformOperationsService) {
         this.platformOperationsService = platformOperationsService;
+    }
+
+    public void setMalwareScanner(com.interior.platform.media.security.scanner.MalwareScanner malwareScanner) {
+        this.malwareScanner = malwareScanner;
+    }
+
+    public void setMediaSecurityProperties(com.interior.platform.media.config.MediaSecurityProperties mediaSecurityProperties) {
+        this.mediaSecurityProperties = mediaSecurityProperties;
     }
 
     private void emitRealtime(com.interior.platform.realtime.domain.RealtimeEvent event) {
@@ -843,6 +857,32 @@ public class AiVisualizerService {
         // Ingest generated image into Media Engine
         try {
             byte[] outputBytes = providerResponse.imageBytes();
+            if (outputBytes == null || outputBytes.length == 0) {
+                throw new IllegalStateException("Provider returned empty image data");
+            }
+
+            // Inspect external provider output with malware scanner if configured
+            if (malwareScanner != null && malwareScanner.isConfigured()) {
+                com.interior.platform.media.security.scanner.ScanResult scan = malwareScanner.scan(
+                        "ai/studio/" + job.studioId() + "/output/" + jobId,
+                        outputBytes,
+                        new com.interior.platform.media.security.scanner.ScanMetadata(
+                                jobId,
+                                job.studioId(),
+                                job.projectId(),
+                                "image/jpeg",
+                                outputBytes.length
+                        )
+                );
+                if (scan.outcome() == com.interior.platform.media.domain.ScanOutcome.INFECTED) {
+                    log.error("Malware detected in AI provider output for job {}: {}", jobId, scan.threatClassification());
+                    aiJobRepository.updateStatus(jobId, AiJobStatus.FAILED, null, null, Instant.now(), "MALWARE_DETECTED", "AI generation output failed security inspection.", null, null, currentVersion);
+                    aiJobRepository.recordUsageEvent(new AiUsageEventRecord(UuidV7.randomUuid(), job.studioId(), jobId, "GENERATION_FAILED", aiImageProvider.getProviderKey(), 0, Instant.now()));
+                    auditService.record(job.createdBy(), job.studioId(), "AI_GENERATION_FAILED", "AI_JOB", jobId.toString(), Map.of("errorCode", "MALWARE_DETECTED"), null, null);
+                    return;
+                }
+            }
+
             ImageProcessingService.ImageDimensions dims = imageProcessingService.validateAndGetDimensions(outputBytes);
 
             UUID outputMediaId = UuidV7.randomUuid();

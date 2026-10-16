@@ -1,8 +1,11 @@
 package com.interior.platform.config;
 
+import com.interior.platform.ai.config.AiVisualizerProperties;
 import com.interior.platform.media.config.MediaSecurityProperties;
+import com.interior.platform.security.config.AuthSecurityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -19,7 +22,8 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
 
     private final Environment environment;
     private final MediaSecurityProperties mediaSecurityProperties;
-    private final com.interior.platform.security.config.AuthSecurityProperties authSecurityProperties;
+    private final AuthSecurityProperties authSecurityProperties;
+    private final AiVisualizerProperties aiVisualizerProperties;
 
     @Value("${app.security.dev-auth-enabled:false}")
     private boolean devAuthEnabled;
@@ -43,38 +47,44 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private String s3SecretAccessKey;
 
     public ProductionConfigurationValidator(Environment environment) {
-        this(environment, new MediaSecurityProperties(), new com.interior.platform.security.config.AuthSecurityProperties());
+        this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties());
     }
 
     public ProductionConfigurationValidator(Environment environment, MediaSecurityProperties mediaSecurityProperties) {
-        this(environment, mediaSecurityProperties, new com.interior.platform.security.config.AuthSecurityProperties());
+        this(environment, mediaSecurityProperties, new AuthSecurityProperties(), new AiVisualizerProperties());
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public ProductionConfigurationValidator(
             Environment environment,
             MediaSecurityProperties mediaSecurityProperties,
-            com.interior.platform.security.config.AuthSecurityProperties authSecurityProperties
+            AuthSecurityProperties authSecurityProperties
+    ) {
+        this(environment, mediaSecurityProperties, authSecurityProperties, new AiVisualizerProperties());
+    }
+
+    @Autowired
+    public ProductionConfigurationValidator(
+            Environment environment,
+            @Autowired(required = false) MediaSecurityProperties mediaSecurityProperties,
+            @Autowired(required = false) AuthSecurityProperties authSecurityProperties,
+            @Autowired(required = false) AiVisualizerProperties aiVisualizerProperties
     ) {
         this.environment = environment;
         this.mediaSecurityProperties = mediaSecurityProperties != null ? mediaSecurityProperties : new MediaSecurityProperties();
-        this.authSecurityProperties = authSecurityProperties != null ? authSecurityProperties : new com.interior.platform.security.config.AuthSecurityProperties();
+        this.authSecurityProperties = authSecurityProperties != null ? authSecurityProperties : new AuthSecurityProperties();
+        this.aiVisualizerProperties = aiVisualizerProperties != null ? aiVisualizerProperties : new AiVisualizerProperties();
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        Set<String> activeProfiles = Set.copyOf(Arrays.asList(environment.getActiveProfiles()));
-        boolean isProduction = activeProfiles.contains("prod") || activeProfiles.contains("production");
+        Set<String> activeProfiles = Set.of(environment.getActiveProfiles());
+        boolean isProduction = activeProfiles.contains("production");
 
         String storageStatus;
         if ("S3_COMPATIBLE".equalsIgnoreCase(storageProvider)) {
-            if (s3Endpoint != null && !s3Endpoint.isBlank()) {
-                storageStatus = "CONFIGURED (S3/R2 Cloud Storage)";
-            } else {
-                storageStatus = "NOT_CONFIGURED (S3/R2 Endpoint Missing)";
-            }
+            storageStatus = "CONFIGURED (S3/R2 Cloud Storage)";
         } else {
-            storageStatus = isProduction ? "TEST_ONLY (Local Filesystem — Ephemeral)" : "TEST_ONLY (Local Filesystem)";
+            storageStatus = isProduction ? "WARNING (Local Ephemeral Filesystem in Production)" : "TEST_ONLY (Local Filesystem — Ephemeral)";
         }
 
         String scanner = mediaSecurityProperties.getScanner() != null ? mediaSecurityProperties.getScanner().trim().toLowerCase() : "disabled";
@@ -107,6 +117,20 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             oidcStatus = devAuthEnabled ? "DEV_PERSONA_SANDBOX" : "DISABLED";
         }
 
+        String aiStatus;
+        boolean aiEnabled = aiVisualizerProperties != null && aiVisualizerProperties.isEnabled();
+        String aiProvider = aiVisualizerProperties != null && aiVisualizerProperties.getProvider() != null
+                ? aiVisualizerProperties.getProvider().trim().toLowerCase()
+                : "none";
+        if (!aiEnabled || "none".equals(aiProvider)) {
+            aiStatus = isProduction ? "NOT_CONFIGURED (Phase 15 Provider Activation Pending)" : "DISABLED (DisabledAiImageProvider)";
+        } else if ("mock_configured".equals(aiProvider) || "fake".equals(aiProvider) || "mock".equals(aiProvider)) {
+            aiStatus = isProduction ? "FORBIDDEN (Mock provider in Production)" : "TEST_ONLY (Mock AI Provider)";
+        } else {
+            boolean hasKey = aiVisualizerProperties.getApiKey() != null && !aiVisualizerProperties.getApiKey().isBlank() && !isPlaceholder(aiVisualizerProperties.getApiKey());
+            aiStatus = hasKey ? "CONFIGURED (" + aiProvider + ")" : "NOT_CONFIGURED (Missing/Placeholder Key)";
+        }
+
         log.info("================================================================================");
         log.info("           PLATFORM SYSTEM STARTUP & CONFIGURATION MATRIX                       ");
         log.info("================================================================================");
@@ -115,7 +139,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         log.info(" Auth (OIDC)           : {}", oidcStatus);
         log.info(" Object Storage        : {}", storageStatus);
         log.info(" Malware Scanner       : {}", scannerStatus);
-        log.info(" AI Visualizer         : NOT_CONFIGURED (DisabledAiImageProvider)");
+        log.info(" AI Visualizer         : {}", aiStatus);
         log.info(" WhatsApp              : MODE_A_ACTIVE (Direct wa.me) | MODE_B_NOT_CONFIGURED");
         log.info(" Billing Gateway       : NOT_CONFIGURED (DisabledBillingProvider)");
         log.info(" Transactional Email   : NOT_CONFIGURED (DisabledEmailProvider)");
@@ -212,6 +236,37 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             } else if ("disabled".equals(scanner) && mediaSecurityProperties.isRequireCleanScan()) {
                 log.warn("PRODUCTION UPLOAD NOTICE: Malware scanner is 'disabled' with require-clean-scan=true. Upload commits will fail-closed until ClamAV is configured.");
             }
+
+            // AI Visualizer Production Validation
+            if (aiEnabled && !"none".equals(aiProvider)) {
+                if ("mock_configured".equals(aiProvider) || "fake".equals(aiProvider) || "mock".equals(aiProvider)) {
+                    String errorMsg = "CRITICAL SECURITY FAULT: Mock AI provider ('" + aiProvider + "') MUST NOT be used in production!";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+                String key = aiVisualizerProperties.getApiKey();
+                if (key == null || key.isBlank() || isPlaceholder(key)) {
+                    String errorMsg = "CRITICAL CONFIGURATION FAULT: AI provider '" + aiProvider + "' is enabled in production but apiKey is missing or placeholder.";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+                String endpoint = aiVisualizerProperties.getEndpoint();
+                if (endpoint != null && isPlaceholder(endpoint)) {
+                    String errorMsg = "CRITICAL CONFIGURATION FAULT: AI provider '" + aiProvider + "' endpoint is a placeholder.";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+                if (aiVisualizerProperties.getAllowedModels() != null && !aiVisualizerProperties.getAllowedModels().isEmpty()) {
+                    String configuredModel = aiVisualizerProperties.getModel();
+                    if (!aiVisualizerProperties.getAllowedModels().contains(configuredModel)) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Configured AI model '" + configuredModel + "' is not on permitted models allowlist.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                }
+            } else {
+                log.info("Production AI Visualizer is disabled/unconfigured. Platform starting safely with AI disabled (Phase 15 Provider Activation Pending).");
+            }
         }
     }
 
@@ -221,4 +276,3 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         return lower.startsWith("your-") || lower.contains("placeholder") || lower.equals("change-me");
     }
 }
-
