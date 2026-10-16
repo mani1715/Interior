@@ -10,13 +10,13 @@
 
 | Test Class | Focus Area | Test Count | Status |
 |:---|:---|:---:|:---:|
-| `BillingSecurityAndAuthenticityTest` | Provider HMAC-SHA256 authenticity, Stripe replay defense, redirect origin security, fake provider ban, durable idempotency across restart, race conditions, validator hardening, locked entitlement capacities | 25 | **PASSED** |
+| `BillingSecurityAndAuthenticityTest` | Provider HMAC-SHA256 authenticity, Stripe replay defense, redirect origin security, fake provider ban, durable idempotency across restart, race conditions, validator hardening, locked entitlement capacities, canonical BASE source-truth & safe fallback | 27 | **PASSED** |
 | `CommercialBillingLifecycleTest` | Zero-data-loss downgrade, server-authoritative checkout, replay deduplication, tampered amount rejection, past-due grace period, transaction history | 10 | **PASSED** |
 | `EntitlementQuotaIntegrationTest` | Project and photo creation quotas, storage limits, cinematic presentation eligibility across plans | 6 | **PASSED** |
 | `BillingIntegrationTest` | Base plan catalog fallback, disabled provider checkout rejection, tenant isolation on billing summary, fake provider checkout lifecycle | 4 | **PASSED** |
 | `PostgreSqlAnalyticsBillingRlsTest` | Multi-tenant PostgreSQL Row-Level Security on billing tables (`studio_subscriptions`, `billing_transactions`) | 4 | **PASSED** |
 | `ProductionConfigurationValidator*Test` | Production profile startup guard against mock providers, unconfigured gateways, and missing redirect origins | 20 | **PASSED** |
-| **Total Automated Billing / Security Tests** | | **69** | **100% PASSED** |
+| **Total Automated Billing / Security Tests** | | **71** | **100% PASSED** |
 
 ---
 
@@ -70,4 +70,6 @@
 - **`testStandardEntitlementCapacity`:** Verifies STANDARD tier capacity (10 projects, 15 photos/project, 5 GB storage, 0 Cinematic projects, Leads CRM = true).
 - **`testPremiumEntitlementCapacity`:** Verifies PREMIUM tier capacity (20 projects, 25 photos/project, 20 GB storage, 0 Cinematic projects, Leads CRM = true, Advanced Analytics = true).
 - **`testProEntitlementCapacity`:** Verifies PRO tier capacity (20 projects, 30 photos/project, 50 GB storage, 5 Cinematic projects, Leads CRM = true, Advanced Analytics = true).
-- **`testBasePlanInternalFallback`:** Verifies BASE internal tier is non-purchasable with price 0.
+- **`testBasePlanInternalFallback` (Phase 12F.2):** Verifies BASE internal operational tier is non-purchasable (`purchasable = false`, price 0, period `NONE`), and confirms canonical V021/V030 entitlements (`PROJECT_LIMIT` = NULL, `PROJECT_PHOTO_LIMIT` = NULL, `STORAGE_LIMIT_BYTES` = NULL, `CINEMATIC_PROJECT_LIMIT` = NULL, `CINEMATIC_PORTFOLIO` = true, `LEADS_CRM` = true, `PORTFOLIO_PUBLISH` = true, `ANALYTICS_BASIC` = true, `ANALYTICS_ADVANCED` = true).
+- **`testMissingSubscriptionFallbackDoesNotGrantUnlimitedBase` (Phase 12F.2):** Proves that an unmapped, expired, or cancelled commercial subscription safely resolves to `STANDARD` (10 projects, 15 photos/project, 5 GB storage, 0 Cinematic projects, Leads CRM = true), ensuring expired users are NEVER granted unmetered `BASE` operational access.
+- **`testUnknownPlanIdFailsSafely` (Phase 12F.2):** Asserts that an unrecognized or unseeded plan ID falls back cleanly to the baseline `STANDARD` commercial entitlements.

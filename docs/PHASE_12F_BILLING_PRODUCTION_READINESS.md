@@ -65,16 +65,18 @@ All components are implemented, locally validated, contract-tested, and configur
 
 ---
 
-## 3. Entitlement Matrix (V030 Canonical Bases)
+## 3. Canonical Entitlement Matrix (V021 & V030 Canonical Database Source)
 
-| Plan Code | Purchasable | Projects Limit | Photos / Project | Storage Limit | Cinematic Projects | AI Monthly Credits | Leads CRM | Basic Analytics | Advanced Analytics |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **BASE** | **No** (Internal fallback) | Unlimited (null) | Unlimited (null) | Unlimited (null) | 0 | 0 | Yes | Yes | Yes |
-| **STANDARD** | Yes | 10 | 15 | 5 GB | 0 | 50 | Yes | Yes | No |
-| **PREMIUM** | Yes | 20 | 25 | 20 GB | 0 | 150 | Yes | Yes | Yes |
-| **PRO** | Yes | 20 | 30 | 50 GB | 5 | 500 | Yes | Yes | Yes |
+| Plan Code | Purchasable | Projects Limit | Photos / Project | Storage Limit | Cinematic Projects | Leads CRM | Public Portfolio | Basic Analytics | Advanced Analytics | Source Definition |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **BASE** | **No** (Internal/Legacy) | Unlimited (`null`) | Unlimited (`null`) | Unlimited (`null`) | Unlimited (`null`) | Yes | Yes | Yes | Yes | Canonical V021/V030 operational baseline |
+| **STANDARD** | Yes | 10 | 15 | 5 GB | 0 (Disabled) | Yes | Yes | Yes | No | Locked commercial Tier 1 |
+| **PREMIUM** | Yes | 20 | 25 | 20 GB | 0 (Disabled) | Yes | Yes | Yes | Yes | Locked commercial Tier 2 |
+| **PRO** | Yes | 20 | 30 | 50 GB | 5 | Yes | Yes | Yes | Yes | Locked commercial Tier 3 |
 
-*Note: Team-seat limits and commercial pricing remain `DECISION REQUIRED` and are intentionally not hardcoded into commercial policy.*
+> **SAFE FALLBACK INVARIANT (Phase 12F.2):** If a commercial subscription expires, is cancelled, or falls past due, `EntitlementService` deterministically resolves the studio's active plan to **`STANDARD`** (constrained to 10 projects, 15 photos, 5 GB, 0 cinematic), NEVER granting unmetered `BASE` access to expired commercial subscribers. Unresolvable or missing catalog plan IDs likewise safely default to `STANDARD`.
+>
+> *Note: Team-seat limits and commercial pricing remain `DECISION REQUIRED` and are intentionally not hardcoded into commercial policy.*
 
 ---
 
@@ -96,14 +98,14 @@ All components are implemented, locally validated, contract-tested, and configur
 ## 5. Verification & Test Execution Results
 
 - **Targeted Billing & Entitlement Suites:**
-  - `BillingSecurityAndAuthenticityTest`: **25 passed, 0 failed, 0 skipped**.
+  - `BillingSecurityAndAuthenticityTest`: **27 passed, 0 failed, 0 skipped**.
   - `CommercialBillingLifecycleTest`: **10 passed, 0 failed, 0 skipped**.
   - `EntitlementQuotaIntegrationTest`: **6 passed, 0 failed, 0 skipped**.
   - `BillingIntegrationTest`: **4 passed, 0 failed, 0 skipped**.
   - `PostgreSqlAnalyticsBillingRlsTest`: **4 passed, 0 failed, 0 skipped**.
-  - Total billing/security tests: **49 passed in targeted suite, 0 failed**.
+  - Total billing/security tests: **51 passed in targeted suite, 0 failed**.
 - **Complete Full Platform Backend Suite (`mvn test`):**
-  - **Tests run: 712, Failures: 0, Errors: 0, Skipped: 1** (100% PASS, Build Success).
+  - **Tests run: 714, Failures: 0, Errors: 0, Skipped: 1** (100% PASS, Build Success).
 - **Frontend Regression Suite (`apps/web`):**
   - Vitest Unit & Integration: **52 test files passed (52/52), 373 tests passed (373/373)**.
   - TypeScript Type Check (`npx tsc --noEmit`): **Clean (Exit 0, zero errors)**.

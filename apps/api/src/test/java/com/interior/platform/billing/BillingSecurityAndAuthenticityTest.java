@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -628,11 +629,107 @@ class BillingSecurityAndAuthenticityTest {
     }
 
     @Test
-    @DisplayName("Entitlement Matrix: BASE tier is internal/legacy fallback (purchasable = false, priceMinor = 0)")
+    @DisplayName("Entitlement Matrix: BASE tier matches canonical V021/V030 source (non-purchasable, price 0, operational baseline)")
     void testBasePlanInternalFallback() {
         BillingPlanRecord basePlan = billingRepository.findPlanByCode("BASE").orElseThrow();
         assertFalse(basePlan.purchasable(), "BASE plan must not be purchasable");
         assertEquals(0L, basePlan.priceMinor(), "BASE plan price must be 0");
+        assertEquals("NONE", basePlan.billingPeriod(), "BASE billing period must be NONE");
+
+        List<PlanEntitlementRecord> ents = billingRepository.findEntitlementsByPlanId(basePlan.id());
+
+        // Canonical V021 and V030 limits: numeric NULL represents unlimited in operational internal tier
+        assertNull(findNullableNumericEntitlement(ents, EntitlementKey.PROJECT_LIMIT), "BASE project limit must be null (unlimited)");
+        assertNull(findNullableNumericEntitlement(ents, EntitlementKey.PROJECT_PHOTO_LIMIT), "BASE photo limit must be null (unlimited)");
+        assertNull(findNullableNumericEntitlement(ents, EntitlementKey.STORAGE_LIMIT_BYTES), "BASE storage limit must be null (unlimited)");
+        assertNull(findNullableNumericEntitlement(ents, EntitlementKey.CINEMATIC_PROJECT_LIMIT), "BASE cinematic project limit must be null (unlimited)");
+
+        // Canonical boolean entitlements
+        assertTrue(findBooleanEntitlement(ents, EntitlementKey.CINEMATIC_PORTFOLIO), "BASE cinematic portfolio must be true");
+        assertTrue(findBooleanEntitlement(ents, EntitlementKey.LEADS_CRM), "BASE CRM must be true");
+        assertTrue(findBooleanEntitlement(ents, EntitlementKey.PORTFOLIO_PUBLISH), "BASE portfolio publish must be true");
+        assertTrue(findBooleanEntitlement(ents, EntitlementKey.ANALYTICS_BASIC), "BASE basic analytics must be true");
+        assertTrue(findBooleanEntitlement(ents, EntitlementKey.ANALYTICS_ADVANCED), "BASE advanced analytics must be true");
+    }
+
+    @Test
+    @DisplayName("Entitlement Fallback: Missing or expired commercial subscription falls back safely to STANDARD, NOT unlimited BASE")
+    void testMissingSubscriptionFallbackDoesNotGrantUnlimitedBase() {
+        UUID studioId = createTestStudio("fallback-safety");
+        try {
+            BillingPlanRecord standardPlan = billingRepository.findPlanByCode("STANDARD").orElseThrow();
+
+            // When a studio has an expired or cancelled commercial subscription
+            StudioSubscriptionRecord expiredSub = new StudioSubscriptionRecord(
+                    UuidV7.randomUuid(),
+                    studioId,
+                    standardPlan.id(),
+                    SubscriptionStatus.EXPIRED,
+                    "NONE",
+                    null,
+                    null,
+                    Instant.now().minus(60, ChronoUnit.DAYS),
+                    Instant.now().minus(30, ChronoUnit.DAYS),
+                    false,
+                    null,
+                    Instant.now().minus(60, ChronoUnit.DAYS),
+                    Instant.now().minus(30, ChronoUnit.DAYS),
+                    1L,
+                    "PAID_PROVIDER",
+                    null,
+                    null
+            );
+            billingRepository.saveSubscription(expiredSub);
+
+            // Active plan must resolve to STANDARD, not BASE
+            BillingPlanRecord effectivePlan = entitlementService.getActivePlan(studioId);
+            assertEquals("STANDARD", effectivePlan.code(), "Expired commercial subscription must fall back to STANDARD tier");
+            assertEquals(10L, entitlementService.getNumericLimit(studioId, EntitlementKey.PROJECT_LIMIT), "Standard project limit must apply");
+            assertEquals(15L, entitlementService.getNumericLimit(studioId, EntitlementKey.PROJECT_PHOTO_LIMIT), "Standard photo limit must apply");
+            assertEquals(5L * 1024L * 1024L * 1024L, entitlementService.getNumericLimit(studioId, EntitlementKey.STORAGE_LIMIT_BYTES), "Standard storage limit must apply");
+            assertFalse(entitlementService.hasBooleanEntitlement(studioId, EntitlementKey.CINEMATIC_PORTFOLIO), "Standard must not have cinematic portfolio");
+        } finally {
+            cleanupStudio(studioId);
+        }
+    }
+
+    @Test
+    @DisplayName("Entitlement Fallback: Subscription with unresolvable plan ID safely defaults to STANDARD")
+    void testUnknownPlanIdFailsSafely() {
+        BillingRepository mockRepo = org.mockito.Mockito.mock(BillingRepository.class);
+        ProjectRepository mockProjRepo = org.mockito.Mockito.mock(ProjectRepository.class);
+        EntitlementService serviceWithMock = new EntitlementService(mockRepo, mockProjRepo);
+
+        UUID studioId = UUID.randomUUID();
+        UUID unmappedPlanId = UUID.randomUUID();
+        BillingPlanRecord standardPlan = billingRepository.findPlanByCode("STANDARD").orElseThrow();
+
+        StudioSubscriptionRecord mockSub = new StudioSubscriptionRecord(
+                UuidV7.randomUuid(),
+                studioId,
+                unmappedPlanId,
+                SubscriptionStatus.ACTIVE,
+                "NONE",
+                null,
+                null,
+                Instant.now().minus(5, ChronoUnit.DAYS),
+                Instant.now().plus(25, ChronoUnit.DAYS),
+                false,
+                null,
+                Instant.now().minus(5, ChronoUnit.DAYS),
+                Instant.now().minus(5, ChronoUnit.DAYS),
+                1L,
+                "PAID_PROVIDER",
+                null,
+                null
+        );
+
+        org.mockito.Mockito.when(mockRepo.findActiveSubscription(studioId)).thenReturn(Optional.of(mockSub));
+        org.mockito.Mockito.when(mockRepo.findPlanById(unmappedPlanId)).thenReturn(Optional.empty());
+        org.mockito.Mockito.when(mockRepo.findPlanByCode("STANDARD")).thenReturn(Optional.of(standardPlan));
+
+        BillingPlanRecord effective = serviceWithMock.getActivePlan(studioId);
+        assertEquals("STANDARD", effective.code(), "Unresolvable plan ID must fall back safely to STANDARD");
     }
 
     // =========================================================================
@@ -990,6 +1087,14 @@ class BillingSecurityAndAuthenticityTest {
                 .filter(v -> v != null)
                 .findFirst()
                 .orElse(-1L);
+    }
+
+    private Long findNullableNumericEntitlement(List<PlanEntitlementRecord> ents, EntitlementKey key) {
+        PlanEntitlementRecord record = ents.stream()
+                .filter(e -> key.name().equalsIgnoreCase(e.entitlementKey()))
+                .findFirst()
+                .orElse(null);
+        return record != null ? record.numericValue() : null;
     }
 
     private boolean findBooleanEntitlement(List<PlanEntitlementRecord> ents, EntitlementKey key) {
