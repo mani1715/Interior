@@ -24,7 +24,19 @@ public class FakeBillingProvider implements BillingProvider {
     }
 
     public FakeBillingProvider(ObjectMapper objectMapper) {
+        assertNotProduction();
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
+
+    private void assertNotProduction() {
+        String sysProp = System.getProperty("spring.profiles.active");
+        if (sysProp != null && sysProp.contains("production")) {
+            throw new IllegalStateException("CRITICAL SECURITY FAULT: FakeBillingProvider cannot be instantiated in production!");
+        }
+        String envProp = System.getenv("SPRING_PROFILES_ACTIVE");
+        if (envProp != null && envProp.contains("production")) {
+            throw new IllegalStateException("CRITICAL SECURITY FAULT: FakeBillingProvider cannot be instantiated in production!");
+        }
     }
 
     @Override

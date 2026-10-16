@@ -58,6 +58,12 @@ public class BillingService {
     private EmailTemplateService emailTemplateService;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.core.env.Environment environment;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.interior.platform.billing.config.BillingProperties billingProperties;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
     private SecurityRepository securityRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -86,6 +92,25 @@ public class BillingService {
 
     public void setGracePeriodDays(int gracePeriodDays) {
         this.gracePeriodDays = gracePeriodDays;
+    }
+
+    public void setEnvironment(org.springframework.core.env.Environment environment) {
+        this.environment = environment;
+    }
+
+    public void setAllowedOrigins(String allowedOrigins) {
+        this.allowedOrigins = allowedOrigins;
+    }
+
+    public void setBillingProperties(com.interior.platform.billing.config.BillingProperties billingProperties) {
+        this.billingProperties = billingProperties;
+    }
+
+    private boolean isProductionEnvironment() {
+        if (environment == null) {
+            return false;
+        }
+        return java.util.Arrays.asList(environment.getActiveProfiles()).contains("production");
     }
 
     /**
@@ -447,8 +472,8 @@ public class BillingService {
         String evType = event.eventType().toLowerCase(Locale.ROOT);
 
         if (evType.contains("checkout") && evType.contains("completed")
-                || evType.contains("payment") && (evType.contains("succeeded") || evType.contains("paid"))
-                || evType.contains("subscription") && evType.contains("activated")) {
+                || evType.contains("payment") && (evType.contains("succeeded") || evType.contains("paid") || evType.contains("captured"))
+                || evType.contains("subscription") && (evType.contains("activated") || evType.contains("charged"))) {
 
             // Validate amount and currency integrity against recorded server checkout session
             if (session != null) {
@@ -800,8 +825,8 @@ public class BillingService {
         }
         String trimmed = url.trim();
 
-        // Reject CRLF header injection
-        if (trimmed.contains("\r") || trimmed.contains("\n")) {
+        // Reject CRLF header injection and control characters
+        if (trimmed.contains("\r") || trimmed.contains("\n") || trimmed.chars().anyMatch(ch -> ch < 32 || ch == 127)) {
             return defaultFallback;
         }
 
@@ -812,10 +837,15 @@ public class BillingService {
             }
             String lower = trimmed.toLowerCase(Locale.ROOT);
             if (lower.contains("javascript:") || lower.contains("data:") || lower.contains("\\")
-                    || lower.contains("%2f") || lower.contains("%5c")) {
+                    || lower.contains("%2f") || lower.contains("%5c") || lower.contains("%25")) {
                 return defaultFallback;
             }
             return trimmed;
+        }
+
+        // Reject backslash start
+        if (trimmed.startsWith("\\")) {
+            return defaultFallback;
         }
 
         // Absolute URL validation
@@ -831,21 +861,35 @@ public class BillingService {
             }
             String lowerHost = host.toLowerCase(Locale.ROOT);
 
-            // Permitted local/test hosts
-            if ("localhost".equals(lowerHost) || "127.0.0.1".equals(lowerHost)
-                    || "app".equals(lowerHost) || lowerHost.endsWith(".local") || lowerHost.endsWith(".internal")) {
-                return trimmed;
+            boolean isProd = isProductionEnvironment();
+
+            // Local/test hosts: ONLY accepted in non-production environments OR if explicitly in allowed list
+            if (!isProd) {
+                if ("localhost".equals(lowerHost) || "127.0.0.1".equals(lowerHost)
+                        || "app".equals(lowerHost) || lowerHost.endsWith(".local") || lowerHost.endsWith(".internal")) {
+                    return trimmed;
+                }
             }
 
             // Permitted production/staging domains from allowed origins
             if (allowedOrigins != null && !allowedOrigins.isBlank()) {
                 for (String origin : allowedOrigins.split(",")) {
+                    if (origin.isBlank()) continue;
                     try {
                         java.net.URI originUri = java.net.URI.create(origin.trim());
                         if (originUri.getHost() != null && originUri.getHost().equalsIgnoreCase(lowerHost)) {
                             return trimmed;
                         }
                     } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            // Permitted explicit redirect hosts from BillingProperties
+            if (billingProperties != null && billingProperties.getAllowedRedirectHosts() != null) {
+                for (String allowedHost : billingProperties.getAllowedRedirectHosts()) {
+                    if (allowedHost != null && !allowedHost.isBlank() && allowedHost.trim().equalsIgnoreCase(lowerHost)) {
+                        return trimmed;
                     }
                 }
             }

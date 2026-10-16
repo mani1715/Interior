@@ -398,6 +398,38 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                     log.error(errorMsg);
                     throw new IllegalStateException(errorMsg);
                 }
+
+                // Check that at least one valid, non-local, non-placeholder trusted production redirect host is configured
+                boolean hasTrustedHost = false;
+                if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+                    for (String origin : allowedOrigins.split(",")) {
+                        String trimmedOrigin = origin.trim();
+                        if (trimmedOrigin.isBlank() || isPlaceholder(trimmedOrigin)) continue;
+                        try {
+                            java.net.URI u = java.net.URI.create(trimmedOrigin);
+                            String host = u.getHost();
+                            if (host != null && !host.isBlank() && !"localhost".equalsIgnoreCase(host) && !"127.0.0.1".equals(host)) {
+                                hasTrustedHost = true;
+                                break;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+                if (!hasTrustedHost && billingProperties.getAllowedRedirectHosts() != null) {
+                    for (String host : billingProperties.getAllowedRedirectHosts()) {
+                        if (host != null && !host.isBlank() && !isPlaceholder(host) && !"localhost".equalsIgnoreCase(host) && !"127.0.0.1".equals(host)) {
+                            hasTrustedHost = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasTrustedHost) {
+                    String errorMsg = "CRITICAL CONFIGURATION FAULT: Commercial checkout provider '" + billProv + "' is enabled in production, but no trusted production redirect host or origin is configured (app.security.allowed-origins or app.billing.allowed-redirect-hosts). Canonical production domain must be configured before enabling commercial checkout.";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
             } else {
                 log.info("Production Commercial Billing is disabled/unconfigured. Platform starting safely with commercial checkout disabled (Phase 15 Provider Activation Pending).");
             }
