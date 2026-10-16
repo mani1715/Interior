@@ -210,11 +210,17 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - In-Memory Malware Inspection: Output image payloads are scanned via `MalwareScanner` before persistence to object storage. Infected outputs are aborted with `MALWARE_DETECTED`.
   - Quota & Cost Controls: Enforced default 20 generations/studio/day, global platform daily budget ceiling, studio monthly budget, and immutable ledger recording in `ai_generation_cost_ledger`.
   - Fail-Fast Startup Validator: Upgraded `ProductionConfigurationValidator` to reject `mock` provider, empty/placeholder keys, and rogue model selections in production profile.
-  - Test Harnesses & Quality Gates: 13/13 `LocalAiIntegrationTest` PASS, 5/5 `AiSsrfAndOutputSecurityTest` PASS, 6/6 `ProductionConfigurationValidatorAiTest` PASS. Live AI activation deferred to Phase 15.
+- **Phase 12E: Transactional Email & Communication Delivery Production Readiness (Antigravity)**
+  - Strictly Transactional Operational Domain: Studio team invitations, client review invites, new lead alerts, client feedback alerts, subscription lifecycle (activated, renewed, payment failed, cancel period end), security alerts, privacy export ready notices, and account closure confirmations.
+  - Candidate Production Adapters: Implemented `ResendEmailProvider` using Java 21 `HttpClient` over HTTP/2 with bounded timeouts, structured JSON payload, and status code mapping. Implemented `SesEmailProvider` using AWS SES v2 SDK with regional client, IAM/static credentials, and error normalization.
+  - Security & Escaping Standards: OWASP HTML entity escaping on all user content in `EmailTemplateService`, CRLF header injection neutralization on subject and recipient mailboxes, recipient PII masking (`c***@example.com`), secret masking in logs, canonical base URL normalization (`app.canonical-base-url`), and authenticated portal links for privacy exports (no direct ZIP attachments).
+  - Out-of-Order Webhook Delivery Defense: Enhanced `CommunicationDeliveryService` with monotonic state guard preventing out-of-order `SENT` or `PENDING` webhook events from overwriting already `DELIVERED`, `BOUNCED`, or `COMPLAINT` records.
+  - Fail-Fast Startup Hardening: Enhanced `ProductionConfigurationValidator` to reject `mock`/`fake`/`test` email providers, reject placeholder API keys, reject invalid sender addresses, and reject unconfigured SES regions when email is active in `production` profile.
+  - Test Harnesses & Quality Gates: 11/11 `ResendEmailProviderContractTest` PASS, 8/8 `SesEmailProviderContractTest` PASS, 7/7 `EmailSecurityAndEscapingTest` PASS, 5/5 `EmailDisabledWorkflowTest` PASS, 9/9 `ProductionConfigurationValidatorEmailTest` PASS (40/40 tests PASS). Live email activation deferred to Phase 15.
 
 ## Current Next Step:
 
-- Phase 12E: Production Transactional Email Readiness (or User Directed Next Phase).
+- Phase 12F: Commercial Billing / Payment Gateway Production Readiness (or User Directed Next Phase).
 
 ---
 

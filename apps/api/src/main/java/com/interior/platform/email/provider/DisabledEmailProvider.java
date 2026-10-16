@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
-@Component
-@ConditionalOnMissingBean(value = EmailProvider.class, ignored = DisabledEmailProvider.class)
 public class DisabledEmailProvider implements EmailProvider {
 
     private static final Logger log = LoggerFactory.getLogger(DisabledEmailProvider.class);

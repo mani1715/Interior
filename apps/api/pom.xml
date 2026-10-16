@@ -88,6 +88,19 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- AWS SDK for SES v2 (Phase 12E / Phase 15 Email Provider Candidate) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sesv2</artifactId>
+            <version>2.29.51</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

@@ -66,13 +66,44 @@ public class EmailWebhookController {
 
         try {
             JsonNode root = objectMapper.readTree(rawBody);
-            String messageId = root.has("messageId") ? root.get("messageId").asText() : null;
-            if (messageId == null && root.has("id")) {
-                messageId = root.get("id").asText();
+
+            // Handle nested SES SNS message if applicable
+            if (root.has("Type") && "Notification".equals(root.get("Type").asText()) && root.has("Message")) {
+                try {
+                    root = objectMapper.readTree(root.get("Message").asText());
+                } catch (Exception ignored) {}
             }
 
-            String eventType = root.has("type") ? root.get("type").asText() : "";
-            String reason = root.has("reason") ? root.get("reason").asText() : null;
+            String messageId = null;
+            if (root.has("messageId")) {
+                messageId = root.get("messageId").asText();
+            } else if (root.has("id")) {
+                messageId = root.get("id").asText();
+            } else if (root.has("data") && root.get("data").has("email_id")) {
+                messageId = root.get("data").get("email_id").asText();
+            } else if (root.has("data") && root.get("data").has("id")) {
+                messageId = root.get("data").get("id").asText();
+            } else if (root.has("mail") && root.get("mail").has("messageId")) {
+                messageId = root.get("mail").get("messageId").asText();
+            }
+
+            String eventType = "";
+            if (root.has("type")) {
+                eventType = root.get("type").asText();
+            } else if (root.has("eventType")) {
+                eventType = root.get("eventType").asText();
+            } else if (root.has("notificationType")) {
+                eventType = root.get("notificationType").asText();
+            }
+
+            String reason = null;
+            if (root.has("reason")) {
+                reason = root.get("reason").asText();
+            } else if (root.has("bounce") && root.get("bounce").has("bounceType")) {
+                reason = "Bounce: " + root.get("bounce").get("bounceType").asText();
+            } else if (root.has("complaint") && root.get("complaint").has("complaintFeedbackType")) {
+                reason = "Complaint: " + root.get("complaint").get("complaintFeedbackType").asText();
+            }
 
             if (messageId != null && !messageId.isBlank()) {
                 DeliveryStatus targetStatus = mapEventType(eventType);

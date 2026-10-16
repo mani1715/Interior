@@ -293,4 +293,66 @@ public class EmailTemplateService {
 
         return new RenderedEmail(subject, textBody, htmlBody);
     }
+
+    public RenderedEmail renderPrivacyExportReady(String userName, String relativeDownloadUrl, String expiryDays) {
+        String safeUser = HtmlUtils.htmlEscape(userName != null ? userName : "User");
+        String safeExpiry = HtmlUtils.htmlEscape(expiryDays != null ? expiryDays : "7 days");
+        String fullUrl = baseUrl + (relativeDownloadUrl.startsWith("/") ? relativeDownloadUrl : "/" + relativeDownloadUrl);
+
+        String subject = "Your personal data export is ready for download";
+        String textBody = String.format(
+                "Hello %s,\n\n" +
+                "Your requested personal and studio data export archive has been generated.\n\n" +
+                "Download your archive securely here:\n%s\n\n" +
+                "For your security, this download link requires authentication and will expire in %s.\n" +
+                "Never share this link with anyone.",
+                userName != null ? userName : "User", fullUrl, safeExpiry
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Your Data Export is Ready</h2>
+              <p>Hello <strong>%s</strong>,</p>
+              <p>Your requested personal and studio data archive has been generated and is ready for download.</p>
+              <div style="margin: 32px 0;">
+                <a href="%s" style="background-color: #111; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Download Data Archive (ZIP)</a>
+              </div>
+              <p style="font-size: 13px; color: #666;">For your privacy, this download link requires active authentication and expires in %s. Raw data archives are never sent directly as unencrypted email attachments.</p>
+            </body>
+            </html>
+            """, safeUser, fullUrl, safeExpiry);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
+
+    public RenderedEmail renderAccountClosureConfirmation(String userName, String effectiveDateFormatted) {
+        String safeUser = HtmlUtils.htmlEscape(userName != null ? userName : "User");
+        String safeDate = HtmlUtils.htmlEscape(effectiveDateFormatted != null ? effectiveDateFormatted : "today");
+
+        String subject = "Account closure confirmation: Elégance";
+        String textBody = String.format(
+                "Hello %s,\n\n" +
+                "This email confirms that your account on Elégance Interior Platform has been closed on %s.\n\n" +
+                "Your personal profile data has been anonymized or queued for permanent deletion in accordance with our data retention policy.\n" +
+                "Thank you for being part of the Elégance design community.",
+                userName != null ? userName : "User", effectiveDateFormatted != null ? effectiveDateFormatted : "today"
+        );
+
+        String htmlBody = String.format("""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+              <h2 style="font-weight: 400; font-size: 24px; color: #111;">Account Closure Confirmed</h2>
+              <p>Hello <strong>%s</strong>,</p>
+              <p>Your account on Elégance Interior Platform was successfully closed on <strong>%s</strong>.</p>
+              <p>Your personal data and profile associations have been scheduled for permanent anonymization or erasure per platform retention schedules.</p>
+              <p style="font-size: 13px; color: #666;">If this action was not initiated by you, contact platform administration immediately.</p>
+            </body>
+            </html>
+            """, safeUser, safeDate);
+
+        return new RenderedEmail(subject, textBody, htmlBody);
+    }
 }

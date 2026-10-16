@@ -359,6 +359,18 @@ public class CommunicationDeliveryService {
         }
 
         CommunicationDeliveryRecord record = opt.get();
+
+        // Out-of-order event defense: do not downgrade terminal or advanced states
+        if (record.status() == DeliveryStatus.DELIVERED && (targetStatus == DeliveryStatus.SENT || targetStatus == DeliveryStatus.PENDING)) {
+            log.info("Ignoring out-of-order event ({}) for already DELIVERED delivery {}", targetStatus, record.id());
+            return true;
+        }
+        if ((record.status() == DeliveryStatus.BOUNCED || record.status() == DeliveryStatus.COMPLAINT)
+                && (targetStatus == DeliveryStatus.SENT || targetStatus == DeliveryStatus.DELIVERED || targetStatus == DeliveryStatus.PENDING)) {
+            log.info("Ignoring out-of-order event ({}) for already terminal {} delivery {}", targetStatus, record.status(), record.id());
+            return true;
+        }
+
         Instant now = Instant.now();
         Instant deliveredAt = (targetStatus == DeliveryStatus.DELIVERED) ? now : record.deliveredAt();
 

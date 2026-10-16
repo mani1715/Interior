@@ -1,6 +1,7 @@
 package com.interior.platform.config;
 
 import com.interior.platform.ai.config.AiVisualizerProperties;
+import com.interior.platform.email.config.EmailProperties;
 import com.interior.platform.media.config.MediaSecurityProperties;
 import com.interior.platform.security.config.AuthSecurityProperties;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private final MediaSecurityProperties mediaSecurityProperties;
     private final AuthSecurityProperties authSecurityProperties;
     private final AiVisualizerProperties aiVisualizerProperties;
+    private final EmailProperties emailProperties;
 
     @Value("${app.security.dev-auth-enabled:false}")
     private boolean devAuthEnabled;
@@ -47,11 +49,11 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private String s3SecretAccessKey;
 
     public ProductionConfigurationValidator(Environment environment) {
-        this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties());
+        this(environment, new MediaSecurityProperties(), new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties());
     }
 
     public ProductionConfigurationValidator(Environment environment, MediaSecurityProperties mediaSecurityProperties) {
-        this(environment, mediaSecurityProperties, new AuthSecurityProperties(), new AiVisualizerProperties());
+        this(environment, mediaSecurityProperties, new AuthSecurityProperties(), new AiVisualizerProperties(), new EmailProperties());
     }
 
     public ProductionConfigurationValidator(
@@ -59,7 +61,16 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             MediaSecurityProperties mediaSecurityProperties,
             AuthSecurityProperties authSecurityProperties
     ) {
-        this(environment, mediaSecurityProperties, authSecurityProperties, new AiVisualizerProperties());
+        this(environment, mediaSecurityProperties, authSecurityProperties, new AiVisualizerProperties(), new EmailProperties());
+    }
+
+    public ProductionConfigurationValidator(
+            Environment environment,
+            MediaSecurityProperties mediaSecurityProperties,
+            AuthSecurityProperties authSecurityProperties,
+            AiVisualizerProperties aiVisualizerProperties
+    ) {
+        this(environment, mediaSecurityProperties, authSecurityProperties, aiVisualizerProperties, new EmailProperties());
     }
 
     @Autowired
@@ -67,12 +78,14 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             Environment environment,
             @Autowired(required = false) MediaSecurityProperties mediaSecurityProperties,
             @Autowired(required = false) AuthSecurityProperties authSecurityProperties,
-            @Autowired(required = false) AiVisualizerProperties aiVisualizerProperties
+            @Autowired(required = false) AiVisualizerProperties aiVisualizerProperties,
+            @Autowired(required = false) EmailProperties emailProperties
     ) {
         this.environment = environment;
         this.mediaSecurityProperties = mediaSecurityProperties != null ? mediaSecurityProperties : new MediaSecurityProperties();
         this.authSecurityProperties = authSecurityProperties != null ? authSecurityProperties : new AuthSecurityProperties();
         this.aiVisualizerProperties = aiVisualizerProperties != null ? aiVisualizerProperties : new AiVisualizerProperties();
+        this.emailProperties = emailProperties != null ? emailProperties : new EmailProperties();
     }
 
     @Override
@@ -131,6 +144,25 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
             aiStatus = hasKey ? "CONFIGURED (" + aiProvider + ")" : "NOT_CONFIGURED (Missing/Placeholder Key)";
         }
 
+        String emailStatus;
+        String emailProv = emailProperties != null && emailProperties.getProvider() != null
+                ? emailProperties.getProvider().trim().toLowerCase()
+                : "disabled";
+        if ("disabled".equals(emailProv) || "none".equals(emailProv) || emailProv.isEmpty()) {
+            emailStatus = isProduction ? "NOT_CONFIGURED (Phase 15 Provider Activation Pending)" : "DISABLED (DisabledEmailProvider)";
+        } else if ("fake".equals(emailProv) || "mock".equals(emailProv) || "test".equals(emailProv)) {
+            emailStatus = isProduction ? "FORBIDDEN (Mock provider in Production)" : "TEST_ONLY (Fake Email Provider)";
+        } else if ("resend".equals(emailProv)) {
+            boolean hasKey = emailProperties.getResend().getApiKey() != null && !emailProperties.getResend().getApiKey().isBlank() && !isPlaceholder(emailProperties.getResend().getApiKey());
+            boolean hasFrom = emailProperties.getFromAddress() != null && !emailProperties.getFromAddress().isBlank() && !isPlaceholder(emailProperties.getFromAddress());
+            emailStatus = (hasKey && hasFrom) ? "CONFIGURED (Resend)" : "NOT_CONFIGURED (Missing/Placeholder Key or From Address)";
+        } else if ("ses".equals(emailProv)) {
+            boolean hasFrom = emailProperties.getFromAddress() != null && !emailProperties.getFromAddress().isBlank() && !isPlaceholder(emailProperties.getFromAddress());
+            emailStatus = hasFrom ? "CONFIGURED (AWS SES)" : "NOT_CONFIGURED (Missing/Placeholder From Address)";
+        } else {
+            emailStatus = "UNKNOWN (" + emailProv + ")";
+        }
+
         log.info("================================================================================");
         log.info("           PLATFORM SYSTEM STARTUP & CONFIGURATION MATRIX                       ");
         log.info("================================================================================");
@@ -142,7 +174,7 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
         log.info(" AI Visualizer         : {}", aiStatus);
         log.info(" WhatsApp              : MODE_A_ACTIVE (Direct wa.me) | MODE_B_NOT_CONFIGURED");
         log.info(" Billing Gateway       : NOT_CONFIGURED (DisabledBillingProvider)");
-        log.info(" Transactional Email   : NOT_CONFIGURED (DisabledEmailProvider)");
+        log.info(" Transactional Email   : {}", emailStatus);
         log.info("================================================================================");
 
         if (isProduction) {
@@ -266,6 +298,48 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                 }
             } else {
                 log.info("Production AI Visualizer is disabled/unconfigured. Platform starting safely with AI disabled (Phase 15 Provider Activation Pending).");
+            }
+
+            // Transactional Email Production Validation
+            if (!"disabled".equals(emailProv) && !"none".equals(emailProv) && !emailProv.isEmpty()) {
+                if ("fake".equals(emailProv) || "mock".equals(emailProv) || "test".equals(emailProv)) {
+                    String errorMsg = "CRITICAL SECURITY FAULT: Mock email provider ('" + emailProv + "') MUST NOT be used in production!";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+                if ("resend".equals(emailProv)) {
+                    String key = emailProperties.getResend().getApiKey();
+                    if (key == null || key.isBlank() || isPlaceholder(key)) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Resend email provider is selected in production but apiKey is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                    String from = emailProperties.getFromAddress();
+                    if (from == null || from.isBlank() || isPlaceholder(from)) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Resend email provider is selected in production but fromAddress is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                } else if ("ses".equals(emailProv)) {
+                    String region = emailProperties.getSes().getRegion();
+                    if (region == null || region.isBlank() || isPlaceholder(region)) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: AWS SES email provider is selected in production but region is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                    String from = emailProperties.getFromAddress();
+                    if (from == null || from.isBlank() || isPlaceholder(from)) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: AWS SES email provider is selected in production but fromAddress is missing or placeholder.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                } else {
+                    String errorMsg = "CRITICAL CONFIGURATION FAULT: Unsupported production email provider: '" + emailProv + "'";
+                    log.error(errorMsg);
+                    throw new IllegalStateException(errorMsg);
+                }
+            } else {
+                log.info("Production Transactional Email is disabled/unconfigured. Platform starting safely with email disabled (Phase 15 Provider Activation Pending).");
             }
         }
     }
