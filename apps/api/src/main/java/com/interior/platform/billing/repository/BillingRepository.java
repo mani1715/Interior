@@ -43,4 +43,6 @@ public interface BillingRepository {
     Optional<BillingCheckoutSessionRecord> findCheckoutSessionByProviderSessionId(String provider, String providerSessionId);
 
     void updateCheckoutSessionStatus(UUID id, String status, String providerSessionId);
+
+    void lockStudioForQuota(UUID studioId);
 }

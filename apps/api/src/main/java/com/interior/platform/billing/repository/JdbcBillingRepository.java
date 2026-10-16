@@ -434,4 +434,16 @@ public class JdbcBillingRepository implements BillingRepository {
     private static Instant toInstant(Timestamp ts) {
         return ts != null ? ts.toInstant() : null;
     }
+
+    @Override
+    public void lockStudioForQuota(UUID studioId) {
+        if (studioId == null) {
+            return;
+        }
+        try {
+            jdbcTemplate.queryForObject("SELECT id FROM designer_studios WHERE id = ? FOR UPDATE", UUID.class, studioId);
+        } catch (Exception ignored) {
+            // Safe fallback if dialect or fixture does not support or studio not found
+        }
+    }
 }

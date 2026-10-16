@@ -74,4 +74,6 @@ public interface AiJobRepository {
     long sumGlobalSpendSince(Instant since);
 
     List<AiJobRecord> findStuckJobs(AiJobStatus status, Instant startedBefore);
+
+    void lockStudioForAiQuota(UUID studioId);
 }

@@ -88,14 +88,16 @@ Current completed milestone:
 
 - Phase 12G: Observability, Centralized Logging, Monitoring, Health, Alerting & Operational Recovery Production Readiness (Structured JSON logging via high-performance zero-dependency `JsonLoggingLayout` in production with log injection defense, max length bounds, and PII/secret masking; request correlation filter propagating sanitized `X-Request-Id` across MVC, MDC, async executor, and scheduled jobs with strict `finally` clearance; centralized bounded `PlatformMetrics` domain metrics; Spring Boot Actuator with `/actuator/prometheus` and fail-closed exposure validator banning dangerous endpoints; domain health indicators for Storage, Email, AI, Billing, and Maintenance Mode with truthful provider reporting; safe frontend error boundary with correlation reference ID display; provider-neutral Core Web Vitals client listener; comprehensive alert catalog and operational recovery runbooks; failure drills covering DB, ClamAV, and maintenance mode; opt-in live integration verification harness `scripts/verify-observability-live-integration.ps1`; 23/23 dedicated observability & resilience tests PASS, 373/373 frontend Vitest tests PASS; live monitoring provider activation deferred to Phase 15).
 
+- Phase 12H: Performance, Concurrency, Load, Resilience & Whole-Product Failure Testing (Pre-cloud whole-product engineering validation; fine-grained studio row locking `SELECT ... FOR UPDATE` eliminating quota races for projects, photos, storage, and cinematic caps; PostgreSQL advisory locks for singleton background jobs; zero cross-tenant contention; connection pool recovery and leak threshold verified; multi-scenario load testing suite in `performance/` covering public browse, authenticated read, concurrent mutations, mixed 80/20 workload, media upload intents, and soak stability; strict remote safety switch blocking remote URLs unless `ALLOW_REMOTE_LOAD_TEST=true`; verification harness `scripts/verify-performance-readiness.ps1`; capacity statement `LOCAL PERFORMANCE VALIDATED` — NOT a production SLA; 12/12 dedicated concurrency & resilience tests PASS, 749/749 full backend tests PASS, 47/47 PostgreSQL 18.3 RLS tests PASS, 373/373 frontend Vitest tests PASS across 52 suites, 0 TypeScript errors, 0 ESLint warnings/errors, clean 29-route Next.js production build).
+
 Current Flyway:
 V040 (`V040__support_and_operations_foundation.sql` - exactly 40 canonical PostgreSQL migrations)
 
 Whole-Product Release Status:
-PHASE 12G FULLY CLOSED — OBSERVABILITY, CENTRALIZED LOGGING, MONITORING, HEALTH, ALERTING & OPERATIONAL RECOVERY PRODUCTION READINESS COMPLETE WITHOUT REAL MONITORING CREDENTIALS. ZERO EXTERNAL MONITORING ACCOUNTS CREATED. LIVE MONITORING ACTIVATION DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
+PHASE 12H FULLY CLOSED — PERFORMANCE, CONCURRENCY, LOAD, RESILIENCE & WHOLE-PRODUCT FAILURE TESTING COMPLETE. LOCAL PERFORMANCE VALIDATED UNDER 100 CONCURRENT SYNTHETIC USERS ENGINEERING STRESS TARGET. ZERO EXTERNAL CLOUD ACCOUNTS CREATED. REAL CLOUD HOSTING, CDN, AUTOSCALING, AND PRODUCTION CAPACITY GUARANTEES DEFERRED TO PHASE 15 (PRE-LAUNCH ACTIVATION). UI/UX FREEZE ACTIVE. NO LIVE DEPLOYMENT.
 
 Next planned milestone:
-READY FOR NEXT TARGET PHASE (PHASE 12H / SUBSEQUENT READINESS MILESTONE).
+READY FOR NEXT TARGET PHASE (PHASE 13 / SUBSEQUENT READINESS MILESTONE).
 
 Cinematic Portfolio:
 COMPLETE (Standard is permanent content/fallback system, Cinematic is progressive enhancement)

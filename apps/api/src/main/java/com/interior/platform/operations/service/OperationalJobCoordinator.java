@@ -100,7 +100,7 @@ public class OperationalJobCoordinator {
 
     public OperationalJobRunRecord runSessionCleanup() {
         return executeJob("SESSION_CLEANUP", () -> {
-            String sql = "DELETE FROM identity_sessions WHERE expires_at < now()";
+            String sql = "DELETE FROM identity_sessions WHERE idle_expires_at < now() OR absolute_expires_at < now()";
             return jdbcTemplate.update(sql);
         });
     }

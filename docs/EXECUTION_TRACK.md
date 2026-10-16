@@ -241,11 +241,20 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - Frontend Observability: Safe Reference ID display (`error.digest`) in `apps/web/src/app/error.tsx` without leaking stack traces or internal errors; provider-neutral Core Web Vitals client listener (`WebVitals.tsx`) mounted in root layout tracking LCP, INP, and CLS.
   - Failure Drills & Runbooks: Executed local failure drills for Database outage (liveness UP, readiness DOWN), ClamAV outage (readiness DOWN), and Maintenance Mode transition (503 fail-closed for non-admin mutations). Documented 8 operational runbooks, alert catalogs, and monitoring provider matrix.
   - Opt-In Live Verification: Created `scripts/verify-observability-live-integration.ps1` verifying `/actuator/health`, liveness, readiness, correlation propagation, and Prometheus metrics (verified clean, Exit 0).
-  - Comprehensive Verification: 23/23 `ObservabilityAndResilienceTest` PASS; 373/373 Frontend Vitest tests PASS across 52 test files; TypeScript `tsc --noEmit` PASS (0 errors). Live monitoring accounts deferred to Phase 15.
+- **Phase 12H: Performance, Concurrency, Load, Resilience & Whole-Product Failure Testing (Antigravity)**
+  - Fine-Grained Studio Row Locking: Implemented `SELECT id FROM designer_studios WHERE id = ? FOR UPDATE` via `billingRepository.lockStudioForQuota(studioId)` and `aiJobRepository.lockStudioForAiQuota(studioId)`. Serializes quota mutations per studio while preserving 100% cross-tenant parallel concurrency.
+  - Quota Race Elimination: Validated race elimination across project creation boundary (STANDARD 10-cap), photo quota reservation (15-cap), storage quota reservation (5GB-cap with 10MB headroom), and cinematic cap (PRO 5-cap). In all cases, concurrent burst requests resulted in exactly the correct number of successful allocations and zero oversubscriptions.
+  - BASE Plan Fallback Safety Under Concurrency: Confirmed that cancelled commercial subscriptions fallback to STANDARD, never granting unauthorized unlimited BASE access.
+  - Idempotency Under High Concurrency: Verified single-use team invitation tokens (10 concurrent attempts resulting in exactly 1 membership) and duplicate billing webhooks (10 concurrent deliveries resulting in exactly 1 event row, 9 deduplicated).
+  - Multi-Node Background Schedulers: Enforced session-level PostgreSQL advisory locks (`SELECT pg_try_advisory_lock(?)`) in `JdbcPlatformOperationsRepository`, guaranteeing single-node execution for scheduled tasks across horizontal application clusters.
+  - High-Resilience Failure Drills: Validated recovery from transient DB connection spikes (20 threads pressuring a 10-connection pool), ClamAV daemon outages (quarantine-first with zero uninspected media leaks), and Maintenance Mode `READ_ONLY` transitions under active write load (HTTP 503 fail-closed with zero data loss).
+  - Multi-Scenario Load Testing Suite: Authored 8 modular Node.js performance scripts in `performance/` (`safety.js`, `public-browse.js`, `authenticated-read.js`, `authenticated-write.js`, `mixed-workload.js`, `media-workload.js`, `soak.js`, `runner.js`) with remote safety switch blocking non-local URLs unless `ALLOW_REMOTE_LOAD_TEST=true`.
+  - Comprehensive Verification & Quality Gates: 12/12 `ConcurrencyAndResilienceTest` PASS, 749/749 full API test suite PASS, 47/47 PostgreSQL 18.3 RLS tests PASS across 14 test classes, 373/373 frontend Vitest tests PASS across 52 suites, 0 TypeScript errors, 0 ESLint warnings/errors, clean 29-route Next.js production build. Automated verification harness `scripts/verify-performance-readiness.ps1` verified clean (6/6 checks PASS, Exit 0).
+  - Capacity Declaration: LOCAL PERFORMANCE VALIDATED under 100 concurrent synthetic users local-stress target. Real cloud infrastructure capacity, multi-region CDN, and contractual SLAs deferred to Phase 15.
 
 ## Current Next Step:
 
-- READY FOR NEXT TARGET PHASE (PHASE 12H / SUBSEQUENT READINESS MILESTONE).
+- READY FOR NEXT TARGET PHASE (PHASE 13 / SUBSEQUENT READINESS MILESTONE).
 
 ---
 

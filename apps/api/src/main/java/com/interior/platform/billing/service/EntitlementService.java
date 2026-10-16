@@ -102,6 +102,7 @@ public class EntitlementService {
      * Enforces project limit if current plan has a non-null numeric limit.
      */
     public void assertProjectCreationAllowed(UUID studioId) {
+        billingRepository.lockStudioForQuota(studioId);
         Long limit = getNumericLimit(studioId, EntitlementKey.PROJECT_LIMIT);
         if (limit != null) {
             int currentCount = projectRepository.countProjects(studioId);
@@ -118,6 +119,7 @@ public class EntitlementService {
      * Enforces portfolio photo quota per project (committed photos + reserved pending upload intents).
      */
     public void assertProjectPhotoQuotaAllowed(UUID studioId, UUID projectId, int incomingPhotosCount) {
+        billingRepository.lockStudioForQuota(studioId);
         Long limit = getNumericLimit(studioId, EntitlementKey.PROJECT_PHOTO_LIMIT);
         if (limit != null && mediaRepository != null) {
             int committed = mediaRepository.countCommittedPortfolioPhotos(studioId, projectId);
@@ -136,6 +138,7 @@ public class EntitlementService {
      * Enforces storage quota (committed media assets and derivatives + reserved pending upload intents).
      */
     public void assertStorageQuotaAllowed(UUID studioId, long incomingBytes) {
+        billingRepository.lockStudioForQuota(studioId);
         Long limit = getNumericLimit(studioId, EntitlementKey.STORAGE_LIMIT_BYTES);
         if (limit != null && mediaRepository != null) {
             long committed = mediaRepository.countCommittedStorageBytes(studioId);
@@ -158,6 +161,7 @@ public class EntitlementService {
      * Enforces Cinematic presentation mode selection and studio-level Cinematic project quota.
      */
     public void assertCinematicProjectAllowed(UUID studioId) {
+        billingRepository.lockStudioForQuota(studioId);
         boolean cinematicEnabled = hasBooleanEntitlement(studioId, EntitlementKey.CINEMATIC_PORTFOLIO);
         if (!cinematicEnabled) {
             throw new BadRequestException("Cinematic project presentation is not included in your current plan. Upgrade to Pro to enable Cinematic presentation.");

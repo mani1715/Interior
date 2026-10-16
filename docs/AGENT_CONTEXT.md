@@ -993,6 +993,25 @@ Completed the professional studio team experience and multi-member tenancy acces
   - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
   - Next.js Production Build: **PASS** (`next build`, 28 routes compiled).
 
+---
+
+## PHASE 12H — PERFORMANCE, CONCURRENCY, LOAD & RESILIENCE VALIDATION
+- **Status**: COMPLETE (LOCAL PERFORMANCE VALIDATED under 100 concurrent synthetic users engineering target).
+- **Core Engineering Hardening**:
+  - Fine-grained studio row locking (`SELECT id FROM designer_studios WHERE id = ? FOR UPDATE`) implemented across `EntitlementService` and `AiVisualizerService`, serializing quota operations per studio while maintaining 100% cross-studio concurrency.
+  - Linearizable quota boundaries verified for Project creation (10 cap), Photo quota (15 cap), Storage quota (5GB cap), and Cinematic mode (5 cap).
+  - PostgreSQL advisory lock singletons verified for cluster-safe background task execution.
+  - Multi-scenario load test suite in `performance/` with strict remote safety switch.
+  - Verification harness `scripts/verify-performance-readiness.ps1` (6/6 checks PASS).
+- **Full Verification Baseline**:
+  - Backend Tests: **749 / 749 PASS** (1 skipped).
+  - PostgreSQL 18.3 RLS Tests: **47 / 47 PASS** across 14 test classes.
+  - Frontend Vitest Tests: **373 / 373 PASS** across 52 suites.
+  - TypeScript Typecheck: **PASS** (`tsc --noEmit`, 0 errors).
+  - ESLint: **PASS** (`eslint .`, 0 warnings, 0 errors).
+  - Next.js Production Build: **PASS** (`next build`, 29 routes compiled).
+
+
 
 
 

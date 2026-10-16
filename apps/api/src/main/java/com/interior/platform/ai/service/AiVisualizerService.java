@@ -237,6 +237,7 @@ public class AiVisualizerService {
         rateLimiterService.acquire("ai_generate:" + studioId, 10, Duration.ofMinutes(1));
 
         // 3. Concurrency-safe daily quota reservation check
+        aiJobRepository.lockStudioForAiQuota(studioId);
         int usedToday = aiJobRepository.countTodayUsage(studioId);
         int activeToday = aiJobRepository.countTodayActiveReservations(studioId);
         int effectiveToday = Math.max(usedToday, activeToday);
@@ -1348,6 +1349,7 @@ public class AiVisualizerService {
 
         rateLimiterService.acquire("ai_generate:" + studioId, 10, Duration.ofMinutes(1));
 
+        aiJobRepository.lockStudioForAiQuota(studioId);
         int usedToday = aiJobRepository.countTodayUsage(studioId);
         int activeToday = aiJobRepository.countTodayActiveReservations(studioId);
         int effectiveToday = Math.max(usedToday, activeToday);

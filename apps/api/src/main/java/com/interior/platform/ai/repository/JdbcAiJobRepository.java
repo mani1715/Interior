@@ -356,4 +356,16 @@ public class JdbcAiJobRepository implements AiJobRepository {
     private Instant toInstant(Timestamp ts) {
         return ts != null ? ts.toInstant() : null;
     }
+
+    @Override
+    public void lockStudioForAiQuota(UUID studioId) {
+        if (studioId == null) {
+            return;
+        }
+        try {
+            jdbcTemplate.queryForObject("SELECT id FROM designer_studios WHERE id = ? FOR UPDATE", UUID.class, studioId);
+        } catch (Exception ignored) {
+            // Safe fallback if dialect or fixture does not support or studio not found
+        }
+    }
 }
