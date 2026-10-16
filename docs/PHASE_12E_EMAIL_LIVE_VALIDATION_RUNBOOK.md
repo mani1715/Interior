@@ -94,6 +94,7 @@ EMAIL_FROM_ADDRESS=notifications@elegance.interior
 EMAIL_FROM_NAME="Elégance Platform"
 EMAIL_REPLY_TO=support@elegance.interior
 AWS_SES_REGION=us-east-1
+AWS_SES_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:123456789012:elegance-ses-events
 AWS_ACCESS_KEY_ID=AKIAxxxxxxxxxxxxxxxx
 AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```

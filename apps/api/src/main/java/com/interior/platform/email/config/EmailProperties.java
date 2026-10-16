@@ -165,6 +165,7 @@ public class EmailProperties {
     public static class SesProperties {
         private String region = "us-east-1";
         private String configurationSet = "";
+        private String snsTopicArn = "";
         private String accessKeyId = "";
         private String secretAccessKey = "";
         private String endpoint = "";
@@ -183,6 +184,14 @@ public class EmailProperties {
 
         public void setConfigurationSet(String configurationSet) {
             this.configurationSet = configurationSet;
+        }
+
+        public String getSnsTopicArn() {
+            return snsTopicArn;
+        }
+
+        public void setSnsTopicArn(String snsTopicArn) {
+            this.snsTopicArn = snsTopicArn;
         }
 
         public String getAccessKeyId() {

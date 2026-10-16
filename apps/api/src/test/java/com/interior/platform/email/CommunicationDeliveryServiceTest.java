@@ -97,7 +97,7 @@ class CommunicationDeliveryServiceTest {
         assertEquals(DeliveryStatus.SENT, record.status());
         assertEquals("SES", record.provider());
         assertEquals("msg_ses_abc123", record.providerMessageId());
-        assertNotNull(record.deliveredAt());
+        assertNull(record.deliveredAt());
         assertNull(record.lastError());
 
         verify(deliveryRepository, times(1)).save(record);

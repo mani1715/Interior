@@ -168,10 +168,33 @@ public class CommunicationDeliveryService {
                         idempotencyKey,
                         now,
                         now,
-                        now
+                        null
                 );
                 deliveryRepository.save(record);
                 return record;
+            } else if ("NOT_CONFIGURED".equals(result.status()) || "DISABLED".equals(result.status())) {
+                CommunicationDeliveryRecord disabledRecord = new CommunicationDeliveryRecord(
+                        deliveryId,
+                        studioId,
+                        recipientUserId,
+                        DeliveryChannel.EMAIL,
+                        eventType,
+                        recipientEmail != null ? recipientEmail : "unknown",
+                        subject,
+                        DeliveryStatus.NOT_CONFIGURED,
+                        providerName,
+                        null,
+                        0,
+                        maxRetries,
+                        result.errorMessage() != null ? result.errorMessage() : "Transactional email provider is disabled or not configured.",
+                        null,
+                        idempotencyKey,
+                        now,
+                        now,
+                        null
+                );
+                deliveryRepository.save(disabledRecord);
+                return disabledRecord;
             } else if (result.retryable()) {
                 Instant nextRetry = now.plus(baseRetryDelaySeconds, ChronoUnit.SECONDS);
                 CommunicationDeliveryRecord retryRecord = new CommunicationDeliveryRecord(
@@ -287,7 +310,7 @@ public class CommunicationDeliveryService {
                         newAttempt,
                         null,
                         null,
-                        now
+                        null
                 );
             } else if (result.retryable() && newAttempt < record.maxAttempts()) {
                 // Exponential backoff calculation: base * 2^(newAttempt - 1)
@@ -359,6 +382,12 @@ public class CommunicationDeliveryService {
         }
 
         CommunicationDeliveryRecord record = opt.get();
+
+        // Guard against mutating disabled or unconfigured delivery records
+        if (record.status() == DeliveryStatus.NOT_CONFIGURED) {
+            log.warn("Ignoring webhook reconciliation attempt for unconfigured/disabled delivery {}", record.id());
+            return false;
+        }
 
         // Out-of-order event defense: do not downgrade terminal or advanced states
         if (record.status() == DeliveryStatus.DELIVERED && (targetStatus == DeliveryStatus.SENT || targetStatus == DeliveryStatus.PENDING)) {

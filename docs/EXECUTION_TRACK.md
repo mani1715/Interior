@@ -210,17 +210,19 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
   - In-Memory Malware Inspection: Output image payloads are scanned via `MalwareScanner` before persistence to object storage. Infected outputs are aborted with `MALWARE_DETECTED`.
   - Quota & Cost Controls: Enforced default 20 generations/studio/day, global platform daily budget ceiling, studio monthly budget, and immutable ledger recording in `ai_generation_cost_ledger`.
   - Fail-Fast Startup Validator: Upgraded `ProductionConfigurationValidator` to reject `mock` provider, empty/placeholder keys, and rogue model selections in production profile.
-- **Phase 12E: Transactional Email & Communication Delivery Production Readiness (Antigravity)**
+- **Phase 12E & 12E.1: Transactional Email & Communication Delivery Production Readiness (Antigravity)**
   - Strictly Transactional Operational Domain: Studio team invitations, client review invites, new lead alerts, client feedback alerts, subscription lifecycle (activated, renewed, payment failed, cancel period end), security alerts, privacy export ready notices, and account closure confirmations.
   - Candidate Production Adapters: Implemented `ResendEmailProvider` using Java 21 `HttpClient` over HTTP/2 with bounded timeouts, structured JSON payload, and status code mapping. Implemented `SesEmailProvider` using AWS SES v2 SDK with regional client, IAM/static credentials, and error normalization.
   - Security & Escaping Standards: OWASP HTML entity escaping on all user content in `EmailTemplateService`, CRLF header injection neutralization on subject and recipient mailboxes, recipient PII masking (`c***@example.com`), secret masking in logs, canonical base URL normalization (`app.canonical-base-url`), and authenticated portal links for privacy exports (no direct ZIP attachments).
   - Out-of-Order Webhook Delivery Defense: Enhanced `CommunicationDeliveryService` with monotonic state guard preventing out-of-order `SENT` or `PENDING` webhook events from overwriting already `DELIVERED`, `BOUNCED`, or `COMPLAINT` records.
+  - Phase 12E.1 Source-Truth Semantics: Disabled email provider records truthful status `NOT_CONFIGURED` (`attemptCount = 0`, `providerMessageId = null`, `deliveredAt = null`, `nextRetryAt = null`). Initial active `SENT` status keeps `deliveredAt = null` (`SENT != DELIVERED`). Webhook reconciliation explicitly rejects any attempt to mutate a `NOT_CONFIGURED` delivery record.
+  - Phase 12E.1 Cryptographic Webhook Authenticity: Authored `ResendWebhookSignatureValidator` for Svix HMAC-SHA256 signature verification with 300s replay tolerance window. Authored `AwsSnsSignatureValidator` for Amazon SNS RSA signature verification with strict SSRF defense on `SigningCertURL` (`^https://sns\.[a-zA-Z0-9-]+\.amazonaws\.com(\.cn)?/.*\.pem$`), `TopicArn` check, and replay deduplication. Raw unverified webhooks rejected with 401 without mutating delivery state.
   - Fail-Fast Startup Hardening: Enhanced `ProductionConfigurationValidator` to reject `mock`/`fake`/`test` email providers, reject placeholder API keys, reject invalid sender addresses, and reject unconfigured SES regions when email is active in `production` profile.
-  - Test Harnesses & Quality Gates: 11/11 `ResendEmailProviderContractTest` PASS, 8/8 `SesEmailProviderContractTest` PASS, 7/7 `EmailSecurityAndEscapingTest` PASS, 5/5 `EmailDisabledWorkflowTest` PASS, 9/9 `ProductionConfigurationValidatorEmailTest` PASS (40/40 tests PASS). Live email activation deferred to Phase 15.
+  - Test Harnesses & Quality Gates: 7/7 `ResendWebhookSecurityTest` PASS, 10/10 `AwsSnsWebhookSecurityTest` PASS, 6/6 `EmailDisabledWorkflowTest` PASS, 11/11 `ResendEmailProviderContractTest` PASS, 8/8 `SesEmailProviderContractTest` PASS, 7/7 `EmailSecurityAndEscapingTest` PASS, 9/9 `ProductionConfigurationValidatorEmailTest` PASS (60/60 email tests PASS; 687/687 full API test suite PASS; 373/373 frontend Vitest tests PASS). Live email activation deferred to Phase 15.
 
 ## Current Next Step:
 
-- Phase 12F: Commercial Billing / Payment Gateway Production Readiness (or User Directed Next Phase).
+- Phase 12F: Commercial Billing / Payment Gateway Production Readiness.
 
 ---
 

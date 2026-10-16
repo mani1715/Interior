@@ -11,6 +11,9 @@ import com.interior.platform.email.service.CommunicationDeliveryService;
 import com.interior.platform.email.service.EmailTemplateService;
 import com.interior.platform.email.service.TransactionalEmailService;
 import com.interior.platform.email.web.EmailWebhookController;
+import com.interior.platform.email.config.EmailProperties;
+import com.interior.platform.email.security.AwsSnsSignatureValidator;
+import com.interior.platform.email.security.ResendWebhookSignatureValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +22,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +39,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Phase 9B — Transactional Email & Communication Lifecycle Architecture Tests")
 class TransactionalEmailLifecycleTest {
+
+    private static final String TEST_SECRET = "whsec_dGVzdC1zZWNyZXQtMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=";
+    private static final String RAW_KEY = "test-secret-12345678901234567890123456789012";
 
     @Mock
     private CommunicationDeliveryRepository deliveryRepository;
@@ -53,10 +63,27 @@ class TransactionalEmailLifecycleTest {
         deliveryService = new CommunicationDeliveryService(deliveryRepository, transactionalEmailService);
         emailTemplateService = new EmailTemplateService("https://elegance.design");
         objectMapper = new ObjectMapper();
-        emailWebhookController = new EmailWebhookController(deliveryService, objectMapper);
+        EmailProperties emailProps = new EmailProperties();
+        emailProps.setWebhookSecret(TEST_SECRET);
+        emailWebhookController = new EmailWebhookController(
+                deliveryService,
+                objectMapper,
+                emailProps,
+                new ResendWebhookSignatureValidator(),
+                new AwsSnsSignatureValidator(),
+                null
+        );
 
         studioId = UuidV7.randomUuid();
         userId = UuidV7.randomUuid();
+    }
+
+    private String computeSignature(String msgId, String timestamp, String payload, String key) throws Exception {
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        String toSign = msgId + "." + timestamp + "." + payload;
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(keyBytes, "HmacSHA256"));
+        return Base64.getEncoder().encodeToString(mac.doFinal(toSign.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -167,7 +194,7 @@ class TransactionalEmailLifecycleTest {
 
     @Test
     @DisplayName("Webhook Reconciliation: Delivery event updates local record to DELIVERED")
-    void testWebhookReconcileDelivered() {
+    void testWebhookReconcileDelivered() throws Exception {
         String msgId = "sim_test_msg_999";
         CommunicationDeliveryRecord existing = new CommunicationDeliveryRecord(
                 UuidV7.randomUuid(),
@@ -178,7 +205,7 @@ class TransactionalEmailLifecycleTest {
                 "owner@studio.com",
                 "Active",
                 DeliveryStatus.SENT,
-                "FAKE_SIMULATED",
+                "RESEND",
                 msgId,
                 1,
                 3,
@@ -192,14 +219,23 @@ class TransactionalEmailLifecycleTest {
 
         when(deliveryRepository.findByProviderMessageId(msgId)).thenReturn(Optional.of(existing));
 
+        String timestamp = String.valueOf(Instant.now().getEpochSecond());
         String jsonPayload = """
             {
-                "messageId": "sim_test_msg_999",
-                "type": "email.delivered"
+                "type": "email.delivered",
+                "data": {
+                    "email_id": "sim_test_msg_999"
+                }
             }
         """;
+        String sig = computeSignature("svix_123", timestamp, jsonPayload, RAW_KEY);
+        Map<String, String> headers = Map.of(
+                "svix-id", "svix_123",
+                "svix-timestamp", timestamp,
+                "svix-signature", "v1," + sig
+        );
 
-        ResponseEntity<Void> response = emailWebhookController.handleEmailWebhook("fake", jsonPayload, Map.of());
+        ResponseEntity<Void> response = emailWebhookController.handleEmailWebhook("resend", jsonPayload, headers);
         assertEquals(200, response.getStatusCode().value());
 
         verify(deliveryRepository, times(1)).updateStatus(
@@ -215,7 +251,7 @@ class TransactionalEmailLifecycleTest {
 
     @Test
     @DisplayName("Webhook Reconciliation: Bounce event marks terminal BOUNCED status")
-    void testWebhookReconcileBounced() {
+    void testWebhookReconcileBounced() throws Exception {
         String msgId = "sim_bounce_msg_888";
         CommunicationDeliveryRecord existing = new CommunicationDeliveryRecord(
                 UuidV7.randomUuid(),
@@ -226,7 +262,7 @@ class TransactionalEmailLifecycleTest {
                 "bounce@studio.com",
                 "Invite",
                 DeliveryStatus.SENT,
-                "FAKE_SIMULATED",
+                "RESEND",
                 msgId,
                 1,
                 3,
@@ -240,15 +276,24 @@ class TransactionalEmailLifecycleTest {
 
         when(deliveryRepository.findByProviderMessageId(msgId)).thenReturn(Optional.of(existing));
 
+        String timestamp = String.valueOf(Instant.now().getEpochSecond());
         String jsonPayload = """
             {
-                "messageId": "sim_bounce_msg_888",
                 "type": "email.bounced",
-                "reason": "Mailbox does not exist (550)"
+                "data": {
+                    "email_id": "sim_bounce_msg_888",
+                    "reason": "Mailbox does not exist (550)"
+                }
             }
         """;
+        String sig = computeSignature("svix_456", timestamp, jsonPayload, RAW_KEY);
+        Map<String, String> headers = Map.of(
+                "svix-id", "svix_456",
+                "svix-timestamp", timestamp,
+                "svix-signature", "v1," + sig
+        );
 
-        ResponseEntity<Void> response = emailWebhookController.handleEmailWebhook("fake", jsonPayload, Map.of());
+        ResponseEntity<Void> response = emailWebhookController.handleEmailWebhook("resend", jsonPayload, headers);
         assertEquals(200, response.getStatusCode().value());
 
         verify(deliveryRepository, times(1)).updateStatus(
