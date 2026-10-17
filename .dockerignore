@@ -35,7 +35,11 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Documentation & scratch
+# Documentation, test results & scratch
 docs
 visual-qa-results
+performance
+storage
+test-results
+apps/web/test-results
 *.md

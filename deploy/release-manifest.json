@@ -1,0 +1,45 @@
+{
+  "$schema": "./release-manifest.schema.json",
+  "product": "Elégance",
+  "application": "Interior Designer Platform",
+  "releaseCandidate": "1.0.0-rc.1",
+  "gitCommitSha": "c3dee65900870ade939a6e9a2bf450ecbaff82b7",
+  "gitBranch": "main",
+  "releaseTimestamp": "2026-10-17T03:55:00Z",
+  "flywaySchemaVersion": "040",
+  "status": "APPLICATION RELEASE CANDIDATE VERIFIED",
+  "deploymentStatus": "DEPLOYMENT NOT PERFORMED",
+  "legalStatus": "LEGAL REVIEW REQUIRED BEFORE PUBLIC PRODUCTION",
+  "brandStatus": "DEFERRED",
+  "domainStatus": "DEFERRED",
+  "artifacts": {
+    "backend": {
+      "name": "platform-api",
+      "version": "0.1.0-SNAPSHOT",
+      "jarPath": "apps/api/target/platform-api-0.1.0-SNAPSHOT.jar",
+      "sha256": "eb89825fe77af42ad33241f4446dc528b6939c5ea3b6e6c0b51a4481bd70b698",
+      "imageTag": "interior-platform-api:c3dee65",
+      "runtime": "eclipse-temurin:21-jre-jammy",
+      "runAsUser": "spring (UID unprivileged)"
+    },
+    "frontend": {
+      "name": "@interior/web",
+      "version": "0.1.0",
+      "framework": "next@16.3.8",
+      "outputPath": "apps/web/.next/standalone",
+      "imageTag": "interior-platform-web:c3dee65",
+      "runtime": "node:20-alpine",
+      "runAsUser": "nextjs (UID 1001)"
+    }
+  },
+  "providerActivationStates": {
+    "database": "CODE_READY_LOCAL_VERIFIED (Phase 15 Managed DB Activation Pending)",
+    "storage": "CODE_READY_LOCAL_VERIFIED (Phase 15 Cloudflare R2 Activation Pending)",
+    "malwareScanner": "CODE_READY_LOCAL_VERIFIED (Phase 15 ClamAV Daemon Deployment Pending)",
+    "oidc": "CODE_READY_LOCAL_VERIFIED (Phase 15 Google OIDC Activation Pending)",
+    "aiVisualizer": "CODE_READY_LOCAL_VERIFIED (Phase 15 Live Model Evaluation Pending)",
+    "email": "CODE_READY_LOCAL_VERIFIED (Phase 15 Resend/SES Activation Pending)",
+    "billing": "CODE_READY_LOCAL_VERIFIED (Phase 15 Razorpay/Stripe Activation Pending)",
+    "observability": "CODE_READY_LOCAL_VERIFIED (Phase 15 OTLP Telemetry Activation Pending)"
+  }
+}
