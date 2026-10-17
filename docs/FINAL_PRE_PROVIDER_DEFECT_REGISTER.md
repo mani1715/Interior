@@ -7,6 +7,7 @@ This register records all defects investigated, remediated, or evaluated during 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **DEF-001** | **MEDIUM** | Playwright E2E Runner | `npx playwright test` | Connect to Next.js production build | Connected to external Python web server on port 3000 | Developer machine had an unrelated local service (`serve_web.py`) listening on port 3000, and `playwright.config.ts` had `reuseExistingServer: true`. | Updated `playwright.config.ts` to isolate testing to dedicated port 3099 and set `reuseExistingServer: false`. | `npx playwright test` -> 16/16 tests PASS | **CLOSED** |
 | **DEF-002** | **LOW** | Media Quality Image Warning | Next.js Image Optimization | Quality 90 for hero image | Warning in console: quality 90 not configured in `images.qualities [75]` | Next.js default image config only permitted default quality 75. | Quality warning handled safely by Next.js fallback; noted for final CDN image domain configuration in Phase 16. | Vitest BrandHero.test.tsx PASS | **CLOSED** |
+| **DEF-003** | **LOW** | Certification Documentation | Source-Truth Audit | Exact alignment with canonical executable code | Documentation summary contained persona labels as roles, referenced non-existent password-reset routes, and named specific undecided vendors | Discrepancy between high-level certification narrative and underlying executable codebase architecture. | Reconciled all certification documents to reflect canonical roles (6 platform, 2 studio), 100% OIDC auth without password reset, and provider-neutral schemas. | Full source-truth and documentation audit PASS | **CLOSED** |
 
 ---
 
@@ -15,6 +16,6 @@ This register records all defects investigated, remediated, or evaluated during 
 - **Critical**: 0 Open (0 Total)
 - **High**: 0 Open (0 Total)
 - **Medium**: 0 Open (1 Total, 1 Fixed)
-- **Low**: 0 Open (1 Total, 1 Resolved)
+- **Low**: 0 Open (2 Total, 2 Resolved)
 
-**Phase Status**: Zero Blocker, Critical, or High defects remain open.
+**Phase Status**: Zero Blocker, Critical, or High defects remain open. All 3 identified issues are closed.

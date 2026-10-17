@@ -1,11 +1,41 @@
 # Final Role and Permission Certification
 ## Elégance — Interior Designer Platform
 
-This document certifies the role-based access control (RBAC) matrix and tenant-isolation boundaries across all 8 user personas.
+This document certifies the canonical role-based access control (RBAC) matrix, studio membership authorization, and tenant-isolation boundaries across the platform.
 
 ---
 
-## 1. Role Definition & Privilege Matrix
+## 1. Canonical Roles Source Truth
+
+Executable source code establishes two distinct role tiers, enforced by database constraints and backend security services:
+
+### A. Global Platform Identity Roles (`identity_roles`)
+Enforced in database via `V001__security_identity_tenant_schema.sql` (`identity_roles.code` check constraint) and validated by `AuthorizationService.java`:
+1. `SUPER_ADMIN` — Platform Super Administrator (full emergency control-plane, maintenance mode toggling, administrative overrides).
+2. `ADMIN` — Platform Administrator (user suspension/reactivation, studio document verification, audit log review).
+3. `MODERATOR` — Platform Content Moderator (review moderation queue, public feedback triage).
+4. `DESIGNER` — Interior Designer (authenticated professional identity eligible to establish or lead a studio).
+5. `DESIGNER_TEAM` — Studio Team Member (authenticated professional identity participating in studio work).
+6. `CUSTOMER` — Public Customer / Client (baseline identity for homeowners and clients; project inquiries, moodboard collections).
+7. `PUBLIC` — Unauthenticated Guest / Anonymous visitor (`ActorContext.anonymous()`).
+
+### B. Studio Membership Roles (`studio_members`)
+Enforced in database via `V027__canonicalize_identity_and_studio_roles.sql` (`studio_members.role` check constraint) and validated by `ActorContext.isStudioOwnerOrAdmin`:
+1. `DESIGNER_ADMIN` — Studio Administrator / Owner (full administrative rights over the studio: settings, billing, team invites, portfolio publishing).
+2. `DESIGNER_MEMBER` — Studio Member (operational access: view/edit projects, rooms, and media; cannot invite team members, alter billing, or publish portfolio).
+- *Legacy Read Aliases*: `OWNER` and `ADMIN` are accepted for read compatibility and map to `DESIGNER_ADMIN`; `MEMBER` maps to `DESIGNER_MEMBER`.
+
+### C. Human-Friendly Persona & Job Title Clarification
+The following UI and business terms are human-readable display labels or team profile metadata, **NOT** backend authorization roles:
+- **"Studio Owner" / "Studio Admin"** $\rightarrow$ UI display label for studio members with role `DESIGNER_ADMIN`.
+- **"Team Member"** $\rightarrow$ UI display label for studio members with role `DESIGNER_MEMBER`.
+- **"Client" / "Client User"** $\rightarrow$ UI persona label for users with platform role `CUSTOMER`.
+- **"Lead Designer", "Junior Designer", "Procurement Specialist", "Finance Auditor"** $\rightarrow$ Studio team job titles and professional specialties stored in profile metadata, **not** RBAC permissions.
+- **"Guest"** $\rightarrow$ Unauthenticated visitor (`PUBLIC`).
+
+---
+
+## 2. Canonical Privilege Matrix
 
 | Resource / Endpoint Scope | PUBLIC | CUSTOMER | DESIGNER (NO STUDIO) | DESIGNER_MEMBER | DESIGNER_ADMIN | MODERATOR | ADMIN | SUPER_ADMIN |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -29,9 +59,9 @@ This document certifies the role-based access control (RBAC) matrix and tenant-i
 
 ---
 
-## 2. In-Depth Boundary Testing Results
+## 3. Boundary Testing & Invariant Validation
 
-### A. Designer Member vs. Designer Admin
+### A. Studio Member vs. Studio Admin Boundary
 - **Test**: `DESIGNER_MEMBER` attempts to invite new members (`POST /api/v1/team/invitations`).
   - Result: Backend rejects with HTTP 403 `ACCESS_DENIED`. UI does not render invite button.
 - **Test**: `DESIGNER_MEMBER` attempts to modify portfolio layout or billing plan.
@@ -43,14 +73,14 @@ This document certifies the role-based access control (RBAC) matrix and tenant-i
 - **Test**: Designer from Studio A attempts to view CRM leads from Studio B (`GET /api/v1/leads/{studioB_leadId}`).
   - Result: HTTP 404 `LEAD_NOT_FOUND`.
 
-### C. Admin & Super Admin Boundaries
+### C. Governance & Administrative Boundaries
 - **Test**: `MODERATOR` attempts to alter platform operational state (`PUT /api/v1/admin/operations/state`).
   - Result: Rejected with HTTP 403 `SUPER_ADMIN_REQUIRED`.
 - **Test**: Platform `ADMIN` attempts to modify operational circuit breakers.
   - Result: Rejected with HTTP 403 `SUPER_ADMIN_REQUIRED`.
 - **Test**: Non-admin user attempts direct URL navigation to `/admin/*`.
-  - Result: Client route guard redirects to `/` with "Access Denied" toast; backend endpoints reject API calls with HTTP 403.
+  - Result: Client route guard redirects to `/` with "Access Denied" notice; backend endpoints reject API calls with HTTP 403.
 
 ### D. Multi-Studio Tab Independence
 - Tested multi-studio switcher across separate browser tabs.
-- `sessionStorage` and `X-Studio-Id` request header ensure Tab A context (Studio 1) never bleeds into Tab B context (Studio 2).
+- `sessionStorage` (`elegance_active_studio_id`) and `X-Studio-Id` request header ensure Tab A context (Studio 1) never bleeds into Tab B context (Studio 2).

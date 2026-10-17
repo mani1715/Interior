@@ -296,7 +296,7 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
 
 - **Final Pre-Provider Production Completion: Exhaustive Certification (Antigravity)**
   - Scope: Finished every production-code task not requiring real external provider credentials.
-  - Interactive Elements & Routes: Certified all 51 App Router routes, 70 interactive elements (buttons, links, forms, tabs, drawers), 26 redirect flows (no redirect loops, open-redirect safe), and all 8 user roles (RBAC isolation enforced).
+  - Interactive Elements & Routes: Certified all 51 App Router routes, 70 interactive elements (buttons, links, forms, tabs, drawers), 26 redirect flows (no redirect loops, open-redirect safe), and 8 canonical authorization boundaries (6 platform roles + 2 studio roles enforced; 100% OIDC auth without password reset).
   - Testing & Verification:
     - Frontend Unit & Integration: 52/52 suites, 373/373 tests PASS.
     - End-to-End Browser Journeys: 16/16 Playwright tests PASS (Desktop & Mobile Pixel 5).

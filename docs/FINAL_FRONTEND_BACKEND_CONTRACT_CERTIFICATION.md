@@ -10,8 +10,8 @@ This document certifies the contract alignment between the Next.js TypeScript fr
 | Frontend Client Method | HTTP | Target Endpoint URL | Spring Boot Controller Method | DTO & Payload Alignment | Status |
 | :--- | :---: | :--- | :--- | :--- | :--- |
 | `authApi.getCsrfToken()` | `GET` | `/api/v1/auth/csrf` | `AuthController.getCsrfToken()` | `{ csrfToken: string }` | PASS |
-| `authApi.getCurrentUser()` | `GET` | `/api/v1/auth/me` | `AuthController.getCurrentUser()` | `AuthUserResponse` | PASS |
-| `authApi.login()` | `POST` | `/api/v1/auth/login` | `AuthController.login()` | `LoginRequest` -> Session Cookie | PASS |
+| `authApi.initiateLogin()` | `GET` | `/api/v1/auth/login?provider=...`| `AuthController.login()` | OIDC 302 Redirect (PKCE + Nonce) | PASS |
+| `authApi.devLogin()` | `POST` | `/api/v1/auth/dev-login` (Dev/Test) | `AuthController.devLogin()` | Persona -> Session Cookie | PASS |
 | `authApi.logout()` | `POST` | `/api/v1/auth/logout` | `AuthController.logout()` | Void -> Revoke Session | PASS |
 | `mfaApi.enrollTotp()` | `POST` | `/api/v1/auth/mfa/enroll` | `MfaController.enrollTotp()` | `{ secret, qrUri, recoveryCodes }`| PASS |
 | `mfaApi.verifyTotp()` | `POST` | `/api/v1/auth/mfa/verify` | `MfaController.verifyTotp()` | `{ code }` -> `{ verified: true }` | PASS |

@@ -1,101 +1,187 @@
-# Final Provider Keys Required Inventory
-## Elégance — Interior Designer Platform
+# Elégance — Final Provider Keys Required & Configuration Schema
 
-This document catalogs strictly the environment variable names, acquisition locations, and security classification for external cloud service providers.
+## Executive Notice
+This document outlines the exact environment variable schema required for final external cloud provider activation.
 
 > [!IMPORTANT]
-> **NO VALUES ARE STORED IN THIS FILE.**
-> All external credential inputs are deferred to the final provider activation phase.
+> **Zero Plaintext Secrets**: This document contains strictly variable names and setup instructions. Never commit real credentials, passwords, or tokens to source control. Configure these variables locally in `.env.local` or through your hosting environment's secret manager.
 
 ---
 
-### 1. Managed PostgreSQL
-*Database storage engine for multi-tenant workspace data, Row-Level Security, and audit trails.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `SPRING_DATASOURCE_URL` | Managed Cloud PostgreSQL Dashboard (Neon / RDS) | Server | Yes (Connection URL) | Already Configured / Final Staging |
-| `SPRING_DATASOURCE_USERNAME` | Managed Cloud PostgreSQL Dashboard | Server | No | Already Configured / Final Staging |
-| `SPRING_DATASOURCE_PASSWORD` | Managed Cloud PostgreSQL Dashboard | Server | Yes | Already Configured / Final Staging |
-
----
-
-### 2. Cloudflare R2 Object Storage
-*S3-compatible object storage for interior design photography, CAD renderings, and generated AI concept imagery.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `MEDIA_STORAGE_PROVIDER` | Fixed constant (`S3_COMPATIBLE`) | Server | No | Final Provider Activation |
-| `S3_ENDPOINT` | Cloudflare Dashboard > R2 > Account ID | Server | No | Final Provider Activation |
-| `S3_REGION` | Fixed constant (`auto`) | Server | No | Final Provider Activation |
-| `S3_ACCESS_KEY_ID` | Cloudflare Dashboard > R2 > Manage R2 API Tokens | Server | Yes (Access Key) | Final Provider Activation |
-| `S3_SECRET_ACCESS_KEY` | Cloudflare Dashboard > R2 > Manage R2 API Tokens | Server | Yes (Secret Key) | Final Provider Activation |
-| `S3_BUCKET_PRIVATE` | Cloudflare Dashboard > R2 > Create Bucket (`interior-platform-media-private`) | Server | No | Final Provider Activation |
-| `S3_BUCKET_PUBLIC` | Cloudflare Dashboard > R2 > Create Bucket (`interior-platform-media-public`) | Server | No | Final Provider Activation |
-| `PUBLIC_MEDIA_BASE_URL` | Cloudflare Custom Domain (Phase 16) | Server | No | Final Production Deployment |
+## 1. Managed Database (PostgreSQL 18)
+- **Status:** **ACTIVE & LIVE VALIDATED (Phase 15A)**
+- **Provider:** Neon Serverless PostgreSQL (PostgreSQL 18.6)
+- **Direct Application Connection:**
+  ```env
+  SPRING_DATASOURCE_URL=jdbc:postgresql://<neon-direct-host>:5432/<database>?sslmode=require
+  SPRING_DATASOURCE_USERNAME=<database-user>
+  SPRING_DATASOURCE_PASSWORD=<database-password>
+  ```
+- *Note:* If running on existing verified Neon database (`ep-crimson-fog-b3t603ml`), these variables are already configured in local `.env.local`.
 
 ---
 
-### 3. Google Identity Services (OIDC)
-*OpenID Connect provider for secure single sign-on and designer authentication.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `GOOGLE_OIDC_ISSUER` | Standard discovery endpoint (`https://accounts.google.com`) | Server | No | Final Provider Activation |
-| `GOOGLE_CLIENT_ID` | Google Cloud Console > APIs & Services > Credentials | Server & Client | No | Final Provider Activation |
-| `GOOGLE_CLIENT_SECRET` | Google Cloud Console > APIs & Services > Credentials | Server | Yes | Final Provider Activation |
-| `GOOGLE_REDIRECT_URI` | Configured redirect path in Google OAuth settings | Server | No | Final Provider Activation |
-
----
-
-### 4. AI Visualizer & Room Concept Generator
-*Frontier vision and diffusion model engine for interior room redesigns and style transfers.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `AI_VISUALIZER_ENABLED` | Platform flag (`true`) | Server | No | Final Provider Activation |
-| `AI_PROVIDER` | Provider selection (`google-vertex` or `stability-ai`) | Server | No | Final Provider Activation |
-| `AI_API_KEY` | Google Cloud Console (Vertex AI) or Stability AI Console | Server | Yes | Final Provider Activation |
-| `AI_ENDPOINT` | Provider documentation (optional override) | Server | No | Final Provider Activation |
-| `AI_MODEL` | Provider allowlisted model (`imagen-3.0-generate-002`) | Server | No | Final Provider Activation |
-| `AI_DAILY_STUDIO_LIMIT` | Studio quota configuration (default: `20`) | Server | No | Final Provider Activation |
+## 2. Object Storage (Cloudflare R2)
+- **Status:** **IMPLEMENTATION COMPLETE / LIVE VALIDATION DEFERRED**
+- **Role:** High-resolution interior architecture photography, 3D renderings, floor plans, and client moodboard storage.
+- **Provider:** Cloudflare R2 (S3-compatible API).
+- **Required Variables:**
+  ```env
+  CLOUDFLARE_R2_ACCOUNT_ID=
+  CLOUDFLARE_R2_ACCESS_KEY_ID=
+  CLOUDFLARE_R2_SECRET_ACCESS_KEY=
+  CLOUDFLARE_R2_BUCKET_NAME=
+  CLOUDFLARE_R2_PUBLIC_URL=
+  ```
+- **How to Obtain:**
+  1. In Cloudflare Dashboard, navigate to **R2** > **Overview**.
+  2. Create an API Token with **Object Read & Write** permissions for the dedicated bucket.
+  3. Copy the Account ID, Access Key ID, and Secret Access Key.
 
 ---
 
-### 5. Transactional Email
-*Strictly transactional communications for studio invites, client review links, and security alerts.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `EMAIL_PROVIDER` | Provider choice (`resend` or `ses`) | Server | No | Final Provider Activation |
-| `RESEND_API_KEY` | Resend Dashboard > API Keys | Server | Yes | Final Provider Activation |
-| `EMAIL_FROM_ADDRESS` | Verified domain in Resend/SES (`notifications@...`) | Server | No | Final Provider Activation |
-| `EMAIL_WEBHOOK_SECRET` | Resend Dashboard > Webhooks (Svix signing secret) | Server | Yes | Final Provider Activation |
-| `AWS_SES_REGION` | AWS Management Console > SES (if using SES) | Server | No | Final Provider Activation |
-
----
-
-### 6. Commercial Payments & Subscriptions
-*Commercial billing gateway for studio plans (STANDARD, PREMIUM, PRO) and storage upgrades.*
-
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `BILLING_PROVIDER` | Provider choice (`stripe` or `razorpay`) | Server | No | Final Provider Activation |
-| `STRIPE_API_KEY` | Stripe Dashboard > Developers > API keys | Server | Yes (Secret Key) | Final Provider Activation |
-| `STRIPE_WEBHOOK_SECRET` | Stripe Dashboard > Developers > Webhooks | Server | Yes | Final Provider Activation |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard > Developers > API keys | Client | No (Publishable) | Final Provider Activation |
-| `RAZORPAY_KEY_ID` | Razorpay Dashboard > Settings > API Keys (if using Razorpay) | Server & Client | No (Key ID) | Final Provider Activation |
-| `RAZORPAY_KEY_SECRET` | Razorpay Dashboard > Settings > API Keys | Server | Yes | Final Provider Activation |
-| `RAZORPAY_WEBHOOK_SECRET` | Razorpay Dashboard > Settings > Webhooks | Server | Yes | Final Provider Activation |
+## 3. Social & Single Sign-On (Google OIDC)
+- **Status:** **IMPLEMENTATION COMPLETE / LIVE VALIDATION DEFERRED**
+- **Role:** Federated OpenID Connect single sign-on for interior design studio owners, staff, and clients.
+- **Provider:** Google Identity Services (OAuth 2.0 / OpenID Connect).
+- **Required Variables:**
+  ```env
+  OIDC_GOOGLE_CLIENT_ID=
+  OIDC_GOOGLE_CLIENT_SECRET=
+  OIDC_GOOGLE_REDIRECT_URI=http://localhost:3000/auth/callback
+  ```
+- **How to Obtain:**
+  1. Open [Google Cloud Console](https://console.cloud.google.com/) > **APIs & Services** > **Credentials**.
+  2. Create an **OAuth 2.0 Client ID** (Web application).
+  3. Add Authorized Redirect URIs matching your local and production callback endpoints.
 
 ---
 
-### 7. Observability & Sentry
-*Centralized application performance monitoring, telemetry, and error reporting.*
+## 4. AI Visualizer & Inpainting (Provider Decision Required)
+- **Status:** **IMPLEMENTATION COMPLETE / PROVIDER NOT YET SELECTED**
+- **Role:** Interior design room transformation, color matching, finish inpainting, and conceptual styling.
+- **Architecture:** Provider-neutral image diffusion SPI (`ConfigurableAiImageProvider`).
+- **Configuration Schema:**
+  ```env
+  # Set provider choice: "none", "stability", "vertex", "replicate", or custom
+  INTERIOR_AI_PROVIDER=none
+  INTERIOR_AI_API_KEY=
+  INTERIOR_AI_ENDPOINT=
+  INTERIOR_AI_MODEL=interior-diffusion-v1
+  ```
 
-| VARIABLE | WHERE TO GET IT | SERVER/CLIENT | SECRET? | WHEN WE WILL ADD IT |
-| :--- | :--- | :--- | :--- | :--- |
-| `SENTRY_DSN` | Sentry Dashboard > Project Settings > Client Keys (DSN) | Server | No | Optional / Final Provider Activation |
-| `NEXT_PUBLIC_SENTRY_DSN` | Sentry Dashboard > Project Settings > Client Keys (DSN) | Client | No | Optional / Final Provider Activation |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry Collector / Grafana / Datadog endpoint | Server | No | Optional / Final Provider Activation |
-| `OTEL_EXPORTER_OTLP_HEADERS` | OpenTelemetry Collector Authentication Header | Server | Yes | Optional / Final Provider Activation |
+### Conditional Variables by Selected Vendor:
+- **Option A — Stability AI:**
+  ```env
+  INTERIOR_AI_PROVIDER=stability
+  INTERIOR_AI_API_KEY=<stability-api-key>
+  INTERIOR_AI_MODEL=stable-diffusion-xl-1024-v1-0
+  ```
+- **Option B — Google Vertex AI / Imagen 3:**
+  ```env
+  INTERIOR_AI_PROVIDER=vertex
+  INTERIOR_AI_API_KEY=<gcp-service-account-oauth-token>
+  INTERIOR_AI_ENDPOINT=https://<region>-aiplatform.googleapis.com
+  INTERIOR_AI_MODEL=imagegeneration@006
+  ```
+- **Option C — Replicate / Custom Diffusion Endpoint:**
+  ```env
+  INTERIOR_AI_PROVIDER=replicate
+  INTERIOR_AI_API_KEY=<replicate-api-token>
+  INTERIOR_AI_ENDPOINT=https://api.replicate.com/v1
+  INTERIOR_AI_MODEL=<owner-selected-model-version>
+  ```
+
+---
+
+## 5. Transactional Email & Notifications (Provider Decision Required)
+- **Status:** **IMPLEMENTATION COMPLETE / PROVIDER NOT YET SELECTED**
+- **Role:** Studio team invitations, client review verification links, inquiry alerts, and billing receipts.
+- **Architecture:** Provider-neutral communication SPI (`EmailProvider`).
+- **Configuration Schema:**
+  ```env
+  # Set email provider: "disabled", "resend", or "ses"
+  APP_EMAIL_PROVIDER=disabled
+  APP_EMAIL_FROM_ADDRESS=notifications@elegance.design
+  APP_EMAIL_FROM_NAME=Elégance Interior Platform
+  ```
+
+### Conditional Variables by Selected Vendor:
+- **Option A — Resend:**
+  ```env
+  APP_EMAIL_PROVIDER=resend
+  APP_EMAIL_RESEND_API_KEY=<resend-api-key>
+  APP_EMAIL_RESEND_WEBHOOK_SECRET=<svix-webhook-secret>
+  ```
+- **Option B — Amazon SES:**
+  ```env
+  APP_EMAIL_PROVIDER=ses
+  AWS_SES_REGION=ap-south-1
+  AWS_SES_ACCESS_KEY_ID=<aws-access-key-id>
+  AWS_SES_SECRET_ACCESS_KEY=<aws-secret-access-key>
+  APP_EMAIL_SES_SNS_TOPIC_ARN=<ses-sns-topic-arn>
+  ```
+
+---
+
+## 6. Commercial Billing & Invoicing (Provider Decision Required)
+- **Status:** **IMPLEMENTATION COMPLETE / PROVIDER NOT YET SELECTED**
+- **Role:** Designer studio subscription tiers (Standard, Premium, Pro) and project entitlement billing.
+- **Architecture:** Provider-neutral billing SPI (`BillingProvider`).
+- **Configuration Schema:**
+  ```env
+  # Set billing provider: "disabled", "razorpay", or "stripe"
+  APP_BILLING_PROVIDER=disabled
+  ```
+
+### Conditional Variables by Selected Vendor:
+- **Option A — Razorpay (Primary for Domestic / India Commercial Launch):**
+  ```env
+  APP_BILLING_PROVIDER=razorpay
+  RAZORPAY_KEY_ID=<razorpay-key-id>
+  RAZORPAY_KEY_SECRET=<razorpay-key-secret>
+  RAZORPAY_WEBHOOK_SECRET=<razorpay-webhook-secret>
+  ```
+- **Option B — Stripe (Primary for International / Global Commercial Launch):**
+  ```env
+  APP_BILLING_PROVIDER=stripe
+  STRIPE_PUBLISHABLE_KEY=<stripe-publishable-key>
+  STRIPE_SECRET_KEY=<stripe-secret-key>
+  STRIPE_WEBHOOK_SECRET=<stripe-webhook-signing-secret>
+  ```
+
+---
+
+## 7. Observability & APM (Provider Decision Required)
+- **Status:** **IMPLEMENTATION COMPLETE / DECISION REQUIRED**
+- **Role:** Centralized logging, distributed tracing, error tracking, and performance alerting.
+- **Architecture:** Built-in Spring Boot Actuator with `/actuator/prometheus` metrics endpoint and high-performance structured JSON logging (`JsonLoggingLayout`). External APM connection is optional.
+
+### Conditional Variables by Selected APM Provider:
+- **Option A — Standard Built-In Metrics (Default / No External Account Required):**
+  - Uses native Prometheus scraping and Docker container log drivers. Zero external keys required.
+- **Option B — Sentry Error Tracking (If Selected):**
+  ```env
+  NEXT_PUBLIC_SENTRY_DSN=<frontend-sentry-dsn>
+  SENTRY_DSN=<backend-sentry-dsn>
+  SENTRY_AUTH_TOKEN=<sentry-auth-token>
+  ```
+- **Option C — OpenTelemetry / OTLP Collector (Datadog / Grafana Tempo / New Relic):**
+  ```env
+  MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://<otel-collector>:4318/v1/metrics
+  MANAGEMENT_OTLP_TRACING_ENDPOINT=http://<otel-collector>:4318/v1/traces
+  ```
+
+---
+
+## Summary of Decisions Needed Prior to Live Cloud Activation
+
+| Pillar | Selected Provider | Alternatives Available | Decision Timing |
+| :--- | :--- | :--- | :--- |
+| **1. Database** | **Neon PostgreSQL 18.6** | None (PostgreSQL 18 is canonical) | **COMPLETED (Phase 15A)** |
+| **2. Storage** | **Cloudflare R2** | None (S3-compatible R2 selected) | Keys needed at final activation |
+| **3. SSO / OIDC** | **Google Identity** | None (Google OIDC selected) | Keys needed at final activation |
+| **4. AI Visualizer** | *Decision Required* | Vertex / Imagen 3 vs Stability AI vs Replicate | Owner selects vendor prior to Phase 15D |
+| **5. Email** | *Decision Required* | Resend vs AWS SES | Owner selects vendor prior to Phase 15E |
+| **6. Billing** | *Decision Required* | Razorpay vs Stripe | Owner selects vendor prior to Phase 15F |
+| **7. Observability**| *Decision Required* | Native Prometheus vs Sentry vs OTLP | Owner selects vendor prior to Phase 15G |

@@ -952,7 +952,7 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 ## 50. PRE-PROVIDER PRODUCTION CERTIFICATION & UNIFIED ACTIVATION DIRECTIVE
 
 - **Certification Scope**: Complete application audit executed with zero mock gaps, zero broken links, and zero unhandled errors.
-- **Audited Surface Area**: 51 Next.js App Router routes, 70 interactive controls, 26 redirect flows, 8 RBAC persona roles, and 235 REST endpoints.
+- **Audited Surface Area**: 51 Next.js App Router routes, 70 interactive controls, 26 redirect flows, 8 canonical authorization boundaries (6 platform roles + 2 studio roles; 100% OIDC auth without password reset), and 235 REST endpoints.
 - **Verification Gates**:
   - Frontend Vitest: 52/52 suites, 373/373 tests PASS.
   - End-to-End Playwright: 16/16 tests PASS (Desktop & Pixel 5 Mobile).
@@ -961,7 +961,7 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
   - Production Build: Clean compilation via Turbopack.
 - **Current Operational Reality**:
   - Neon PostgreSQL 18.6 managed database is LIVE and ACTIVE in AWS Singapore (`ep-crimson-fog-b3t603ml-pooler.c-4.ap-southeast-1.aws.neon.tech`).
-  - Remaining 6 cloud providers (R2, Google OIDC, AI, Email, Stripe, Sentry) and custom domain provisioning are CONTRACT TESTED and PRE-FLIGHT READY, with live credentials safely deferred to unified activation.
+  - Remaining 6 cloud providers (R2, Google OIDC, AI, Email, Billing, Observability) and custom domain provisioning are CONTRACT TESTED and PRE-FLIGHT READY, with live credentials safely deferred to unified activation.
   - Comprehensive documentation compiled in `docs/FINAL_*`:
     - `docs/FINAL_INTERACTIVE_ELEMENT_MATRIX.md`
     - `docs/FINAL_REDIRECT_MATRIX.md`

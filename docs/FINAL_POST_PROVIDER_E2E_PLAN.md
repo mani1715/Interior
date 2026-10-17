@@ -14,8 +14,8 @@ This test plan defines the comprehensive, live end-to-end verification suites to
    - Redirected to `/onboarding/professional`.
    - Submit studio details: "Studio Aethelgard", Mumbai, Luxury/Contemporary.
    - Verify atomic record creation in Neon PostgreSQL with native `uuidv7()`.
-3. **Studio Verification & Email**:
-   - Designer receives welcome email via Resend to verified account inbox.
+3. **Studio Verification & Email Notification**:
+   - Designer receives welcome email via selected email provider (Resend or SES) to verified account inbox.
    - Check DKIM/SPF headers and responsive HTML rendering.
 
 ---
@@ -34,13 +34,13 @@ This test plan defines the comprehensive, live end-to-end verification suites to
 
 ---
 
-## 3. Journey 3: AI Visualizer & Concept Inpainting (Google Vertex / Stability)
+## 3. Journey 3: AI Visualizer & Concept Inpainting (Selected AI Image Provider)
 1. **Inpainting Session**:
    - Open Master Suite room photo in `/workspace/ai`.
    - Paint precision mask over window treatment area.
    - Prompt: "Floor-to-ceiling Belgian linen sheer drapery in warm ivory".
 2. **Generation Execution**:
-   - Send generation request.
+   - Send generation request to selected AI adapter (Vertex AI, Stability AI, or Replicate).
    - Verify in-memory ClamAV scan on output image bytes.
    - Output concept stored in Cloudflare R2 and attached to project room as "AI Concept" revision.
    - Quota ledger decrements studio daily balance from 20 to 19.
@@ -50,7 +50,7 @@ This test plan defines the comprehensive, live end-to-end verification suites to
 ## 4. Journey 4: Client Collaboration & Review Verification
 1. **Client Invitation**:
    - Designer generates client review invitation token for project.
-   - Client receives email notification via Resend with secure token link.
+   - Client receives email notification via selected email provider with secure token link.
 2. **Review Submission**:
    - Client opens `/review/[token]`.
    - Client rates project (5 stars) and submits testimonial: "Flawless craftsmanship and spatial balance".
@@ -61,24 +61,24 @@ This test plan defines the comprehensive, live end-to-end verification suites to
 
 ---
 
-## 5. Journey 5: Commercial Subscription Upgrade (Stripe Sandbox)
+## 5. Journey 5: Commercial Subscription Upgrade (Selected Payment Gateway)
 1. **Plan Upgrade**:
    - Navigate to `/workspace/billing`.
    - Select PRO subscription plan.
-   - Redirect to Stripe hosted checkout session.
+   - Redirect to hosted checkout session of selected provider (Razorpay or Stripe).
 2. **Test Payment**:
-   - Enter Stripe test card details (`4242 4242 4242 4242`, `12/28`, `123`).
-   - Complete payment and return to `/workspace/billing?session_id=...`.
+   - Complete test payment in vendor sandbox environment.
+   - Return to `/workspace/billing?session_id=...`.
 3. **Webhook Processing**:
-   - Stripe dispatches `checkout.session.completed` and `customer.subscription.created`.
-   - Platform verifies webhook signature (`v1` HMAC) and commits entitlement upgrade in Neon PostgreSQL.
+   - Provider dispatches subscription activation webhook.
+   - Platform verifies webhook cryptographic signature and commits entitlement upgrade in Neon PostgreSQL.
    - Studio capacity meters immediately reflect PRO entitlements (5 Cinematic projects, unlimited media).
 
 ---
 
-## 6. Journey 6: Observability, Sentry & Alert Verification
+## 6. Journey 6: Observability & Telemetry Verification
 1. **Trace Propagation**:
    - Verify `X-Request-Id` correlation header spans across Next.js frontend, Spring Boot backend, and PostgreSQL database queries.
-2. **Sentry Alert Probe**:
-   - Trigger diagnostic error probe.
-   - Verify event is received in Sentry with complete stack trace, redacted PII, and non-root execution context.
+2. **Telemetry Alert Probe**:
+   - Trigger diagnostic telemetry test event.
+   - Verify event is received in configured monitoring platform (Prometheus metrics, Sentry issues dashboard, or OTLP collector) with complete stack trace, redacted PII, and non-root execution context.
