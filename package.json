@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "1.5.0",
+    "@neon/config": "^1.9.2",
+    "@neon/env": "^1.6.3",
     "@rolldown/binding-win32-x64-msvc": "^1.2.9",
     "lightningcss-win32-x64-msvc": "^1.32.0"
   }
