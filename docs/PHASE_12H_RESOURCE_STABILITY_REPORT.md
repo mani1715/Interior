@@ -12,18 +12,19 @@
 Elégance utilizes HikariCP as the primary connection pool for PostgreSQL with production-hardened timeout and boundary configurations:
 
 ```properties
-# Production HikariCP Configuration
-spring.datasource.hikari.maximum-pool-size=${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:30}
-spring.datasource.hikari.minimum-idle=${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:10}
-spring.datasource.hikari.idle-timeout=30000
-spring.datasource.hikari.connection-timeout=20000
-spring.datasource.hikari.max-lifetime=1200000
-spring.datasource.hikari.leak-detection-threshold=${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:30000}
+# Local Engineering Load-Test HikariCP Configuration (Configurable via Environment)
+spring.datasource.hikari.maximum-pool-size=${DB_POOL_MAX_SIZE:${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:30}}
+spring.datasource.hikari.minimum-idle=${DB_POOL_MIN_IDLE:${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:30}}
+spring.datasource.hikari.idle-timeout=${DB_POOL_IDLE_TIMEOUT_MS:60000}
+spring.datasource.hikari.connection-timeout=${DB_CONNECTION_TIMEOUT_MS:${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:20000}}
+spring.datasource.hikari.leak-detection-threshold=${DB_POOL_LEAK_DETECTION_THRESHOLD_MS:30000}
 spring.datasource.hikari.pool-name=InteriorPlatformHikariPool
 ```
 
-### 1.1 Pool Sizing Optimization for 100 VUs
-During initial 100 concurrent worker stress testing, the default pool size of 10 was saturated by simultaneous parallel queries, triggering transient queue timeouts (`SQLTransientConnectionException: request timed out after 20000ms`). Sizing `maximum-pool-size: 30` with `minimum-idle: 10` eliminated connection starvation, sustaining 400.01 req/s across 24,570 requests.
+### 1.1 Local Pool Sizing vs. Production Decoupling
+- **Local Engineering Stress Sizing:** During 100-VU local testing on a single development machine, `maximum-pool-size: 30` with `minimum-idle: 30` (pre-warmed) handles 100 concurrent workers with zero connection starvation, achieving 100.00% success rate (21,341 / 21,341 requests, 0 errors, 0 timeouts).
+- **Production Decoupling:** In `application-production.properties`, the default pool size is configured conservatively (`maximum-pool-size: 10`, `minimum-idle: 2`), fully decoupled from the local setting. Production pool budgeting depends on container replica count and managed DB (e.g. AWS RDS or Supabase) connection limits, to be finalized upon cloud deployment in Phase 15.
+- **Tail Latency Root Cause & Resolution:** Detailed mathematical modeling and empirical breakdown of connection wait times under single-studio vs multi-studio workloads are documented in [PHASE_12H_TAIL_LATENCY_ANALYSIS.md](file:///c:/my%20projects/interior%20design/docs/PHASE_12H_TAIL_LATENCY_ANALYSIS.md).
 
 ### 1.2 Pool Stress & Recovery Verification
 - **Test:** `testHikariPoolStabilityAndRecovery` (in `ConcurrencyAndResilienceTest.java`) and 20-minute live soak monitoring.

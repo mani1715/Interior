@@ -79,6 +79,14 @@ Runs a genuine 20-minute mixed workload (70% public reads, 20% authenticated rea
 node performance/soak.js --concurrency=20 --duration=1200 --sampleInterval=30 --baseUrl=http://localhost:8080/api/v1
 ```
 
+#### Scenario 7: Multi-Studio Mixed Benchmark (Representative Production Load)
+Distributes write traffic across 10 distinct studio tenants to validate concurrent throughput without artificial single-row lock serialization:
+```powershell
+node performance/seed-synthetic-studios.js
+node performance/multi-studio-mixed.js --concurrency=20 --duration=300 --studios=10 --baseUrl=http://localhost:8080/api/v1
+```
+*Note: See [PHASE_12H_TAIL_LATENCY_ANALYSIS.md](file:///c:/my%20projects/interior%20design/docs/PHASE_12H_TAIL_LATENCY_ANALYSIS.md) for empirical analysis demonstrating a 175x reduction in tail latency ($p95 \approx 108\text{ ms}$) when distributed across studios.*
+
 ---
 
 ## 3. Remote Target Safety Switch

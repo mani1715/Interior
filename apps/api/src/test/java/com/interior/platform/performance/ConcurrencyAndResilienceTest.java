@@ -800,4 +800,125 @@ public class ConcurrencyAndResilienceTest {
             });
         });
     }
+
+    // =========================================================================
+    // 13. CROSS-STUDIO CONCURRENCY (PART 11)
+    // =========================================================================
+    @Test
+    @DisplayName("Concurrency — Studio A and Studio B project creations proceed independently without cross-studio lock contention")
+    void testCrossStudioProjectCreationProceedsIndependently() throws Exception {
+        UUID userBId = UuidV7.randomUuid();
+        UUID studioBId = UuidV7.randomUuid();
+
+        jdbcTemplate.update("INSERT INTO users (id, display_name, email, status) VALUES (?, 'Architect B', 'architect.b@elegance.test', 'ACTIVE')", userBId);
+        jdbcTemplate.update("""
+            INSERT INTO designer_studios (id, name, slug, owner_id, status, publication_status, city, state, country, created_at, updated_at)
+            VALUES (?, 'Studio B Concurrency', 'studio-b-concurrency', ?, 'ACTIVE', 'PUBLISHED', 'Bengaluru', 'Karnataka', 'IN', now(), now())
+        """, studioBId, userBId);
+        jdbcTemplate.update("""
+            INSERT INTO studio_members (id, studio_id, user_id, role, granted_at)
+            VALUES (?, ?, ?, 'DESIGNER_ADMIN', now())
+        """, UuidV7.randomUuid(), studioBId, userBId);
+
+        ActorContext actorB = new ActorContext(userBId, "Architect B", "architect.b@elegance.test", Set.of("DESIGNER"), Set.of(), studioBId, "OWNER", "PASSKEY", true);
+
+        assignSubscription(STANDARD_PLAN_ID, SubscriptionStatus.ACTIVE);
+        StudioSubscriptionRecord subB = new StudioSubscriptionRecord(
+                UuidV7.randomUuid(), studioBId, STANDARD_PLAN_ID, SubscriptionStatus.ACTIVE,
+                "fake", "cus_b_" + UUID.randomUUID().toString().substring(0, 8),
+                "sub_b_" + UUID.randomUUID().toString().substring(0, 8),
+                Instant.now().minus(5, ChronoUnit.DAYS), Instant.now().plus(25, ChronoUnit.DAYS),
+                false, null, Instant.now(), Instant.now(), 1L
+        );
+        billingRepository.saveSubscription(subB);
+
+        int workersPerStudio = 4;
+        ExecutorService executor = Executors.newFixedThreadPool(workersPerStudio * 2);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(workersPerStudio * 2);
+
+        AtomicInteger successesA = new AtomicInteger(0);
+        AtomicInteger successesB = new AtomicInteger(0);
+
+        long startTime = System.currentTimeMillis();
+
+        for (int i = 0; i < workersPerStudio; i++) {
+            final int idx = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    projectService.createProject(actor, studioId, buildProjectRequest("Studio A Project " + idx, ProjectPresentationMode.STANDARD));
+                    successesA.incrementAndGet();
+                } catch (Exception e) {
+                    // ignore
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    projectService.createProject(actorB, studioBId, buildProjectRequest("Studio B Project " + idx, ProjectPresentationMode.STANDARD));
+                    successesB.incrementAndGet();
+                } catch (Exception e) {
+                    // ignore
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "Both studios should complete operations rapidly");
+        executor.shutdown();
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        assertEquals(workersPerStudio, successesA.get(), "All Studio A requests must succeed");
+        assertEquals(workersPerStudio, successesB.get(), "All Studio B requests must succeed");
+        assertTrue(elapsed < 5000, "Cross-studio project creations must proceed rapidly in parallel without cross-contention");
+    }
+
+    // =========================================================================
+    // 14. SAME-STUDIO CONTENTION BOUNDING (PART 12)
+    // =========================================================================
+    @Test
+    @DisplayName("Contention — Bounded concurrent project creation for same studio completes within expected lock serialization window")
+    void testSameStudioProjectCreationContentionMetrics() throws Exception {
+        assignSubscription(PRO_PLAN_ID, SubscriptionStatus.ACTIVE);
+
+        int threads = 6;
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threads);
+
+        List<Long> latencies = new CopyOnWriteArrayList<>();
+        AtomicInteger successes = new AtomicInteger(0);
+
+        for (int i = 0; i < threads; i++) {
+            final int idx = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    long t0 = System.currentTimeMillis();
+                    projectService.createProject(actor, studioId, buildProjectRequest("Contention Test Proj " + idx, ProjectPresentationMode.STANDARD));
+                    long duration = System.currentTimeMillis() - t0;
+                    latencies.add(duration);
+                    successes.incrementAndGet();
+                } catch (Exception e) {
+                    // ignore
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "Same studio writes must complete cleanly");
+        executor.shutdown();
+
+        assertEquals(threads, successes.get(), "All bounded writes must succeed within limit");
+        Collections.sort(latencies);
+        long maxWait = latencies.get(latencies.size() - 1);
+        assertTrue(maxWait < 3000, "Max wait under same-studio serialization should be < 3000ms, was " + maxWait + "ms");
+    }
 }

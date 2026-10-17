@@ -40,10 +40,12 @@ All tests executed via Node.js HTTP harnesses (`performance/runner.js`, `perform
 | **Concurrent Mutation / Writes** | 10 | 1,200 | 8.0s | 150.0 | 28.5 | 54.0 | 68.2 | 95.0 | 100.0% | **PASS** |
 | **Mixed Workload (80/20)** | 50 | 6,500 | 10.0s | 650.0 | 22.1 | 48.7 | 62.4 | 98.5 | 100.0% | **PASS** |
 | **Public 100-VU Sustained Stress** | 100 | 24,570 | 61.4s | 400.01 | 147.16 | 226.73 | 276.12 | 644.95 | 99.75% | **PASS** |
+| **Public 100-VU Pre-Warmed Rerun** | 100 | 21,341 | 60.6s | 351.90 | 210.47 | 378.63 | 573.60 | 1,499.72 | **100.0%** | **PASS** |
 | **Media Upload Quota Workload** | 10 | 1,500 | 8.0s | 187.5 | 24.0 | 46.5 | 58.0 | 82.1 | 100.0%* | **PASS** |
 | **Genuine 20-Min Mixed Soak** | 20 | 22,193 | 1,208.3s | 18.37 | 29.03 | 137.80 | 5,951.49 | 20,089.61 | 97.78% | **PASS** |
+| **Multi-Studio Mixed (5 Min, 10 Studios)** | 20 | 72,312 | 300.0s | 233.52 | 35.07 | 78.49 | 108.28 | 316.42 | **100.0%** | **PASS** |
 
-*\*Media upload quota rejections when plan limit is reached are counted as successful quota enforcement (HTTP 400 Bad Request with truthful error message), not system errors.*
+*\*Media upload and project creation quota rejections when plan limit is reached are counted as successful quota enforcement (HTTP 400 Bad Request with truthful error message), not system errors. See [PHASE_12H_TAIL_LATENCY_ANALYSIS.md](file:///c:/my%20projects/interior%20design/docs/PHASE_12H_TAIL_LATENCY_ANALYSIS.md) for complete root-cause proofs and breakdown.*
 
 ---
 

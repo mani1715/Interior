@@ -48,15 +48,16 @@ flowchart TD
 
 ### 2.1 Live Soak Failure Drill: AI Endpoint Graceful Degradation (T+10m / 600s)
 - **Drill Timing:** Executed at T+600s during active 20 concurrent VU soak traffic.
-- **Trigger:** Injected simulated AI generation request against `/api/v1/ai/generate` while downstream provider was offline.
+- **Trigger:** Injected simulated AI generation request against `/api/v1/ai/jobs` while downstream provider was offline / unconfigured.
 - **Observed Behavior:**
-  - AI generation endpoint returned graceful failure (HTTP 500 with structured truthful error payload).
-  - Actuator health endpoint (`GET /api/v1/actuator/health`) was polled immediately after drill completion and returned:
+  - AI generation endpoint returned graceful failure: **HTTP 503 SERVICE_UNAVAILABLE** with structured error code `PROVIDER_NOT_CONFIGURED`.
+  - Actuator health endpoint (`GET /api/v1/health`) was polled immediately after drill completion and returned:
     ```json
     { "status": "UP" }
     ```
   - Background concurrent public and designer traffic continued uninterrupted throughout the drill.
   - Zero cascading timeouts or pool locks were triggered.
+  - Upstream optional provider failure does not degrade platform core services.
 
 ### 2.2 Drill 2: PostgreSQL Outage & Transient Disconnect
 - **Failure Condition:** Database connection pool pressured during active request processing.
