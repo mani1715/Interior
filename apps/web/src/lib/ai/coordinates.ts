@@ -75,6 +75,35 @@ export function scaleCanvasToSource(
       sourceWidth,
       sourceHeight
     );
+
+    // Canonical binary Black & White mask for Stability Inpaint (Part 11):
+    // Black (#000000, alpha 255) = PRESERVE
+    // White (#FFFFFF, alpha 255) = INPAINT
+    try {
+      const imgData = ctx.getImageData(0, 0, sourceWidth, sourceHeight);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const isSelected = a > 20 && (r > 20 || g > 20 || b > 20);
+        if (isSelected) {
+          data[i] = 255;
+          data[i + 1] = 255;
+          data[i + 2] = 255;
+          data[i + 3] = 255;
+        } else {
+          data[i] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    } catch {
+      // In mock/test environments without full canvas ImageData support, keep drawn canvas
+    }
   }
 
   return targetCanvas;

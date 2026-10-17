@@ -610,7 +610,7 @@ export function AiVisualizerClient() {
                       Transformation Mode
                     </label>
                     <span className="text-[10px] text-charcoal-500">
-                      {editingMode === 'PRECISION_MASK' ? 'Targeted region edit' : 'Full room transformation'}
+                      {editingMode === 'PRECISION_MASK' ? 'Precise Edit (Manual Mask)' : 'Quick Recolor (Auto-Detect)'}
                     </span>
                   </div>
 
@@ -626,7 +626,7 @@ export function AiVisualizerClient() {
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-bronze-700" />
-                      <span>Full Concept</span>
+                      <span>Quick Recolor</span>
                     </button>
 
                     <button
@@ -640,9 +640,15 @@ export function AiVisualizerClient() {
                       }`}
                     >
                       <Crosshair className="w-3.5 h-3.5 text-bronze-700" />
-                      <span>Precision Edit</span>
+                      <span>Precise Edit</span>
                     </button>
                   </div>
+
+                  <p className="text-[11px] text-charcoal-500 mt-1 leading-relaxed">
+                    {editingMode === 'PRECISION_MASK'
+                      ? 'For maximum precision: Use the mask editor below to paint only the surfaces or doors to recolor.'
+                      : 'For fastest result: Name the object clearly (e.g. wardrobe, cupboard, kitchen cabinets) and specify your target finish.'}
+                  </p>
                 </div>
               )}
 

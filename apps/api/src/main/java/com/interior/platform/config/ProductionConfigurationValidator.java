@@ -323,6 +323,13 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
                     log.error(errorMsg);
                     throw new IllegalStateException(errorMsg);
                 }
+                if ("stability".equals(aiProvider)) {
+                    if (endpoint != null && !endpoint.isBlank() && !endpoint.startsWith("https://")) {
+                        String errorMsg = "CRITICAL CONFIGURATION FAULT: Stability AI provider requires HTTPS endpoint.";
+                        log.error(errorMsg);
+                        throw new IllegalStateException(errorMsg);
+                    }
+                }
                 if (aiVisualizerProperties.getAllowedModels() != null && !aiVisualizerProperties.getAllowedModels().isEmpty()) {
                     String configuredModel = aiVisualizerProperties.getModel();
                     if (!aiVisualizerProperties.getAllowedModels().contains(configuredModel)) {
@@ -460,6 +467,6 @@ public class ProductionConfigurationValidator implements ApplicationRunner {
     private boolean isPlaceholder(String val) {
         if (val == null) return true;
         String lower = val.toLowerCase().trim();
-        return lower.startsWith("your-") || lower.contains("placeholder") || lower.equals("change-me");
+        return lower.startsWith("your-") || lower.contains("placeholder") || lower.equals("change-me") || lower.contains("mock") || lower.equals("mock key");
     }
 }

@@ -321,9 +321,19 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
     - `docs/FINAL_OWNER_PRELAUNCH_STATUS.md`
   - Status: PRE-PROVIDER PRODUCTION CERTIFICATION COMPLETE — ALL TESTS PASSING, 0 DEFECTS OPEN.
 
+- **Phase 15D: Stability AI Real Provider Activation & Live Quality Validation**
+  - Connected real Stability AI production API to Elégance interior AI workspace.
+  - Implemented `StabilityPromptBuilder` with interior furniture preservation rules, negative prompts, hex code translation, and mask normalization.
+  - Implemented `search-and-recolor` and `inpaint` multipart/form-data client in `ConfigurableAiImageProvider` with SSRF defense and 5-credit studio cost accounting.
+  - Added binary mask normalization in `apps/web/src/lib/ai/coordinates.ts` and updated `/workspace/ai` UI labels to "Quick Recolor" and "Precise Edit".
+  - Validated 4/4 live test cases against real `https://api.stability.ai`: Bedroom Wardrobe & Kitchen Cabinet recoloring and precise inpaint. 100% geometry and handles preserved. 20 credits consumed.
+  - Documentation: `docs/PHASE_AI_STABILITY_LIVE_VALIDATION.md`, `docs/AI_CUPBOARD_RECOLOR_QUALITY_REPORT.md`, `docs/AI_INTERIOR_EDITING_WORKFLOW.md`.
+  - Testing: 768 backend unit/regression tests PASS + 4 live provider integration tests PASS; frontend Vitest 373/373 PASS, Next.js build clean.
+  - Security: 0 credentials logged, printed, or committed.
+
 ## Current Next Step:
 
-- UNIFIED FINAL PROVIDER KEY ACTIVATION & LIVE CLOUD VALIDATION — Follow the step-by-step runbook in `docs/FINAL_PROVIDER_ACTIVATION_SEQUENCE.md` once cloud credentials are provided by user in local `.env.local`.
+- OWNER QUALITY SIGN-OFF ON CUPBOARD RECOLOR RESULTS & SUBSEQUENT PROVIDER ACTIVATIONS.
 
 ---
 

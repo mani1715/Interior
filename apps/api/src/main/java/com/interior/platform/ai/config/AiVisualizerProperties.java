@@ -80,7 +80,22 @@ public class AiVisualizerProperties {
     /**
      * Allowed models allowlist.
      */
-    private java.util.List<String> allowedModels = java.util.List.of("interior-diffusion-v1", "gemini-imagen-3", "dall-e-3", "mock-model");
+    private java.util.List<String> allowedModels = java.util.List.of(
+            "interior-diffusion-v1",
+            "gemini-imagen-3",
+            "dall-e-3",
+            "mock-model",
+            "stability-v2beta",
+            "stable-image-core",
+            "stable-diffusion-3",
+            "search-and-recolor",
+            "inpaint"
+    );
+
+    /**
+     * Mask expansion radius in pixels for Stability inpainting / recolor (default: 3).
+     */
+    private int growMask = 3;
 
     /**
      * Whether the active provider supports multi-modal reference image conditioning.
@@ -239,5 +254,13 @@ public class AiVisualizerProperties {
 
     public void setSupportsMaskEditing(boolean supportsMaskEditing) {
         this.supportsMaskEditing = supportsMaskEditing;
+    }
+
+    public int getGrowMask() {
+        return growMask;
+    }
+
+    public void setGrowMask(int growMask) {
+        this.growMask = growMask;
     }
 }

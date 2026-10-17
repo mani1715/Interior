@@ -8,12 +8,18 @@ import com.interior.platform.ai.domain.CostSource;
 import com.interior.platform.ai.domain.EditingMode;
 import com.interior.platform.common.exception.AiProviderNotConfiguredException;
 import com.interior.platform.common.service.SsrfProtectionService;
+import com.interior.platform.ai.service.StabilityPromptBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -23,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @Primary
@@ -111,6 +118,10 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
     ) {
         if (!isConfigured()) {
             throw new AiProviderNotConfiguredException("AI generation provider is not configured for this environment.");
+        }
+
+        if ("stability".equalsIgnoreCase(getProviderKey())) {
+            return submitStabilityGeneration(job, inputImageBytes, inputContentType, maskBytes, maskContentType, references);
         }
 
         if (job.editingMode() == EditingMode.PRECISION_MASK && !supportsMaskEditing()) {
@@ -354,5 +365,214 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
         if (val == null) return true;
         String lower = val.toLowerCase().trim();
         return lower.startsWith("your-") || lower.contains("placeholder") || lower.equals("change-me");
+    }
+
+    private ProviderGenerationResponse submitStabilityGeneration(
+            AiJobRecord job,
+            byte[] inputImageBytes,
+            String inputContentType,
+            byte[] maskBytes,
+            String maskContentType,
+            List<AiGenerationReference> references
+    ) {
+        String configuredModel = properties.getModel() != null && !properties.getModel().isBlank()
+                ? properties.getModel()
+                : "stability-v2beta";
+
+        if (properties.getAllowedModels() != null && !properties.getAllowedModels().isEmpty()
+                && !properties.getAllowedModels().contains(configuredModel)) {
+            return ProviderGenerationResponse.failure("MODEL_NOT_PERMITTED", "Configured model '" + configuredModel + "' is not on the permitted models allowlist.");
+        }
+
+        if (inputImageBytes == null || inputImageBytes.length == 0) {
+            return ProviderGenerationResponse.failure("AI_INVALID_REQUEST", "Input image bytes cannot be empty.");
+        }
+
+        boolean isMasked = (maskBytes != null && maskBytes.length > 0) || job.editingMode() == EditingMode.PRECISION_MASK;
+        if (isMasked && !supportsMaskEditing()) {
+            return ProviderGenerationResponse.failure("MASK_EDITING_UNSUPPORTED", "The configured AI model does not support precision mask editing.");
+        }
+
+        String baseEndpoint = properties.getEndpoint();
+        if (baseEndpoint == null || baseEndpoint.isBlank()) {
+            baseEndpoint = "https://api.stability.ai";
+        } else if (baseEndpoint.endsWith("/")) {
+            baseEndpoint = baseEndpoint.substring(0, baseEndpoint.length() - 1);
+        }
+
+        String targetUrl;
+        String operation;
+        byte[] requestBodyBytes;
+        String boundary;
+
+        try {
+            MultipartBody multipart = new MultipartBody();
+            boundary = multipart.getBoundary();
+
+            String imageMime = (inputContentType != null && !inputContentType.isBlank()) ? inputContentType : "image/jpeg";
+            String imageFilename = imageMime.contains("png") ? "input.png" : "input.jpg";
+
+            if (isMasked) {
+                operation = "STABILITY_INPAINT";
+                targetUrl = baseEndpoint.contains("/inpaint") ? baseEndpoint : baseEndpoint + "/v2beta/stable-image/edit/inpaint";
+
+                int targetW = 1024;
+                int targetH = 1024;
+                try {
+                    BufferedImage inImg = ImageIO.read(new ByteArrayInputStream(inputImageBytes));
+                    if (inImg != null) {
+                        targetW = inImg.getWidth();
+                        targetH = inImg.getHeight();
+                    }
+                } catch (Exception ignored) {
+                }
+
+                byte[] normalizedMask = StabilityPromptBuilder.normalizeMaskToBinary(maskBytes, targetW, targetH);
+                String promptText = StabilityPromptBuilder.buildInpaintPrompt(job.prompt());
+                String negativePrompt = StabilityPromptBuilder.getPreservationNegativePrompt();
+
+                multipart.addFilePart("image", imageFilename, imageMime, inputImageBytes);
+                multipart.addFilePart("mask", "mask.png", "image/png", normalizedMask);
+                multipart.addFormField("prompt", promptText);
+                multipart.addFormField("negative_prompt", negativePrompt);
+                multipart.addFormField("output_format", "png");
+                multipart.addFormField("grow_mask", String.valueOf(properties.getGrowMask()));
+            } else {
+                operation = "STABILITY_SEARCH_RECOLOR";
+                targetUrl = baseEndpoint.contains("/search-and-recolor") ? baseEndpoint : baseEndpoint + "/v2beta/stable-image/edit/search-and-recolor";
+
+                String selectPrompt = StabilityPromptBuilder.extractSelectPrompt(job.prompt());
+                String targetFinish = StabilityPromptBuilder.extractTargetFinish(job.prompt());
+                String promptText = StabilityPromptBuilder.buildQuickRecolorPrompt(selectPrompt, targetFinish);
+                String negativePrompt = StabilityPromptBuilder.getPreservationNegativePrompt();
+
+                multipart.addFilePart("image", imageFilename, imageMime, inputImageBytes);
+                multipart.addFormField("prompt", promptText);
+                multipart.addFormField("select_prompt", selectPrompt);
+                multipart.addFormField("negative_prompt", negativePrompt);
+                multipart.addFormField("output_format", "png");
+                multipart.addFormField("grow_mask", String.valueOf(properties.getGrowMask()));
+            }
+
+            requestBodyBytes = multipart.build();
+        } catch (Exception e) {
+            log.error("Failed to construct Stability AI multipart request for job {}: {}", job.id(), e.getMessage());
+            return ProviderGenerationResponse.failure("AI_INVALID_REQUEST", "Failed to build multipart payload: " + e.getMessage());
+        }
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(targetUrl))
+                    .timeout(Duration.ofSeconds(properties.getTimeoutSeconds()))
+                    .header("Authorization", "Bearer " + properties.getApiKey())
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .header("Accept", "image/*")
+                    .header("User-Agent", "Elegance-Platform-AI/1.0")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(requestBodyBytes))
+                    .build();
+
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            int statusCode = response.statusCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+                String ct = response.headers().firstValue("Content-Type").orElse("image/png");
+                long costMinor = properties.getEstimatedCostPerGenerationMinor();
+                String currency = properties.getPricingCurrency();
+                String seed = response.headers().firstValue("seed").orElse("0");
+                String finishReason = response.headers().firstValue("finish-reason").orElse("SUCCESS");
+
+                byte[] body = response.body();
+                if (ct.startsWith("image/")) {
+                    if (!isValidImageBytes(body)) {
+                        return ProviderGenerationResponse.failure("MALFORMED_PROVIDER_OUTPUT", "Provider returned invalid or malformed image data.");
+                    }
+                    String usageMeta = "{\"provider\":\"stability\",\"operation\":\"" + operation + "\",\"model\":\"" + escapeJson(configuredModel) + "\",\"credits\":5,\"seed\":\"" + escapeJson(seed) + "\",\"finish_reason\":\"" + escapeJson(finishReason) + "\"}";
+                    return ProviderGenerationResponse.immediateSuccess(body, ct, usageMeta, costMinor, currency, CostSource.CALCULATED);
+                }
+
+                if (ct.contains("application/json") || ct.contains("text/json")) {
+                    return parseJsonResponse(body, configuredModel, costMinor, currency, job.id().toString());
+                }
+
+                return ProviderGenerationResponse.asyncStarted("job-" + job.id(), "{\"provider\":\"stability\",\"model\":\"" + escapeJson(configuredModel) + "\"}");
+
+            } else if (statusCode == 401 || statusCode == 403) {
+                String bodyStr = (response.body() != null && response.body().length > 0)
+                        ? new String(response.body(), StandardCharsets.UTF_8).toLowerCase()
+                        : "";
+                if (bodyStr.contains("safety") || bodyStr.contains("moderation") || bodyStr.contains("nsfw") || bodyStr.contains("content_filtered")) {
+                    log.warn("Stability AI safety moderation triggered for job {}", job.id());
+                    return ProviderGenerationResponse.failure("AI_SAFETY_REJECTED", "AI generation request rejected by provider safety filters.");
+                }
+                log.error("Stability AI authentication rejected for job {} (status {})", job.id(), statusCode);
+                return ProviderGenerationResponse.failure("AI_AUTH_FAILED", "AI provider authentication failed. Check credentials.");
+            } else if (statusCode == 413) {
+                log.warn("Stability AI payload too large for job {} (status 413)", job.id());
+                return ProviderGenerationResponse.failure("AI_PAYLOAD_TOO_LARGE", "Source image exceeds provider size or resolution limits.");
+            } else if (statusCode == 422) {
+                log.warn("Stability AI unprocessable entity for job {} (status 422)", job.id());
+                return ProviderGenerationResponse.failure("AI_UNPROCESSABLE_ENTITY", "AI generation request could not be processed.");
+            } else if (statusCode == 429) {
+                log.warn("Stability AI rate limit reached for job {} (status 429)", job.id());
+                return ProviderGenerationResponse.failure("PROVIDER_QUOTA_REACHED", "AI generation provider quota reached. Please try again later.");
+            } else if (statusCode >= 500) {
+                log.warn("Stability AI server error for job {} (status {})", job.id(), statusCode);
+                return ProviderGenerationResponse.failure("PROVIDER_UNAVAILABLE", "AI generation provider temporarily unavailable (status " + statusCode + ").");
+            } else if (statusCode == 400) {
+                String bodyStr = (response.body() != null && response.body().length > 0)
+                        ? new String(response.body(), StandardCharsets.UTF_8).toLowerCase()
+                        : "";
+                if (bodyStr.contains("safety") || bodyStr.contains("moderation") || bodyStr.contains("nsfw")) {
+                    return ProviderGenerationResponse.failure("AI_SAFETY_REJECTED", "AI generation request rejected by provider safety filters.");
+                }
+                log.warn("Stability AI bad request for job {}: {}", job.id(), bodyStr);
+                return ProviderGenerationResponse.failure("AI_INVALID_REQUEST", "AI generation request rejected by provider (status 400).");
+            } else {
+                return ProviderGenerationResponse.failure("GENERATION_REJECTED", "AI generation request rejected by provider (status " + statusCode + ").");
+            }
+
+        } catch (HttpTimeoutException e) {
+            log.warn("Stability AI generation request timed out for job {}", job.id());
+            return ProviderGenerationResponse.failure("PROVIDER_TIMEOUT", "AI generation provider timed out. Retrying may succeed.");
+        } catch (Exception e) {
+            log.error("Stability AI call failed for job {}: {}", job.id(), e.getMessage());
+            return ProviderGenerationResponse.failure("PROVIDER_ERROR", "AI generation provider network error.");
+        }
+    }
+
+    public static class MultipartBody {
+        private final String boundary;
+        private final ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        public MultipartBody() {
+            this.boundary = "----EleganceBoundary" + UUID.randomUUID().toString().replace("-", "");
+        }
+
+        public String getBoundary() {
+            return boundary;
+        }
+
+        public MultipartBody addFormField(String name, String value) throws IOException {
+            output.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            output.write(("Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            output.write((value + "\r\n").getBytes(StandardCharsets.UTF_8));
+            return this;
+        }
+
+        public MultipartBody addFilePart(String name, String filename, String contentType, byte[] data) throws IOException {
+            output.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            output.write(("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"" + filename + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+            output.write(("Content-Type: " + contentType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            output.write(data);
+            output.write("\r\n".getBytes(StandardCharsets.UTF_8));
+            return this;
+        }
+
+        public byte[] build() throws IOException {
+            ByteArrayOutputStream finalOut = new ByteArrayOutputStream();
+            finalOut.write(output.toByteArray());
+            finalOut.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+            return finalOut.toByteArray();
+        }
     }
 }
