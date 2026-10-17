@@ -14,5 +14,10 @@
   "overrides": {
     "sharp": "0.35.5",
     "source-map-js": "1.2.2"
+  },
+  "dependencies": {
+    "@jridgewell/sourcemap-codec": "1.5.0",
+    "@rolldown/binding-win32-x64-msvc": "^1.2.9",
+    "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

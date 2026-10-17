@@ -3,23 +3,47 @@
   "product": "Elégance",
   "application": "Interior Designer Platform",
   "releaseCandidate": "1.0.0-rc.1",
-  "gitCommitSha": "c3dee65900870ade939a6e9a2bf450ecbaff82b7",
+  "gitCommitSha": "0b66b13a2d03e14d3dcb93938d4533808da9e5f4",
   "gitBranch": "main",
-  "releaseTimestamp": "2026-10-17T03:55:00Z",
+  "releaseTimestamp": "2026-10-17T13:00:00Z",
   "flywaySchemaVersion": "040",
   "status": "APPLICATION RELEASE CANDIDATE VERIFIED",
   "deploymentStatus": "DEPLOYMENT NOT PERFORMED",
   "legalStatus": "LEGAL REVIEW REQUIRED BEFORE PUBLIC PRODUCTION",
   "brandStatus": "DEFERRED",
   "domainStatus": "DEFERRED",
+  "baseImages": {
+    "backendBuild": {
+      "image": "maven:3.9.9-eclipse-temurin-21-jammy",
+      "digest": "sha256:7f8422bd81f19b9035007a75e2f82272b09af64db08848d7d4e93302466e8b6f"
+    },
+    "backendRuntime": {
+      "image": "eclipse-temurin:21-jre-jammy",
+      "digest": "sha256:8d584faeef02c22f6b58ad8a3cee8e1e53ae52bdf2224f4afb989cc35983b8ae"
+    },
+    "frontendRuntime": {
+      "image": "node:20-alpine",
+      "digest": "sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293"
+    },
+    "databaseLocal": {
+      "image": "postgres:18-alpine",
+      "version": "18.6"
+    }
+  },
+  "databaseCompatibility": {
+    "minimumVersion": "PostgreSQL 18+",
+    "nativeFeaturesRequired": ["pg_catalog.uuidv7()"],
+    "validatedBaselines": ["PostgreSQL 18.3 (Windows native)", "PostgreSQL 18.6 (postgres:18-alpine container)"],
+    "earlierVersionsCompatibilityNote": "PostgreSQL 17 or lower requires explicit uuidv7() extension or polyfill function prior to running Flyway migrations V001..V040."
+  },
   "artifacts": {
     "backend": {
       "name": "platform-api",
       "version": "0.1.0-SNAPSHOT",
       "jarPath": "apps/api/target/platform-api-0.1.0-SNAPSHOT.jar",
       "sha256": "eb89825fe77af42ad33241f4446dc528b6939c5ea3b6e6c0b51a4481bd70b698",
-      "imageTag": "interior-platform-api:c3dee65",
-      "runtime": "eclipse-temurin:21-jre-jammy",
+      "imageTag": "interior-platform-api:0b66b13",
+      "runtime": "eclipse-temurin:21-jre-jammy@sha256:8d584faeef02c22f6b58ad8a3cee8e1e53ae52bdf2224f4afb989cc35983b8ae",
       "runAsUser": "spring (UID unprivileged)"
     },
     "frontend": {
@@ -27,10 +51,42 @@
       "version": "0.1.0",
       "framework": "next@16.3.8",
       "outputPath": "apps/web/.next/standalone",
-      "imageTag": "interior-platform-web:c3dee65",
-      "runtime": "node:20-alpine",
+      "compositeSha256": "0a73866fe01289a66f36603056061cb19fa28797402f7a223bc9782c024c8b72",
+      "checksumsFile": "deploy/frontend-standalone.checksums.txt",
+      "fileCount": 2026,
+      "imageTag": "interior-platform-web:0b66b13",
+      "runtime": "node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293",
       "runAsUser": "nextjs (UID 1001)"
     }
+  },
+  "sboms": {
+    "backendDependencies": {
+      "format": "CycloneDX 1.6 JSON",
+      "path": "deploy/sbom-backend-deps.cdx.json",
+      "sha256": "a7c04e26a12c8285fe3951c50c710da25b1209bcf3e42760ee81984a2cebfcc7"
+    },
+    "frontendDependencies": {
+      "format": "CycloneDX 1.6 JSON",
+      "path": "deploy/sbom-frontend-deps.cdx.json",
+      "sha256": "b44bcb26aa25ac902f885bc81a42df13a6a5c05470236548b968b0d6e5070878"
+    },
+    "backendContainer": {
+      "format": "CycloneDX 1.6 JSON (Syft)",
+      "path": "deploy/sbom-backend-container.cdx.json",
+      "sha256": "4f7d29b03fc1e5c5e0fc788140e6604e88da39bf749ee27feab24db2d3d66592"
+    },
+    "frontendContainer": {
+      "format": "CycloneDX 1.6 JSON (Syft)",
+      "path": "deploy/sbom-frontend-container.cdx.json",
+      "sha256": "5da8adc07f99fc58b1b8736b2a4f168dac3a9b1c283937c8e5c759ca8cd7985c"
+    }
+  },
+  "checksumManifest": {
+    "path": "deploy/release.checksums.txt"
+  },
+  "serviceLevelObjectives": {
+    "rpo": "INITIAL ENGINEERING TARGET <= 1 hour (DECISION REQUIRED: not approved production SLA)",
+    "rto": "INITIAL ENGINEERING TARGET <= 30-120 minutes (DECISION REQUIRED: not approved production SLA)"
   },
   "providerActivationStates": {
     "database": "CODE_READY_LOCAL_VERIFIED (Phase 15 Managed DB Activation Pending)",

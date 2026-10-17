@@ -2,7 +2,7 @@
 
 > **Status:** APPROVED FOR PRODUCTION RELEASE CANDIDATE  
 > **Platform:** Elégance Interior Designer Platform  
-> **Database:** PostgreSQL 16+  
+> **Database:** PostgreSQL 18+ (Native `uuidv7()` support required)  
 > **Storage Target:** Encrypted Object Storage / S3 / R2  
 
 ---
@@ -11,9 +11,12 @@
 
 A robust backup and disaster recovery process is critical for preserving multi-tenant interior designer portfolio projects, floor plans, client communications, contracts, and billing records.
 
-### Service Level Objectives
-- **Recovery Point Objective (RPO):** <= 1 hour (Continuous WAL archiving or hourly snapshots; daily full backup).
-- **Recovery Time Objective (RTO):** <= 30 minutes for complete database recovery from snapshot.
+### Service Level Objectives (Engineering Target — Decision Required)
+> [!NOTE]
+> The following RPO and RTO figures are **initial engineering design targets** pending platform owner business sign-off during Phase 15/16 cloud provider setup. They are NOT approved contractual SLAs.
+
+- **Target Recovery Point Objective (RPO):** <= 1 hour (Continuous WAL archiving or hourly snapshots; daily full backup) — *INITIAL ENGINEERING TARGET (DECISION REQUIRED)*.
+- **Target Recovery Time Objective (RTO):** <= 30 minutes for complete database recovery from snapshot — *INITIAL ENGINEERING TARGET (DECISION REQUIRED)*.
 
 ---
 

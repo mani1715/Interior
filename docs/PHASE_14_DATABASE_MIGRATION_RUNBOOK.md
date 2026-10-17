@@ -3,7 +3,7 @@
 > **Status:** APPROVED FOR PRODUCTION RELEASE CANDIDATE  
 > **Platform:** Elégance Interior Designer Platform  
 > **Flyway Version:** V040  
-> **Engine:** PostgreSQL 16+ with Row-Level Security (RLS)  
+> **Engine:** PostgreSQL 18+ (Native `uuidv7()` in `pg_catalog` required)  
 
 ---
 
@@ -12,6 +12,7 @@
 The platform uses **Flyway** for strictly ordered, version-controlled, immutable database schema migrations.
 
 ### Core Policies
+- **Database Engine Compatibility:** All Flyway migrations (V001..V040) utilize `DEFAULT uuidv7()` for time-ordered primary keys. Native `uuidv7()` is supported out-of-the-box in PostgreSQL 18+ (`pg_catalog.uuidv7()`). Target production deployments must use PostgreSQL 18.x (e.g. `postgres:18-alpine` or managed PostgreSQL 18). If deploying on PostgreSQL 17 or lower, an explicit `uuidv7` polyfill extension/function is mandatory prior to running migrations.
 - **Forward-Only Migrations:** Migrations are never edited once committed or applied. Bug fixes or schema changes are applied via new versions (`V041__...sql`).
 - **Idempotency & Transactions:** All DDL scripts are wrapped in database transactions where supported by PostgreSQL.
 - **Tenant Isolation Safeguards:** Every table containing multi-tenant data must have Row-Level Security (RLS) enabled and verified. Migration scripts must preserve the `current_setting('app.current_user_id', true)` and `current_setting('app.current_studio_id', true)` policy conventions.

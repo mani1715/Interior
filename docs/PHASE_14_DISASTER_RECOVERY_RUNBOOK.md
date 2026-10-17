@@ -3,18 +3,21 @@
 > **Status:** APPROVED FOR PRODUCTION RELEASE CANDIDATE  
 > **Platform:** Elégance Interior Designer Platform  
 > **Target Scenarios:** Total Cloud Outage, Database Corruption, Ransomware / Malicious Destruction  
-> **RPO Target:** <= 1 hour  
-> **RTO Target:** <= 2 hours  
+> **RPO Engineering Target:** <= 1 hour (INITIAL ENGINEERING TARGET — DECISION REQUIRED)  
+> **RTO Engineering Target:** <= 2 hours (INITIAL ENGINEERING TARGET — DECISION REQUIRED)  
+
+> [!NOTE]
+> Recovery Point Objective (RPO) and Recovery Time Objective (RTO) targets represent **preliminary technical baseline estimates**. Formal SLAs must be reviewed and approved by the platform owner during Phase 15/16 cloud provider procurement.
 
 ---
 
 ## 1. Disaster Classification & Triage
 
-| Tier | Severity Level | Example Scenario | Target RTO | Incident Commander |
+| Tier | Severity Level | Example Scenario | Target Recovery Window (Engineering Target) | Incident Commander |
 |---|---|---|---|---|
-| **Tier 1** | Catastrophic | Cloud region outage, total primary database loss | <= 2 Hours | Lead Platform Engineer |
-| **Tier 2** | Critical | Storage bucket data loss, corrupted schema migration | <= 1 Hour | Lead Backend Engineer |
-| **Tier 3** | Major | Single container crash-loop, partial service degradation | <= 15 Min | On-Call SRE |
+| **Tier 1** | Catastrophic | Cloud region outage, total primary database loss | <= 2 Hours (Target) | Lead Platform Engineer |
+| **Tier 2** | Critical | Storage bucket data loss, corrupted schema migration | <= 1 Hour (Target) | Lead Backend Engineer |
+| **Tier 3** | Major | Single container crash-loop, partial service degradation | <= 15 Min (Target) | On-Call SRE |
 
 ---
 
@@ -27,7 +30,7 @@ If the primary PostgreSQL database instance becomes unreachable or corrupted:
 2. **Promote Standby / Secondary Replica (if configured):**
    - For managed databases (RDS, Supabase, Neon): Trigger automated or 1-click replica promotion in the management console.
 3. **If Restoring from Off-site Backup:**
-   - Provision a fresh PostgreSQL 16+ instance in an operational zone/provider.
+   - Provision a fresh PostgreSQL 18+ instance in an operational zone/provider (native `uuidv7()` required).
    - Run the restore command using the latest encrypted backup (see `docs/PHASE_14_BACKUP_RESTORE_RUNBOOK.md`):
      ```bash
      pg_restore -h new-db-host -U postgres -d interior_platform_prod --clean --if-exists backup_latest.dump

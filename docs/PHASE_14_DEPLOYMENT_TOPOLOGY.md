@@ -55,7 +55,7 @@ The Elégance Interior Designer Platform is architected for provider neutrality.
 - **Session Model:** Spring Session JDBC backed by PostgreSQL `SPRING_SESSION` tables. Advisory locks prevent singleton job race conditions across multiple nodes.
 
 ### 2.3. Relational Database (`db`)
-- **Engine:** PostgreSQL (minimum 15, target production 16, 17, or 18).
+- **Engine:** PostgreSQL 18+ (Local baseline: 18.3, Container baseline: 18.6 `postgres:18-alpine`; native `uuidv7()` required for V001..V040 primary keys).
 - **Connection Model:** HikariCP connection pool per replica.
 - **Security:** 59 tenant tables protected with `FORCE ROW LEVEL SECURITY`.
 - **Network Boundary:** Private subnet / VPC only; public access strictly disabled.

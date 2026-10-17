@@ -1,0 +1,6 @@
+eb89825fe77af42ad33241f4446dc528b6939c5ea3b6e6c0b51a4481bd70b698  apps/api/target/platform-api-0.1.0-SNAPSHOT.jar
+0a73866fe01289a66f36603056061cb19fa28797402f7a223bc9782c024c8b72  deploy/frontend-standalone.checksums.txt
+a7c04e26a12c8285fe3951c50c710da25b1209bcf3e42760ee81984a2cebfcc7  deploy/sbom-backend-deps.cdx.json
+b44bcb26aa25ac902f885bc81a42df13a6a5c05470236548b968b0d6e5070878  deploy/sbom-frontend-deps.cdx.json
+4f7d29b03fc1e5c5e0fc788140e6604e88da39bf749ee27feab24db2d3d66592  deploy/sbom-backend-container.cdx.json
+5da8adc07f99fc58b1b8736b2a4f168dac3a9b1c283937c8e5c759ca8cd7985c  deploy/sbom-frontend-container.cdx.json

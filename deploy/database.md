@@ -3,8 +3,9 @@
 ## 1. Engine & Version Compatibility
 
 - **Engine:** PostgreSQL Relational Database Management System.
-- **Minimum Supported Version:** PostgreSQL 15+.
-- **Validated Release Baseline:** PostgreSQL 16, 17, and 18.3.
+- **Minimum Supported Version:** PostgreSQL 18+ (native `uuidv7()` in `pg_catalog` required for all primary keys in V001..V040).
+- **Validated Release Baseline:** PostgreSQL 18.3 (local Windows baseline) and PostgreSQL 18.6 (`postgres:18-alpine` Docker Compose baseline).
+- **Earlier Versions (PG 15–17):** Require manual pre-installation of an explicit `uuidv7` polyfill extension/function before executing Flyway migrations.
 - **Connection Protocol:** JDBC with mandatory TLS encryption in production (`sslmode=verify-full` or `sslmode=require`).
 - **AWS RDS Global Bundle:** The backend container includes the AWS RDS Global CA Truststore (`aws-rds-global-bundle.crt`) for strict certificate verification.
 

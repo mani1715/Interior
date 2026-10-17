@@ -61,7 +61,7 @@ The Elégance platform is structured around a decoupled, provider-neutral micro-
 - **Statelessness & Replicas:** Stateless horizontal scaling supported (>1 replica). Database-backed session store and PostgreSQL advisory locks eliminate sticky-session requirements.
 
 ### 2.4. Primary Database (`db`)
-- **Technology:** PostgreSQL (minimum 15, target production 16/17/18).
+- **Technology:** PostgreSQL 18+ (Local: 18.3, Compose: 18.6 `postgres:18-alpine`; native `uuidv7()` required for V001..V040 primary keys).
 - **Security:** Strict Row-Level Security (RLS) forced across 59 tenant tables with `tenant_context.current_studio_id`.
 - **Connection Model:** HikariCP connection pool managed per backend replica.
 

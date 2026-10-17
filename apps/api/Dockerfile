@@ -1,6 +1,6 @@
 # Multi-stage production Dockerfile for Interior Design Platform API
 # Stage 1: Build
-FROM maven:3.9.9-eclipse-temurin-21-jammy AS build
+FROM maven:3.9.9-eclipse-temurin-21-jammy@sha256:7f8422bd81f19b9035007a75e2f82272b09af64db08848d7d4e93302466e8b6f AS build
 WORKDIR /app
 
 # Cache dependencies
@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: Production Runtime
-FROM eclipse-temurin:21-jre-jammy AS runtime
+FROM eclipse-temurin:21-jre-jammy@sha256:8d584faeef02c22f6b58ad8a3cee8e1e53ae52bdf2224f4afb989cc35983b8ae AS runtime
 WORKDIR /app
 
 # Install curl for healthcheck and add AWS RDS Global CA Bundle for sslmode=verify-full
