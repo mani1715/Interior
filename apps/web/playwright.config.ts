@@ -12,7 +12,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3099',
     trace: 'off',
     screenshot: 'only-on-failure',
   },
@@ -28,9 +28,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    command: 'npx next start -p 3099',
+    url: 'http://localhost:3099',
+    reuseExistingServer: false,
     timeout: 60000,
   },
 });

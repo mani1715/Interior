@@ -5,9 +5,11 @@
 The Elégance Interior Designer Platform is scheduled for commercial release approximately 3 months following completion of core engineering and production readiness hardening.
 
 Per project policy:
-- **Zero Real External Credentials** are provisioned during Phases 12A–14.
+- Zero Real External Credentials are provisioned during pre-launch certification phases.
 - All implementations, SPI adapters, contract tests, and validation harnesses are implemented and locally verified now.
-- Live external provider validation is formally consolidated and executed during **Phase 15 (Real Provider Activation)**.
+- Managed PostgreSQL 18 on Neon is ACTIVE and LIVE VERIFIED (Phase 15A).
+- All remaining live external provider activations are formally consolidated and deferred to the unified final activation sequence defined in `docs/FINAL_PROVIDER_ACTIVATION_SEQUENCE.md`.
+- See `docs/FINAL_PROVIDER_DEFERRED_VALIDATION_REGISTER.md` for individual pillar readiness registers.
 - Final commercial branding and custom domains are decided in **Phase 16**.
 
 ---
