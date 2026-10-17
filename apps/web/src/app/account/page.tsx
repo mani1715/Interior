@@ -1010,7 +1010,7 @@ export default function AccountPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Link
-                        href={`/designers/${inq.studioSlug}`}
+                        href={`/professionals/${inq.studioSlug}`}
                         className="font-serif text-sm font-bold text-charcoal-900 hover:text-bronze-700"
                       >
                         {inq.studioName}

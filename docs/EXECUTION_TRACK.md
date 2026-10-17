@@ -259,10 +259,20 @@ High-level delivered milestones across Phases 00–29 and hardening rounds:
     6. Documentation: Authored comprehensive [PHASE_12H_TAIL_LATENCY_ANALYSIS.md](file:///c:/my%20projects/interior%20design/docs/PHASE_12H_TAIL_LATENCY_ANALYSIS.md).
   - Comprehensive Verification & Quality Gates: 14/14 `ConcurrencyAndResilienceTest` PASS, 751/751 full API test suite PASS, 47/47 PostgreSQL 18.3 RLS tests PASS across 14 test classes, 373/373 frontend Vitest tests PASS across 52 suites, 0 TypeScript errors, 0 ESLint warnings/errors, clean 29-route Next.js production build. Automated verification harness `scripts/verify-performance-readiness.ps1` verified clean (6/6 checks PASS, Exit 0).
   - Capacity Declaration: LOCAL PERFORMANCE VALIDATED under 100 concurrent synthetic users local-stress target. Real cloud infrastructure capacity, multi-region CDN, and contractual SLAs deferred to Phase 15.
+- **Phase 13: Whole-Product End-to-End Certification & Release-Candidate Validation (Antigravity)**
+  - Whole-Product Certification: Complete end-to-end certification across all 8 defined platform personas: PUBLIC VISITOR, CUSTOMER, DESIGNER without studio, DESIGNER_ADMIN, DESIGNER_MEMBER, MODERATOR, ADMIN, SUPER_ADMIN.
+  - Route & REST Inventory: 50 frontend Next.js routes verified (0 dead routes), 235 backend REST endpoints verified across 37 controllers.
+  - Dead Link & Placeholder Audit: 145 links audited; fixed DEF-13-001 (dead link to /professionals in account page) and DEF-13-002 (stale navigation paths in desktop and mobile sidebars); verified 0 broken links, 0 unverified claims, 0 stale placeholders.
+  - PostgreSQL Bootstrap & Restore Drill: Verified fresh DB boot with Flyway V001..V040 from zero with 59 tables forced RLS; executed destructive backup, drop, and restore drill with zero checksum degradation.
+  - Automated Playwright Browser E2E Suite: 16 browser test specs executed across Chromium (Desktop) and Mobile Viewport (Pixel 5) with a 100% pass rate (16/16 passed in 17.1s).
+  - Multi-Studio Tab Isolation: Certified tab-scoped `sessionStorage` architecture ensuring zero cross-tenant bleeding.
+  - Authored All Phase 13 Documents: `PHASE_13_WHOLE_PRODUCT_CERTIFICATION.md`, `PHASE_13_ROUTE_AND_API_MATRIX.md`, `PHASE_13_ROLE_AND_PERMISSION_MATRIX.md`, `PHASE_13_DEFECT_REGISTER.md`, `PHASE_13_E2E_JOURNEY_MATRIX.md`, `PHASE_13_SECURITY_CERTIFICATION.md`, `PHASE_13_RELEASE_CANDIDATE_CHECKLIST.md`.
+  - Regression Baseline: 751/751 backend tests PASS, 47/47 PostgreSQL RLS tests PASS, 373/373 frontend Vitest tests PASS across 52 suites, 16/16 Playwright tests PASS, 0 TypeScript errors, 0 ESLint warnings/errors, clean Next.js 16.3.8 production build.
+  - Release Candidate Verdict: APPLICATION RELEASE CANDIDATE VERIFIED.
 
 ## Current Next Step:
 
-- READY FOR NEXT TARGET PHASE (PHASE 13 / SUBSEQUENT READINESS MILESTONE).
+- PHASE 14 — PRODUCTION RELEASE PACKAGE & DEPLOYMENT MANIFESTS (NO LIVE DEPLOYMENT).
 
 ---
 

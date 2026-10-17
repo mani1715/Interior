@@ -22,11 +22,11 @@ export interface SidebarItem {
 }
 
 const defaultNavItems: SidebarItem[] = [
-  { label: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
-  { label: 'Projects', href: '/app/projects', icon: FolderKanban, badge: '12' },
-  { label: 'AI Studio', href: '/app/ai-studio', icon: Sparkles },
-  { label: 'Clients & Leads', href: '/app/clients', icon: Users, badge: '3' },
-  { label: 'Settings', href: '/app/settings', icon: Settings },
+  { label: 'Dashboard', href: '/workspace', icon: LayoutDashboard },
+  { label: 'Projects', href: '/workspace/projects', icon: FolderKanban, badge: '12' },
+  { label: 'AI Studio', href: '/workspace/ai', icon: Sparkles },
+  { label: 'Clients & Leads', href: '/workspace/leads', icon: Users, badge: '3' },
+  { label: 'Settings', href: '/workspace/business', icon: Settings },
 ];
 
 export interface DesktopSidebarProps {
@@ -43,7 +43,7 @@ export interface DesktopSidebarProps {
 }
 
 export function DesktopSidebar({
-  currentPath = '/app/dashboard',
+  currentPath = '/workspace',
   items = defaultNavItems,
   user = {
     name: 'Vikram Sharma',
@@ -60,7 +60,7 @@ export function DesktopSidebar({
     >
       <div className="space-y-6">
         {/* Brand Header */}
-        <Link href="/app/dashboard" className="flex items-center gap-2.5 px-2">
+        <Link href="/workspace" className="flex items-center gap-2.5 px-2">
           <div className="w-8 h-8 rounded-lg bg-[var(--brand)] text-[var(--charcoal)] flex items-center justify-center font-serif font-bold text-base shadow-sm">
             E
           </div>
@@ -114,7 +114,7 @@ export function DesktopSidebar({
       {/* Footer Profile & Logout */}
       <div className="space-y-3 pt-4 border-t border-[var(--border)]">
         <Link
-          href="/app/profile"
+          href="/account"
           className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--surface-raised)] transition-colors group"
         >
           <Avatar name={user.name} src={user.avatarUrl} size="sm" />

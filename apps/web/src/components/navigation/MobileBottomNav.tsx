@@ -17,8 +17,8 @@ export function MobileBottomNav({
     { label: 'Home', href: '/', icon: Home },
     { label: 'Projects', href: '/projects', icon: FolderKanban },
     { label: 'Create', href: '#create', icon: Plus, isAction: true },
-    { label: 'AI Studio', href: '/ai-studio', icon: Sparkles },
-    { label: 'More', href: '/more', icon: MoreHorizontal },
+    { label: 'AI Studio', href: '/workspace/ai', icon: Sparkles },
+    { label: 'Help', href: '/help', icon: MoreHorizontal },
   ];
 
   return (

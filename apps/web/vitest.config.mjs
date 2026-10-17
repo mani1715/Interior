@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     maxWorkers: 4,
+    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**'],
   },
   resolve: {
     alias: {
