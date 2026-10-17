@@ -5,39 +5,60 @@ This document certifies the canonical role-based access control (RBAC) matrix, s
 
 ---
 
-## 1. Canonical Roles Source Truth
+## 1. Executable Role Architecture Source Truth
 
 Executable source code establishes two distinct role tiers, enforced by database constraints and backend security services:
 
 ### A. Global Platform Identity Roles (`identity_roles`)
 Enforced in database via `V001__security_identity_tenant_schema.sql` (`identity_roles.code` check constraint) and validated by `AuthorizationService.java`:
-1. `SUPER_ADMIN` — Platform Super Administrator (full emergency control-plane, maintenance mode toggling, administrative overrides).
-2. `ADMIN` — Platform Administrator (user suspension/reactivation, studio document verification, audit log review).
-3. `MODERATOR` — Platform Content Moderator (review moderation queue, public feedback triage).
-4. `DESIGNER` — Interior Designer (authenticated professional identity eligible to establish or lead a studio).
-5. `DESIGNER_TEAM` — Studio Team Member (authenticated professional identity participating in studio work).
-6. `CUSTOMER` — Public Customer / Client (baseline identity for homeowners and clients; project inquiries, moodboard collections).
-7. `PUBLIC` — Unauthenticated Guest / Anonymous visitor (`ActorContext.anonymous()`).
 
-### B. Studio Membership Roles (`studio_members`)
+#### Active Assignable Platform Roles (5 Roles):
+1. `SUPER_ADMIN` — Platform Super Administrator (emergency control plane, platform maintenance mode toggling, system audit oversight).
+2. `ADMIN` — Platform Administrator (user account lifecycle, studio verification review, operational audit monitoring).
+3. `MODERATOR` — Platform Content Moderator (client review moderation queue, public testimonial approval/rejection).
+4. `DESIGNER` — Interior Designer (assigned automatically upon completing professional studio onboarding via `ProfessionalOnboardingService`).
+5. `CUSTOMER` — Public Customer / Client (assigned automatically to all new users upon OIDC registration via `OidcService` under least privilege).
+
+#### Dormant / Legacy Identity Seed (1 Value):
+- `DESIGNER_TEAM` — Legacy platform identity seed from `V001`.
+  - **Status**: Dormant compatibility value in `identity_roles` check constraint.
+  - **Permissions**: Confers no elevated platform privileges.
+  - **Assignment**: Not assigned during normal studio team invitations (`StudioTeamServiceTest:239` explicitly verifies the invariant: *no global role escalation to `DESIGNER_TEAM`*). Team members remain `CUSTOMER` at the platform level and receive studio-scoped access via `studio_members`.
+
+#### Anonymous Runtime Actor Context (Not a Persisted Role):
+- `PUBLIC` — Instantiated strictly at runtime in unauthenticated requests via `ActorContext.anonymous()`.
+  - **Status**: Not in `identity_roles`, never persisted in database, never assigned to any user account.
+
+---
+
+### B. Studio Membership Authorization Roles (`studio_members`)
 Enforced in database via `V027__canonicalize_identity_and_studio_roles.sql` (`studio_members.role` check constraint) and validated by `ActorContext.isStudioOwnerOrAdmin`:
-1. `DESIGNER_ADMIN` — Studio Administrator / Owner (full administrative rights over the studio: settings, billing, team invites, portfolio publishing).
-2. `DESIGNER_MEMBER` — Studio Member (operational access: view/edit projects, rooms, and media; cannot invite team members, alter billing, or publish portfolio).
-- *Legacy Read Aliases*: `OWNER` and `ADMIN` are accepted for read compatibility and map to `DESIGNER_ADMIN`; `MEMBER` maps to `DESIGNER_MEMBER`.
+
+#### Canonical Studio Roles (2 Roles):
+1. `DESIGNER_ADMIN` — Studio Administrator / Owner (full administrative authority over the studio: settings, billing, team invites, and portfolio publishing).
+2. `DESIGNER_MEMBER` — Studio Member (operational access: view/edit studio projects, rooms, and media; cannot invite members, change billing, or publish portfolio).
+
+#### Legacy Studio Read Aliases (Compatibility Only):
+- `OWNER` $\rightarrow$ Evaluated as `DESIGNER_ADMIN` in `ActorContext.isStudioOwnerOrAdmin`.
+- `ADMIN` $\rightarrow$ Evaluated as `DESIGNER_ADMIN` in `ActorContext.isStudioOwnerOrAdmin`.
+- `MEMBER` $\rightarrow$ Evaluated as `DESIGNER_MEMBER` in `ActorContext.isStudioMember`.
+- *Note*: All database writes canonicalize strictly to `DESIGNER_ADMIN` and `DESIGNER_MEMBER`.
+
+---
 
 ### C. Human-Friendly Persona & Job Title Clarification
-The following UI and business terms are human-readable display labels or team profile metadata, **NOT** backend authorization roles:
+The following terms are UI display badges or studio profile job titles/metadata, **NOT** backend authorization roles:
 - **"Studio Owner" / "Studio Admin"** $\rightarrow$ UI display label for studio members with role `DESIGNER_ADMIN`.
 - **"Team Member"** $\rightarrow$ UI display label for studio members with role `DESIGNER_MEMBER`.
 - **"Client" / "Client User"** $\rightarrow$ UI persona label for users with platform role `CUSTOMER`.
-- **"Lead Designer", "Junior Designer", "Procurement Specialist", "Finance Auditor"** $\rightarrow$ Studio team job titles and professional specialties stored in profile metadata, **not** RBAC permissions.
-- **"Guest"** $\rightarrow$ Unauthenticated visitor (`PUBLIC`).
+- **"Lead Designer", "Junior Designer", "Procurement Specialist", "Finance Auditor"** $\rightarrow$ Studio team job titles stored in member profile metadata, **not** RBAC roles.
+- **"Guest"** $\rightarrow$ Anonymous visitor (`PUBLIC` runtime context).
 
 ---
 
 ## 2. Canonical Privilege Matrix
 
-| Resource / Endpoint Scope | PUBLIC | CUSTOMER | DESIGNER (NO STUDIO) | DESIGNER_MEMBER | DESIGNER_ADMIN | MODERATOR | ADMIN | SUPER_ADMIN |
+| Resource / Endpoint Scope | PUBLIC (Anonymous) | CUSTOMER | DESIGNER (No Studio) | DESIGNER_MEMBER | DESIGNER_ADMIN | MODERATOR | ADMIN | SUPER_ADMIN |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Public Showcase & Search** | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
 | **Submit Public Inquiries / Leads** | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
@@ -56,6 +77,8 @@ The following UI and business terms are human-readable display labels or team pr
 | **Suspend / Reactivate User Accounts** | DENY | DENY | DENY | DENY | DENY | DENY (403) | ALLOW | ALLOW |
 | **View Platform Audit Logs** | DENY | DENY | DENY | DENY | DENY | DENY (403) | ALLOW | ALLOW |
 | **Platform Circuit Breakers (Maintenance)**| DENY | DENY | DENY | DENY | DENY | DENY (403) | DENY (403) | ALLOW |
+
+*Matrix Scope Note*: The 8 columns in this matrix represent all evaluated operational states: 1 anonymous visitor context (`PUBLIC`), 1 baseline customer role (`CUSTOMER`), 1 unaffiliated professional role (`DESIGNER`), 2 studio authorization tiers (`DESIGNER_MEMBER`, `DESIGNER_ADMIN`), and 3 governance roles (`MODERATOR`, `ADMIN`, `SUPER_ADMIN`).
 
 ---
 

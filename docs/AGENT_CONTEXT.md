@@ -1019,7 +1019,7 @@ Completed the professional studio team experience and multi-member tenancy acces
 ## FINAL PRE-PROVIDER PRODUCTION COMPLETION — EXHAUSTIVE WHOLE-PRODUCT CERTIFICATION
 - **Status**: COMPLETE & CERTIFIED.
 - **Scope**:
-  - Full application audit of all 51 App Router routes, 70 interactive controls, 26 redirect flows, and 8 canonical authorization boundaries (6 platform roles + 2 studio roles; 100% OIDC auth without password reset).
+  - Full application audit of all 51 App Router routes, 70 interactive controls, 26 redirect flows, and 8 operational authorization boundaries (5 assignable platform roles, 2 studio roles, and anonymous public context; 1 dormant seed DESIGNER_TEAM preserved; 100% OIDC auth without password reset).
   - Zero broken links, zero redirect loops, zero open-redirect vulnerabilities, zero permission bypasses.
   - All frontend-to-backend contracts certified with matching DTOs and endpoints.
   - All deferred cloud providers (R2, Google OIDC, AI, Email, Billing, Observability, Domain) verified in contract/mock/disabled mode with provider-neutral abstractions. No unhandled crashes or missing API routes.

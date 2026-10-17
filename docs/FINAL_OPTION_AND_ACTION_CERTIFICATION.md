@@ -17,10 +17,13 @@ This document certifies the whole-product audit covering every page, link, butto
 | **Dropdowns, Selects & Menus** | 22 controls | 22 controls | Complete | **PASS** (100.0%) |
 | **Modals & Drawers** | 16 components | 16 components | Complete | **PASS** (100.0%) |
 | **Redirect Rules & Handlers** | 26 paths | 26 paths | Complete | **PASS** (100.0%) |
-| **Backend REST Endpoints** | 89 endpoints | 89 endpoints | Complete | **PASS** (100.0%) |
-| **Role Authorization Checks** | 8 boundaries | 8 boundaries | Complete | **PASS** (100.0%) |
+| **Role Authorization Checks** | 8 operational states | 8 operational states | Complete | **PASS** (100.0%) |
 
-*Note on Role Authorization*: The 8 audited authorization boundaries comprise 6 canonical platform roles (`CUSTOMER`, `DESIGNER`, `DESIGNER_TEAM`, `MODERATOR`, `ADMIN`, `SUPER_ADMIN`) plus 2 canonical studio roles (`DESIGNER_ADMIN`, `DESIGNER_MEMBER`), with anonymous `PUBLIC` as the baseline.
+*Note on Role Authorization*: The 8 audited authorization boundaries comprise:
+1. Anonymous visitor context (`PUBLIC` via `ActorContext.anonymous()`, not a database role)
+2. Five active assignable platform roles (`CUSTOMER`, `DESIGNER`, `MODERATOR`, `ADMIN`, `SUPER_ADMIN`)
+3. Two canonical studio membership roles (`DESIGNER_ADMIN`, `DESIGNER_MEMBER`)
+*(One dormant/legacy platform identity value, `DESIGNER_TEAM`, is preserved in `identity_roles` check constraint for schema compatibility but does not escalate permissions).*
 
 ---
 

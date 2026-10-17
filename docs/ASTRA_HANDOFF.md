@@ -952,7 +952,7 @@ This handoff document has been audited. Zero raw API keys, passwords, database c
 ## 50. PRE-PROVIDER PRODUCTION CERTIFICATION & UNIFIED ACTIVATION DIRECTIVE
 
 - **Certification Scope**: Complete application audit executed with zero mock gaps, zero broken links, and zero unhandled errors.
-- **Audited Surface Area**: 51 Next.js App Router routes, 70 interactive controls, 26 redirect flows, 8 canonical authorization boundaries (6 platform roles + 2 studio roles; 100% OIDC auth without password reset), and 235 REST endpoints.
+- **Audited Surface Area**: 51 Next.js App Router routes, 70 interactive controls, 26 redirect flows, 8 operational authorization boundaries (5 assignable platform roles, 2 studio roles, and anonymous public context; 1 dormant seed DESIGNER_TEAM preserved; 100% OIDC auth without password reset), and 235 REST endpoints.
 - **Verification Gates**:
   - Frontend Vitest: 52/52 suites, 373/373 tests PASS.
   - End-to-End Playwright: 16/16 tests PASS (Desktop & Pixel 5 Mobile).

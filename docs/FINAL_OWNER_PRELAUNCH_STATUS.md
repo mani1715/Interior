@@ -32,11 +32,10 @@ To protect your billing accounts and maintain security:
 5. **Backend Business Engine:** 751 automated tests executed with 0 failures and 0 errors.
 6. **Database Integrity:** 40 Flyway database migrations (V001 through V040) run cleanly with multi-tenant row-level security (RLS) active on Neon PostgreSQL 18.6.
 7. **Performance & Concurrency:** Verified under 100 concurrent virtual users with 0 race conditions or data anomalies.
-
 #### B. User Experience, Authentication & Role Verification
 - **Every Page Opens:** All 51 public and workspace web routes load cleanly with luxury aesthetic styling and zero 404 errors.
 - **Every Interactive Control Works:** Over 70 primary interactive controls, modals, and navigation drawers open, close, and execute their intended actions.
-- **Role-Based Access Control (RBAC):** Verified across all 6 platform roles (`SUPER_ADMIN`, `ADMIN`, `MODERATOR`, `DESIGNER`, `DESIGNER_TEAM`, `CUSTOMER`) and 2 studio roles (`DESIGNER_ADMIN`, `DESIGNER_MEMBER`). Studio team members and clients can only access the projects and data permitted by their verified role.
+- **Role-Based Access Control (RBAC):** Verified across all 5 active assignable platform roles (`SUPER_ADMIN`, `ADMIN`, `MODERATOR`, `DESIGNER`, `CUSTOMER`), 2 canonical studio membership roles (`DESIGNER_ADMIN`, `DESIGNER_MEMBER`), and unauthenticated guest visitors (`PUBLIC`). (The legacy `DESIGNER_TEAM` value is maintained dormant in the database for schema compatibility, while modern studio team collaboration uses `DESIGNER_MEMBER` within individual studios).
 - **Authentication Source Truth:** Authentication is exclusively federated OpenID Connect (OIDC) with secure, server-side session cookies. There is no platform password storage or forgotten-password flow by design; identity security and password recovery are handled by the user's federated identity provider.
 - **Mobile Experience:** Mobile navigation drawer, responsive galleries, touch-friendly project cards, and quick consultation request sheets tested and verified on mobile devices.
 - **Graceful States:** Loading skeletons, empty states, and non-fatal error notifications work cleanly without crashing the interface.
