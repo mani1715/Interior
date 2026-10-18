@@ -242,41 +242,49 @@ export default function SeoWorkspacePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {status?.checklist.map((item) => (
-              <div
-                key={item.key}
-                className={`p-3.5 rounded-xl border flex items-start gap-3 transition-colors ${
-                  item.passed
-                    ? 'bg-sand-50/50 border-sand-200'
-                    : 'bg-amber-50/40 border-amber-200'
-                }`}
-              >
-                {item.passed ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-charcoal-900">
-                      {item.label}
-                    </span>
-                    {item.actionUrl && !item.passed && (
-                      <Link
-                        href={item.actionUrl}
-                        className="text-[11px] font-medium text-bronze-700 hover:underline flex items-center gap-0.5"
-                      >
-                        Fix
-                        <ArrowLeft className="w-3 h-3 rotate-180" />
-                      </Link>
+            {status?.checklist.map((item, idx) => {
+              const itemKey = (item as any).code || item.key || (item as any).title || idx;
+              const itemLabel = item.label || (item as any).title || 'Diagnostic Item';
+              const itemMessage = item.message || (item as any).description || '';
+
+              return (
+                <div
+                  key={itemKey}
+                  className={`p-3.5 rounded-xl border flex items-start gap-3 transition-colors ${
+                    item.passed
+                      ? 'bg-sand-50/50 border-sand-200'
+                      : 'bg-amber-50/40 border-amber-200'
+                  }`}
+                >
+                  {item.passed ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-charcoal-900">
+                        {itemLabel}
+                      </span>
+                      {item.actionUrl && !item.passed && (
+                        <Link
+                          href={item.actionUrl}
+                          className="text-[11px] font-medium text-bronze-700 hover:underline flex items-center gap-0.5"
+                        >
+                          Fix
+                          <ArrowLeft className="w-3 h-3 rotate-180" />
+                        </Link>
+                      )}
+                    </div>
+                    {itemMessage && (
+                      <p className="text-[11px] text-charcoal-500 mt-0.5 leading-relaxed">
+                        {itemMessage}
+                      </p>
                     )}
                   </div>
-                  <p className="text-[11px] text-charcoal-500 mt-0.5 leading-relaxed">
-                    {item.message}
-                  </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

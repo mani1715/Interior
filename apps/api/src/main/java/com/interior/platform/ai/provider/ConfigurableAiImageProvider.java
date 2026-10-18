@@ -67,19 +67,27 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
 
     @Override
     public String getProviderKey() {
-        return properties.getProvider() != null && !properties.getProvider().isBlank()
-                ? properties.getProvider().toLowerCase().trim()
-                : "none";
+        String provider = properties.getProvider();
+        if (provider != null && !provider.isBlank() && !"none".equalsIgnoreCase(provider)) {
+            return provider.toLowerCase().trim();
+        }
+        if (isConfigured()) {
+            return "stability";
+        }
+        return "none";
     }
 
     @Override
     public boolean isConfigured() {
-        String provider = properties.getProvider();
-        if (provider == null || provider.isBlank() || "none".equalsIgnoreCase(provider)) {
+        String key = properties.getApiKey();
+        if (key == null || key.isBlank() || key.equalsIgnoreCase("unconfigured") || isPlaceholder(key)) {
             return false;
         }
-        String key = properties.getApiKey();
-        return key != null && !key.isBlank() && !key.equalsIgnoreCase("unconfigured") && !isPlaceholder(key);
+        String provider = properties.getProvider();
+        if (provider == null || provider.isBlank() || "none".equalsIgnoreCase(provider)) {
+            return true;
+        }
+        return !"none".equalsIgnoreCase(provider);
     }
 
     @Override

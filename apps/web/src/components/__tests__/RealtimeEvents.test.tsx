@@ -88,7 +88,7 @@ describe('Realtime SSE Client & Subscription Hooks', () => {
     );
 
     expect(MockEventSource.instances.length).toBe(1);
-    expect(MockEventSource.instances[0].url).toBe('/api/v1/events/stream');
+    expect(MockEventSource.instances[0].url).toContain('/api/v1/events/stream');
 
     await act(async () => {
       await new Promise((r) => setTimeout(r, 20));

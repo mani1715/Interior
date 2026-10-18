@@ -93,18 +93,18 @@ public class PortfolioService {
         this.projectService = projectService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PortfolioDetailResponse getPortfolio(ActorContext actor, UUID requestedStudioId) {
         authorizationService.requireAuthenticated(actor);
         validateActiveUser(actor.userId());
         validateProfessionalRole(actor);
 
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
-        PortfolioRecord portfolio = portfolioRepository.findPortfolioByStudioId(context.studioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Portfolio not configured for this studio"));
-
         StudioDetailRecord studio = studioRepository.findStudioById(context.studioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Studio not found"));
+
+        PortfolioRecord portfolio = portfolioRepository.findPortfolioByStudioId(context.studioId())
+                .orElseGet(() -> createDefaultPortfolioInternal(studio, actor, PortfolioTemplateKey.BASIC));
 
         return buildPortfolioDetailResponse(portfolio, studio);
     }
@@ -121,20 +121,26 @@ public class PortfolioService {
         StudioDetailRecord studio = studioRepository.findStudioById(context.studioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Studio not found"));
 
+        PortfolioTemplateKey templateKey = (request != null && request.templateKey() != null)
+                ? request.templateKey()
+                : PortfolioTemplateKey.BASIC;
+
         Optional<PortfolioRecord> existing = portfolioRepository.findPortfolioByStudioId(context.studioId());
         if (existing.isPresent()) {
             return buildPortfolioDetailResponse(existing.get(), studio);
         }
 
-        PortfolioTemplateKey templateKey = (request != null && request.templateKey() != null)
-                ? request.templateKey()
-                : PortfolioTemplateKey.BASIC;
+        PortfolioRecord newPortfolio = createDefaultPortfolioInternal(studio, actor, templateKey);
+        return buildPortfolioDetailResponse(newPortfolio, studio);
+    }
 
+    private PortfolioRecord createDefaultPortfolioInternal(StudioDetailRecord studio, ActorContext actor, PortfolioTemplateKey templateKey) {
+        PortfolioTemplateKey resolvedKey = templateKey != null ? templateKey : PortfolioTemplateKey.BASIC;
         UUID portfolioId = UuidV7.randomUuid();
         PortfolioRecord newPortfolio = new PortfolioRecord(
                 portfolioId,
                 studio.id(),
-                templateKey,
+                resolvedKey,
                 PortfolioStatus.DRAFT,
                 studio.name() != null ? studio.name() : "Interior Design Studio",
                 studio.tagline() != null ? studio.tagline() : "Professional Interior Design & Spatial Architecture",
@@ -176,9 +182,8 @@ public class PortfolioService {
         );
         portfolioRepository.createSections(defaultSections);
 
-        createSnapshotInternal(newPortfolio, defaultSections, "Initial Portfolio Creation", actor.userId());
-
-        return buildPortfolioDetailResponse(newPortfolio, studio);
+        createSnapshotInternal(newPortfolio, defaultSections, "Initial Portfolio Creation", actor != null ? actor.userId() : null);
+        return newPortfolio;
     }
 
     @Transactional
@@ -485,18 +490,18 @@ public class PortfolioService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PortfolioPreviewResponse getPortfolioPreview(ActorContext actor, UUID requestedStudioId) {
         authorizationService.requireAuthenticated(actor);
         validateActiveUser(actor.userId());
         validateProfessionalRole(actor);
 
         ResolvedStudioContext context = resolveStudioContext(actor, requestedStudioId);
-        PortfolioRecord portfolio = portfolioRepository.findPortfolioByStudioId(context.studioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Portfolio not configured for this studio"));
-
         StudioDetailRecord studio = studioRepository.findStudioById(context.studioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Studio not found"));
+
+        PortfolioRecord portfolio = portfolioRepository.findPortfolioByStudioId(context.studioId())
+                .orElseGet(() -> createDefaultPortfolioInternal(studio, actor, PortfolioTemplateKey.BASIC));
 
         List<PortfolioSectionRecord> sections = portfolioRepository.findSectionsByPortfolioId(portfolio.id());
 

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { env } from '@/lib/env';
 
 export type RealtimeEventType =
   | 'NOTIFICATION_CREATED'
@@ -89,7 +90,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     setConnectionState('connecting');
 
     try {
-      const es = new EventSource('/api/v1/events/stream', { withCredentials: true });
+      const baseUrl = (env.apiBaseUrl || 'http://localhost:8080/api/v1').replace(/\/+$/, '');
+      const streamUrl = `${baseUrl}/events/stream`;
+      const es = new EventSource(streamUrl, { withCredentials: true });
       eventSourceRef.current = es;
 
       es.onopen = () => {
@@ -118,6 +121,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
           eventSourceRef.current = null;
+        }
+
+        // Cap reconnect attempts to prevent infinite 404/500 console loops
+        if (reconnectAttemptsRef.current >= 5) {
+          console.warn('Realtime event stream connection paused after 5 attempts. Reconnection will resume on next user navigation.');
+          return;
         }
 
         // Exponential backoff reconnect: 2s, 4s, 8s, up to 30s

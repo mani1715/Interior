@@ -58,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await apiFetch<AuthResponse>('/auth/me');
       if (data && data.authenticated && data.id) {
+        const userStudios = data.studios || [];
+        const validStudioId = data.activeStudioId || (userStudios.length > 0 ? userStudios[0].studioId : null);
         setUser({
           id: data.id,
           displayName: data.displayName || 'User',
@@ -65,19 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status: data.status || 'ACTIVE',
           roles: data.roles || ['CUSTOMER'],
           permissions: data.permissions || [],
-          activeStudioId: data.activeStudioId || null,
-          activeStudioRole: data.activeStudioRole || null,
-          studios: data.studios || [],
+          activeStudioId: validStudioId,
+          activeStudioRole: data.activeStudioRole || (userStudios.length > 0 ? userStudios[0].role : null),
+          studios: userStudios,
           assurance: data.assurance || 'PASSWORD',
         });
-        if (data.activeStudioId) {
-          setStoredActiveStudioId(data.activeStudioId);
+        if (validStudioId) {
+          setStoredActiveStudioId(validStudioId);
+          setActiveStudioIdHeader(validStudioId);
+        } else {
+          setStoredActiveStudioId(null);
+          setActiveStudioIdHeader(null);
         }
       } else {
         setUser(null);
+        setStoredActiveStudioId(null);
+        setActiveStudioIdHeader(null);
       }
     } catch {
       setUser(null);
+      setStoredActiveStudioId(null);
+      setActiveStudioIdHeader(null);
     } finally {
       setIsLoading(false);
     }
@@ -157,6 +167,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore network failures on logout
     } finally {
       resetCsrfToken();
+      setStoredActiveStudioId(null);
+      setActiveStudioIdHeader(null);
       setUser(null);
       setIsLoading(false);
     }
@@ -170,6 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore network failures
     } finally {
       resetCsrfToken();
+      setStoredActiveStudioId(null);
+      setActiveStudioIdHeader(null);
       setUser(null);
       setIsLoading(false);
     }

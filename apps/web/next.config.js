@@ -93,11 +93,12 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    if (process.env.INTERNAL_API_URL) {
+    const internalApiUrl = process.env.INTERNAL_API_URL || (process.env.NODE_ENV !== 'production' ? 'http://localhost:8080/api/v1' : null);
+    if (internalApiUrl) {
       return [
         {
           source: '/api/v1/:path*',
-          destination: `${process.env.INTERNAL_API_URL}/:path*`,
+          destination: `${internalApiUrl}/:path*`,
         },
       ];
     }

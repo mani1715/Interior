@@ -57,12 +57,17 @@ public class SecurityInterceptor implements HandlerInterceptor {
                 var activeMembership = memberships.isEmpty() ? null : memberships.get(0);
                 boolean isAdminPath = request.getRequestURI() != null &&
                         (request.getRequestURI().startsWith("/admin") || request.getRequestURI().startsWith("/api/v1/admin"));
+                boolean isAccountOrAuthPath = request.getRequestURI() != null &&
+                        (request.getRequestURI().contains("/auth") || request.getRequestURI().contains("/account") || request.getRequestURI().contains("/events"));
                 if (requestedStudioId != null && !isAdminPath) {
                     var matched = memberships.stream()
                             .filter(m -> m.studioId().equals(requestedStudioId))
                             .findFirst();
                     if (matched.isPresent()) {
                         activeMembership = matched.get();
+                    } else if (isAccountOrAuthPath) {
+                        // Stale studio header on auth/account/events check - fallback gracefully rather than blocking user session recovery
+                        activeMembership = memberships.isEmpty() ? null : memberships.get(0);
                     } else {
                         // User is not an active member of requested studio -> reject immediately
                         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied: you are not a member of the requested studio");

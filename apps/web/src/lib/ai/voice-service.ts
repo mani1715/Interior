@@ -35,6 +35,8 @@ declare global {
 export class WebSpeechTranscriptionService implements IVoiceTranscriptionService {
   private recognition: any | null = null;
   private isListening = false;
+  private userWantsListening = false;
+  private accumulatedFinalText = '';
   private options: VoiceTranscriptionOptions | null = null;
 
   isSupported(): boolean {
@@ -70,13 +72,16 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
     }
 
     this.options = options;
+    this.userWantsListening = true;
+    this.accumulatedFinalText = '';
+
     const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     try {
       this.recognition = new SpeechRecognitionClass();
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
-      this.recognition.lang = options.lang || 'en-IN'; // Default to Indian English / English
+      this.recognition.lang = options.lang || 'en-IN'; // Default to Indian English / English (supports te-IN for Telugu)
 
       this.recognition.onstart = () => {
         this.isListening = true;
@@ -85,21 +90,24 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
 
       this.recognition.onresult = (event: any) => {
         let interimTranscript = '';
-        let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           const result = event.results[i];
           const text = result[0]?.transcript || '';
           if (result.isFinal) {
-            finalTranscript += text;
+            this.accumulatedFinalText += (this.accumulatedFinalText ? ' ' : '') + text.trim();
           } else {
             interimTranscript += text;
           }
         }
 
-        const currentText = finalTranscript || interimTranscript;
-        if (currentText.trim()) {
-          this.options?.onTranscriptChange(currentText.trim(), !!finalTranscript);
+        const combined = [this.accumulatedFinalText, interimTranscript.trim()]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+
+        if (combined) {
+          this.options?.onTranscriptChange(combined, !interimTranscript.trim());
         }
       };
 
@@ -112,33 +120,49 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
           case 'service-not-allowed':
             code = 'permission-denied';
             message = 'Microphone permission was denied. Please allow microphone access in your browser settings to use voice input.';
+            this.userWantsListening = false;
             break;
           case 'no-speech':
+            // Natural silence pause - auto-restart will handle if user still wants listening
             code = 'no-speech';
-            message = 'No speech was detected. Please tap the microphone and speak again.';
+            message = 'No speech detected.';
             break;
           case 'audio-capture':
             code = 'device-unavailable';
             message = 'No microphone device was detected on your device.';
+            this.userWantsListening = false;
             break;
           case 'network':
             code = 'network';
             message = 'Speech recognition network service error. Check your connection or type your prompt.';
+            this.userWantsListening = false;
             break;
           case 'aborted':
             code = 'aborted';
             message = 'Speech recording was cancelled.';
+            this.userWantsListening = false;
             break;
           default:
             message = `Speech recognition error: ${event.error || 'unknown'}`;
         }
 
-        this.isListening = false;
-        this.options?.onStateChange('error');
-        this.options?.onError({ code, message });
+        if (!this.userWantsListening) {
+          this.isListening = false;
+          this.options?.onStateChange('error');
+          this.options?.onError({ code, message });
+        }
       };
 
       this.recognition.onend = () => {
+        if (this.userWantsListening) {
+          try {
+            // Speech paused naturally: auto-restart continuous recognition session
+            this.recognition.start();
+            return;
+          } catch {
+            // Failed to restart automatically, transition to idle gracefully
+          }
+        }
         this.isListening = false;
         this.options?.onStateChange('idle');
       };
@@ -146,6 +170,7 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
       this.recognition.start();
     } catch (err: any) {
       this.isListening = false;
+      this.userWantsListening = false;
       this.options?.onStateChange('error');
       this.options?.onError({
         code: 'unknown',
@@ -155,6 +180,7 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
   }
 
   stop(): void {
+    this.userWantsListening = false;
     if (this.recognition && this.isListening) {
       this.options?.onStateChange('processing');
       try {
@@ -167,6 +193,8 @@ export class WebSpeechTranscriptionService implements IVoiceTranscriptionService
   }
 
   cancel(): void {
+    this.userWantsListening = false;
+    this.accumulatedFinalText = '';
     if (this.recognition) {
       try {
         this.recognition.abort();

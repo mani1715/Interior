@@ -155,7 +155,7 @@ describe('AiPromptComposer & Voice Dictation', () => {
     const onTranscript = vi.fn();
     render(<VoiceDictationButton onTranscript={onTranscript} />);
 
-    const button = screen.getByRole('button');
+    const button = screen.getByRole('button', { name: /start voice dictation/i });
     expect(button).toBeDefined();
   });
 

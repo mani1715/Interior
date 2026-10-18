@@ -5,7 +5,7 @@ import { Mic, MicOff, Square, AlertCircle, Loader2 } from 'lucide-react';
 import { voiceService, VoiceState, VoiceError } from '@/lib/ai/voice-service';
 
 export interface VoiceDictationButtonProps {
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string, isFinal?: boolean) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -16,6 +16,7 @@ export function VoiceDictationButton({
   className = '',
 }: VoiceDictationButtonProps) {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [selectedLang, setSelectedLang] = useState<'en-IN' | 'te-IN'>('en-IN');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,6 +48,7 @@ export function VoiceDictationButton({
     setErrorMsg(null);
 
     await voiceService.start({
+      lang: selectedLang,
       onStateChange: (state) => {
         setVoiceState(state);
         if (state === 'listening') {
@@ -55,8 +57,8 @@ export function VoiceDictationButton({
           clearTimer();
         }
       },
-      onTranscriptChange: (text) => {
-        onTranscript(text);
+      onTranscriptChange: (text, isFinal) => {
+        onTranscript(text, isFinal);
       },
       onError: (err: VoiceError) => {
         clearTimer();
@@ -143,14 +145,47 @@ export function VoiceDictationButton({
             onClick={handleStart}
             disabled={disabled}
             aria-label="Start voice dictation"
-            title="Describe your design transformation using your microphone"
+            title={`Describe your design transformation using microphone (${selectedLang === 'te-IN' ? 'Telugu' : 'English'})`}
             className={`min-h-[44px] min-w-[44px] p-2.5 rounded-xl border border-sand-300 bg-white hover:bg-sand-50 hover:border-bronze-600 active:bg-sand-100 text-charcoal-700 hover:text-bronze-800 transition-all shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
           >
             <Mic className="w-4 h-4 text-bronze-700" />
             <span className="text-xs font-medium hidden sm:inline">Voice Dictate</span>
           </button>
+
+          {/* Language Switcher: English vs Telugu */}
+          <div className="flex items-center rounded-lg border border-sand-300 bg-sand-100/60 p-0.5 text-[11px] font-medium" role="group" aria-label="Dictation Language">
+            <button
+              type="button"
+              onClick={() => setSelectedLang('en-IN')}
+              disabled={disabled}
+              className={`px-2 py-1 rounded-md transition-all ${
+                selectedLang === 'en-IN'
+                  ? 'bg-white text-charcoal-900 shadow-2xs font-semibold'
+                  : 'text-charcoal-500 hover:text-charcoal-900'
+              }`}
+              title="English dictation"
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLang('te-IN')}
+              disabled={disabled}
+              className={`px-2 py-1 rounded-md transition-all ${
+                selectedLang === 'te-IN'
+                  ? 'bg-white text-bronze-800 shadow-2xs font-semibold'
+                  : 'text-charcoal-500 hover:text-charcoal-900'
+              }`}
+              title="తెలుగు (Telugu) dictation"
+            >
+              తెలుగు
+            </button>
+          </div>
+
           <span className="text-[11px] text-charcoal-500 hidden md:inline">
-            Speak your design idea <span className="text-charcoal-400">(e.g. &ldquo;Change wardrobe shutters to walnut...&rdquo;)</span>
+            {selectedLang === 'te-IN'
+              ? 'తెలుగులో మాట్లాడండి (ఉదా: "కప్‌బోర్డులు వాల్‌నట్ రంగులోకి మార్చండి")'
+              : 'Speak your design idea (e.g. "Change wardrobe shutters to walnut...")'}
           </span>
         </div>
       )}

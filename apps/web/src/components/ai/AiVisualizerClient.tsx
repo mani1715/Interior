@@ -23,6 +23,8 @@ import {
   Crosshair,
   History,
   Share2,
+  UploadCloud,
+  ImagePlus,
 } from 'lucide-react';
 import {
   fetchAiStudioStatus,
@@ -36,7 +38,7 @@ import {
 import { AiJobDetail, AiStudioStatus, ReferenceDetail, EditingMode } from '@/lib/ai/types';
 import { fetchProjects } from '@/lib/projects/api';
 import { ProjectSummaryDto } from '@/lib/projects/types';
-import { fetchProjectMedia } from '@/lib/media/api';
+import { fetchProjectMedia, uploadMediaFile } from '@/lib/media/api';
 import { MediaDetailResponse } from '@/lib/media/types';
 import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
 import { PrecisionMaskEditor } from './PrecisionMaskEditor';
@@ -91,6 +93,49 @@ export function AiVisualizerClient() {
   const [projectMedia, setProjectMedia] = useState<MediaDetailResponse[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string>(initialMediaId || '');
+
+  // Direct Photo Upload State
+  const [photoSourceMode, setPhotoSourceMode] = useState<'upload' | 'gallery'>('upload');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!selectedProjectId) {
+      setFormError('Please select a project first before uploading a room photo.');
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Only JPEG, PNG, or WebP images are supported.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError('File size exceeds 20MB limit.');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      setUploadProgress(0);
+      setUploadError(null);
+
+      const media = await uploadMediaFile(file, selectedProjectId, {
+        mediaType: 'BEFORE',
+        altText: file.name.replace(/\.[^/.]+$/, ''),
+        onProgress: (p) => setUploadProgress(p),
+      });
+
+      setProjectMedia((prev) => [media, ...prev]);
+      setSelectedMediaId(media.id);
+      setUploadProgress(100);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Failed to upload room photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   // References & Structure Preservation
   const [preserveStructure, setPreserveStructure] = useState<boolean>(true);
@@ -520,137 +565,240 @@ export function AiVisualizerClient() {
               </div>
 
               {/* 2. Source Image Selection (Authoritative Spatial Geometry) */}
-              {selectedProjectId && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                      2. Source Room Photo (Architectural Structure)
-                    </label>
-                    <span className="text-[11px] text-charcoal-500">
-                      {projectMedia.length} photo{projectMedia.length === 1 ? '' : 's'} available
-                    </span>
-                  </div>
-
-                  {loadingMedia ? (
-                    <div className="py-6 text-center text-xs text-charcoal-400 flex items-center justify-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-bronze-700" />
-                      <span>Loading project photos...</span>
-                    </div>
-                  ) : projectMedia.length === 0 ? (
-                    <div className="p-3 rounded-xl bg-sand-50 border border-sand-200 text-[11px] text-charcoal-600 text-center">
-                      No photos uploaded for this project yet.{' '}
-                      <Link
-                        href={`/workspace/projects/${selectedProjectId}`}
-                        className="text-bronze-700 font-semibold underline hover:text-bronze-800"
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
+                    2. Source Room Photo (Architectural Structure)
+                  </label>
+                  {selectedProjectId && (
+                    <div className="flex items-center rounded-lg border border-sand-200 bg-[#FAF8F5] p-0.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setPhotoSourceMode('upload')}
+                        className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                          photoSourceMode === 'upload'
+                            ? 'bg-white text-charcoal-900 shadow-2xs font-semibold'
+                            : 'text-charcoal-500 hover:text-charcoal-800'
+                        }`}
                       >
-                        Upload site photo in Project Media
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
-                      {projectMedia.map((m) => {
-                        const thumb = m.derivatives?.find(
-                          (d) => d.variantName === 'THUMBNAIL' || d.variantName === 'MEDIUM'
-                        )?.publicUrl;
-                        const isSelected = selectedMediaId === m.id;
-
-                        return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => setSelectedMediaId(m.id)}
-                            disabled={submitting}
-                            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                              isSelected
-                                ? 'border-bronze-700 ring-2 ring-bronze-700/30'
-                                : 'border-transparent hover:border-sand-300'
-                            }`}
-                          >
-                            {thumb ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={thumb} alt={m.altText || 'Source'} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-sand-100 flex items-center justify-center">
-                                <ImageIcon className="w-4 h-4 text-sand-400" />
-                              </div>
-                            )}
-                            {isSelected && (
-                              <div className="absolute inset-0 bg-bronze-900/20 flex items-center justify-center">
-                                <CheckCircle2 className="w-4 h-4 text-white drop-shadow" />
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                        Upload Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPhotoSourceMode('gallery')}
+                        className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                          photoSourceMode === 'gallery'
+                            ? 'bg-white text-charcoal-900 shadow-2xs font-semibold'
+                            : 'text-charcoal-500 hover:text-charcoal-800'
+                        }`}
+                      >
+                        Project Photos ({projectMedia.length})
+                      </button>
                     </div>
                   )}
+                </div>
 
-                  {selectedMediaThumbnail && (
-                    <div className="mt-2 flex items-center gap-2 p-2 rounded-lg bg-sand-50 border border-sand-200">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={selectedMediaThumbnail} alt="Selected" className="w-10 h-10 rounded object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[11px] font-medium text-charcoal-800 block truncate">
-                          {selectedMediaAsset?.altText || 'Selected source photo'}
+                {!selectedProjectId ? (
+                  <div className="p-4 rounded-xl border border-dashed border-sand-300 bg-sand-50/50 text-center text-xs text-charcoal-500">
+                    <ImageIcon className="w-5 h-5 mx-auto mb-1 text-sand-400" />
+                    <span>Select a project in Step 1 above to upload or choose a room photo.</span>
+                  </div>
+                ) : photoSourceMode === 'upload' ? (
+                  <div className="space-y-2">
+                    {/* Drag and drop upload zone */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragging(true);
+                      }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handlePhotoUpload(file);
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`p-5 rounded-xl border-2 border-dashed cursor-pointer text-center transition-all ${
+                        isDragging
+                          ? 'border-bronze-700 bg-bronze-50/40 ring-2 ring-bronze-700/20'
+                          : 'border-sand-300 hover:border-bronze-600 bg-sand-50/40 hover:bg-sand-50'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handlePhotoUpload(f);
+                        }}
+                      />
+                      {uploadingPhoto ? (
+                        <div className="space-y-2 py-2">
+                          <Loader2 className="w-6 h-6 animate-spin text-bronze-700 mx-auto" />
+                          <span className="text-xs font-medium text-charcoal-800 block">
+                            Uploading photo... {uploadProgress > 0 ? `${uploadProgress}%` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <UploadCloud className="w-7 h-7 text-bronze-700 mx-auto" />
+                          <div>
+                            <span className="text-xs font-semibold text-charcoal-800 block">
+                              Click or drop room photo here
+                            </span>
+                            <span className="text-[11px] text-charcoal-400 block">
+                              Supports high-resolution JPEG, PNG, or WebP (max 20MB)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {uploadError && (
+                      <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                        {uploadError}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {loadingMedia ? (
+                      <div className="py-6 text-center text-xs text-charcoal-400 flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-bronze-700" />
+                        <span>Loading project photos...</span>
+                      </div>
+                    ) : projectMedia.length === 0 ? (
+                      <div className="p-3 rounded-xl bg-sand-50 border border-sand-200 text-[11px] text-charcoal-600 text-center">
+                        No photos in this project gallery yet.{' '}
+                        <button
+                          type="button"
+                          onClick={() => setPhotoSourceMode('upload')}
+                          className="text-bronze-700 font-semibold underline hover:text-bronze-800"
+                        >
+                          Upload one now
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
+                        {projectMedia.map((m) => {
+                          const thumb = m.derivatives?.find(
+                            (d) => d.variantName === 'THUMBNAIL' || d.variantName === 'MEDIUM'
+                          )?.publicUrl;
+                          const isSelected = selectedMediaId === m.id;
+
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setSelectedMediaId(m.id)}
+                              disabled={submitting}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                isSelected
+                                  ? 'border-bronze-700 ring-2 ring-bronze-700/30'
+                                  : 'border-transparent hover:border-sand-300'
+                              }`}
+                            >
+                              {thumb ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={thumb} alt={m.altText || 'Source'} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-sand-100 flex items-center justify-center">
+                                  <ImageIcon className="w-4 h-4 text-sand-400" />
+                                </div>
+                              )}
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-bronze-900/20 flex items-center justify-center">
+                                  <CheckCircle2 className="w-4 h-4 text-white drop-shadow" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Selected Photo Indicator */}
+                {selectedMediaThumbnail && (
+                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-sand-50 border border-sand-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedMediaThumbnail} alt="Selected" className="w-12 h-12 rounded-lg object-cover border border-sand-300" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-charcoal-800 truncate">
+                          {selectedMediaAsset?.altText || 'Selected room photo'}
                         </span>
-                        <span className="text-[10px] text-charcoal-400">
-                          {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px (Structure anchor)
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">
+                          Active Anchor
                         </span>
                       </div>
+                      <span className="text-[10px] text-charcoal-400 block">
+                        {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px (Preserves spatial architecture)
+                      </span>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mode Selector Tabs */}
-              {selectedProjectId && selectedMediaId && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                      Transformation Mode
-                    </label>
-                    <span className="text-[10px] text-charcoal-500">
-                      {editingMode === 'PRECISION_MASK' ? 'Precise Edit (Manual Mask)' : 'Quick Recolor (Auto-Detect)'}
-                    </span>
                   </div>
+                )}
+              </div>
 
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
-                    <button
-                      type="button"
-                      onClick={() => setEditingMode('FULL_IMAGE')}
-                      disabled={submitting}
-                      className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
-                        editingMode === 'FULL_IMAGE'
-                          ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
-                          : 'text-charcoal-500 hover:text-charcoal-900'
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-bronze-700" />
-                      <span>Quick Recolor</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEditingMode('PRECISION_MASK')}
-                      disabled={submitting || studioStatus?.supportsMaskEditing === false}
-                      className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
-                        editingMode === 'PRECISION_MASK'
-                          ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
-                          : 'text-charcoal-500 hover:text-charcoal-900 disabled:opacity-40 disabled:cursor-not-allowed'
-                      }`}
-                    >
-                      <Crosshair className="w-3.5 h-3.5 text-bronze-700" />
-                      <span>Precise Edit</span>
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-charcoal-500 mt-1 leading-relaxed">
-                    {editingMode === 'PRECISION_MASK'
-                      ? 'For maximum precision: Use the mask editor below to paint only the surfaces or doors to recolor.'
-                      : 'For fastest result: Name the object clearly (e.g. wardrobe, cupboard, kitchen cabinets) and specify your target finish.'}
-                  </p>
+              {/* 3. Transformation Mode Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
+                    3. Choose Edit Mode
+                  </label>
+                  <span className="text-[10px] text-charcoal-500">
+                    {editingMode === 'PRECISION_MASK' ? 'Precise Edit (Manual Mask)' : 'Quick Recolor (Auto-Detect)'}
+                  </span>
                 </div>
-              )}
+
+                {!selectedMediaId ? (
+                  <div className="p-3 rounded-xl border border-sand-200 bg-sand-50/40 text-[11px] text-charcoal-500">
+                    Select or upload a source room photo in Step 2 to enable Quick Recolor or Precise Mask brush.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
+                      <button
+                        type="button"
+                        onClick={() => setEditingMode('FULL_IMAGE')}
+                        disabled={submitting}
+                        className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+                          editingMode === 'FULL_IMAGE'
+                            ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
+                            : 'text-charcoal-500 hover:text-charcoal-900'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-bronze-700" />
+                        <span>Quick Recolor</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditingMode('PRECISION_MASK')}
+                        disabled={submitting || studioStatus?.supportsMaskEditing === false}
+                        className={`min-h-[44px] px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+                          editingMode === 'PRECISION_MASK'
+                            ? 'bg-white text-charcoal-900 shadow-sm border border-sand-200'
+                            : 'text-charcoal-500 hover:text-charcoal-900 disabled:opacity-40 disabled:cursor-not-allowed'
+                        }`}
+                      >
+                        <Crosshair className="w-3.5 h-3.5 text-bronze-700" />
+                        <span>Precise Edit</span>
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-charcoal-500 mt-1 leading-relaxed">
+                      {editingMode === 'PRECISION_MASK'
+                        ? 'For maximum precision: Paint only the cupboard doors or panels you want to recolor below.'
+                        : 'For fastest results: Name the object clearly (e.g. cupboard, wardrobe, cabinet) and specify target finish.'}
+                    </p>
+                  </>
+                )}
+              </div>
 
               {/* Precision Mask Region Editor */}
               {selectedProjectId && selectedMediaId && editingMode === 'PRECISION_MASK' && selectedMediaFullUrl && (
@@ -680,7 +828,7 @@ export function AiVisualizerClient() {
                 </div>
               )}
 
-              {/* 3. Reference Images & Structure Preservation Controls */}
+              {/* Reference Images & Structure Preservation Controls */}
               {selectedProjectId && (
                 <ReferenceManager
                   selectedReferences={selectedReferences}
@@ -716,7 +864,7 @@ export function AiVisualizerClient() {
                 />
               </div>
 
-              {/* Submit & Cancel Actions */}
+              {/* 5. Submit & Cancel Actions */}
               <div className="pt-2">
                 {submitting && activeJob ? (
                   <div className="space-y-3 p-4 rounded-xl bg-sand-50 border border-sand-200">

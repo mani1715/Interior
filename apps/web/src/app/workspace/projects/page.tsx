@@ -194,7 +194,15 @@ export default function ProjectsListPage() {
       setIsCreateOpen(false);
       router.push(`/workspace/projects/${created.id}`);
     } catch (err: any) {
-      setCreateError(err?.message || 'Failed to create project');
+      if (err?.envelope?.fieldErrors && err.envelope.fieldErrors.length > 0) {
+        setCreateError(err.envelope.fieldErrors.map((f: any) => `${f.field}: ${f.message}`).join(', '));
+      } else if (err?.envelope?.message) {
+        setCreateError(err.envelope.message);
+      } else if (err?.status === 403) {
+        setCreateError('Permission denied: only studio designers with management rights can create projects.');
+      } else {
+        setCreateError(err?.message || 'Failed to create project');
+      }
     } finally {
       setCreateLoading(false);
     }

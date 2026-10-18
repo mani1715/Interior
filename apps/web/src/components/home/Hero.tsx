@@ -93,7 +93,6 @@ export function Hero() {
                 </svg>`}
                 alt="Contemporary TV Lounge Architecture by Studio Elégance"
                 fill
-                priority
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 45vw"
               />
