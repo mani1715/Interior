@@ -138,6 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ persona }),
       });
       if (data && data.id) {
+        // The new session must obtain its own CSRF token after login.
+        resetCsrfToken();
         const authUser: AuthUser = {
           id: data.id,
           displayName: data.displayName || 'User',

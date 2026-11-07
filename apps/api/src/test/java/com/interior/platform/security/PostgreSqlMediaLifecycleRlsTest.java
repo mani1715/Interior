@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 7D — Dedicated PostgreSQL 18 RLS Media Lifecycle Isolation Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlMediaLifecycleRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -135,7 +136,7 @@ class PostgreSqlMediaLifecycleRlsTest {
     @Test
     @DisplayName("RLS: Studio A sees only its own upload intents and media assets")
     void studioACannotSeeStudioBMedia() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 55433");
 
         try (Connection conn = getTenantConnection(studioAId)) {
             // Upload intents isolation
@@ -159,7 +160,7 @@ class PostgreSqlMediaLifecycleRlsTest {
     @Test
     @DisplayName("RLS: Studio A cannot mutate or delete Studio B media assets")
     void studioACannotMutateStudioBMedia() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 55433");
 
         try (Connection conn = getTenantConnection(studioAId)) {
             try (Statement stmt = conn.createStatement()) {
@@ -179,7 +180,7 @@ class PostgreSqlMediaLifecycleRlsTest {
     @Test
     @DisplayName("RLS: Studio A cannot insert media assets claiming Studio B ownership")
     void studioACannotInsertMediaForStudioB() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 instance not available on port 55433");
 
         try (Connection conn = getTenantConnection(studioAId)) {
             try (Statement stmt = conn.createStatement()) {

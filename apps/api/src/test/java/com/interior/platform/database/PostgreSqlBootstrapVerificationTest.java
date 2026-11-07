@@ -14,12 +14,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 12B — PostgreSQL Clean Bootstrap & Flyway Verification")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlBootstrapVerificationTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_phase12b_bootstrap";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_phase12b_bootstrap";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -42,7 +43,7 @@ class PostgreSqlBootstrapVerificationTest {
     @Test
     @DisplayName("Verify clean bootstrap from scratch: V001 through V040 Flyway migrations")
     void testCleanBootstrapAndMigrationVerification() throws Exception {
-        assumeTrue(isPostgresAvailable(), "PostgreSQL 18.3 on port 5433 must be available for bootstrap test");
+        assertTrue(isPostgresAvailable(), "PostgreSQL 18.3 on port 55433 must be available for bootstrap test");
 
         Flyway flyway = Flyway.configure()
                 .dataSource(PG_URL, ADMIN_USER, ADMIN_PASS)

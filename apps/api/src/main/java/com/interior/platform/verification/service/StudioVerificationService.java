@@ -34,6 +34,9 @@ public class StudioVerificationService {
     private final VerificationRepository verificationRepository;
     private final StudioRepository studioRepository;
     private final ObjectMapper objectMapper;
+    private final com.interior.platform.media.storage.StorageService storage;
+    private final com.interior.platform.media.security.scanner.MalwareScanner scanner;
+    private final com.interior.platform.media.config.MediaSecurityProperties security;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.interior.platform.realtime.service.RealtimeEventPublisher realtimeEventPublisher;
@@ -44,11 +47,17 @@ public class StudioVerificationService {
     public StudioVerificationService(
             VerificationRepository verificationRepository,
             StudioRepository studioRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            com.interior.platform.media.storage.StorageService storage,
+            com.interior.platform.media.security.scanner.MalwareScanner scanner,
+            com.interior.platform.media.config.MediaSecurityProperties security
     ) {
         this.verificationRepository = verificationRepository;
         this.studioRepository = studioRepository;
         this.objectMapper = objectMapper;
+        this.storage = storage;
+        this.scanner = scanner;
+        this.security = security;
     }
 
     public void setRealtimeEventPublisher(com.interior.platform.realtime.service.RealtimeEventPublisher publisher) {
@@ -150,7 +159,7 @@ public class StudioVerificationService {
             VerificationDocumentType docType,
             String filename,
             String mimeType,
-            long sizeBytes
+            byte[] content
     ) {
         validateStudioAccess(actor, studioId);
         StudioVerificationRecord verification = getOrCreateRecord(studioId);
@@ -158,13 +167,37 @@ public class StudioVerificationService {
         if (mimeType == null || !ALLOWED_MIME_TYPES.contains(mimeType.toLowerCase())) {
             throw new IllegalArgumentException("Unsupported file type. Allowed formats: PDF, JPEG, PNG.");
         }
+        long sizeBytes = content == null ? 0 : content.length;
         if (sizeBytes <= 0 || sizeBytes > MAX_FILE_SIZE) {
             throw new IllegalArgumentException("File size must be between 1 byte and 10MB.");
         }
 
         UUID docId = UuidV7.randomUuid();
         String safeFilename = sanitizeFilename(filename);
-        String storageKey = "verification-evidence/" + studioId + "/" + docId + "-" + safeFilename;
+        String storageKey = "private/verification-evidence/" + studioId + "/" + docId + "-" + safeFilename;
+        if (!scanner.isConfigured() && security.isRequireCleanScan()) {
+            throw new IllegalStateException("Document scanning is unavailable. Please try again later.");
+        }
+        if (scanner.isConfigured()) {
+            var result = scanner.scan(storageKey, content,
+                    new com.interior.platform.media.security.scanner.ScanMetadata(
+                            docId, studioId, null, mimeType, sizeBytes));
+            if (result.outcome() != com.interior.platform.media.domain.ScanOutcome.CLEAN) {
+                throw new IllegalArgumentException("Document did not pass security scanning.");
+            }
+        }
+        // Evidence is never published as a public derivative. Persist bytes before
+        // recording success, and remove them if the metadata transaction rolls back.
+        storage.store(storageKey, content, mimeType.toLowerCase());
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCompletion(int status) {
+                            if (status != STATUS_COMMITTED) storage.delete(storageKey);
+                        }
+                    });
+        }
         Instant now = Instant.now();
 
         VerificationDocumentRecord doc = new VerificationDocumentRecord(

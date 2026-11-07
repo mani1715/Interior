@@ -14,12 +14,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 9C PostgreSQL RLS Security Test: AI Cost Ledger Isolation")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlAiCostLedgerRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
     private static final String RESTRICTED_USER = "test_ai_cost_user";
@@ -111,7 +112,7 @@ class PostgreSqlAiCostLedgerRlsTest {
     @Test
     @DisplayName("RLS: Studio A cannot read Studio B cost ledger records")
     void studioACannotReadStudioBCostLedger() throws Exception {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on port 55433");
 
         try (Connection conn = getRestrictedConnection()) {
             try (Statement stmt = conn.createStatement()) {
@@ -134,7 +135,7 @@ class PostgreSqlAiCostLedgerRlsTest {
     @Test
     @DisplayName("RLS: Admin can see all cost ledger records across studios")
     void adminCanReadCostLedgerAcrossStudios() throws Exception {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on port 55433");
 
         try (Connection conn = getRestrictedConnection()) {
             try (Statement stmt = conn.createStatement()) {

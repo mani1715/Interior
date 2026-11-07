@@ -6,12 +6,14 @@ import { voiceService, VoiceState, VoiceError } from '@/lib/ai/voice-service';
 
 export interface VoiceDictationButtonProps {
   onTranscript: (text: string, isFinal?: boolean) => void;
+  onSessionStart?: () => void;
   disabled?: boolean;
   className?: string;
 }
 
 export function VoiceDictationButton({
   onTranscript,
+  onSessionStart,
   disabled = false,
   className = '',
 }: VoiceDictationButtonProps) {
@@ -46,6 +48,7 @@ export function VoiceDictationButton({
   const handleStart = async () => {
     if (disabled || !supported) return;
     setErrorMsg(null);
+    onSessionStart?.();
 
     await voiceService.start({
       lang: selectedLang,
@@ -182,11 +185,7 @@ export function VoiceDictationButton({
             </button>
           </div>
 
-          <span className="text-[11px] text-charcoal-500 hidden md:inline">
-            {selectedLang === 'te-IN'
-              ? 'తెలుగులో మాట్లాడండి (ఉదా: "కప్‌బోర్డులు వాల్‌నట్ రంగులోకి మార్చండి")'
-              : 'Speak your design idea (e.g. "Change wardrobe shutters to walnut...")'}
-          </span>
+
         </div>
       )}
 

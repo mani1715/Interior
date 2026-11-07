@@ -14,12 +14,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 9D — PostgreSQL 18 MFA and Account Security RLS Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlAdminMfaSecurityTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -81,7 +82,7 @@ class PostgreSqlAdminMfaSecurityTest {
     @Test
     @DisplayName("identity_mfa_methods table stores encrypted secret and enforces uniqueness per user and method")
     void testMfaMethodStorageAndUniqueness() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection conn = getAdminConnection()) {
             try (Statement stmt = conn.createStatement()) {
@@ -116,7 +117,7 @@ class PostgreSqlAdminMfaSecurityTest {
     @Test
     @DisplayName("identity_recovery_codes stores hashed codes and supports atomic single-use redemption")
     void testRecoveryCodeAtomicSingleUseRedemption() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection conn = getAdminConnection()) {
             try (Statement stmt = conn.createStatement()) {
@@ -162,7 +163,7 @@ class PostgreSqlAdminMfaSecurityTest {
     @Test
     @DisplayName("identity_sessions tracks mfa_verified_at and assurance elevation accurately")
     void testSessionMfaAssuranceElevation() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection conn = getAdminConnection()) {
             try (Statement stmt = conn.createStatement()) {

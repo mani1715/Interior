@@ -10,12 +10,13 @@ import java.sql.*;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 26.2 Dedicated PostgreSQL 18 RLS and Security Definer Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlLeadSecurityClosureTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
     private static final String RESTRICTED_USER = "test_rls_public_user";
@@ -112,7 +113,7 @@ class PostgreSqlLeadSecurityClosureTest {
     @Test
     @DisplayName("PostgreSQL: Restricted public role can execute submit_public_lead successfully for valid published studio")
     void testDirectFunctionInvocationSuccess() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 55433");
 
         try (Connection conn = getRestrictedConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -143,7 +144,7 @@ class PostgreSqlLeadSecurityClosureTest {
     @Test
     @DisplayName("PostgreSQL: Direct table privileges are strictly denied to restricted public role")
     void testDirectTablePrivilegesDenied() {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 55433");
 
         assertThrows(SQLException.class, () -> {
             try (Connection conn = getRestrictedConnection();
@@ -193,7 +194,7 @@ class PostgreSqlLeadSecurityClosureTest {
     @Test
     @DisplayName("PostgreSQL: Negative attribution checks reject unpublished, suspended, private, or draft targets")
     void testNegativeTargetChecks() {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 55433");
 
         // 1. Unpublished studio
         assertThrows(SQLException.class, () -> {
@@ -262,7 +263,7 @@ class PostgreSqlLeadSecurityClosureTest {
     @Test
     @DisplayName("PostgreSQL: Idempotency under duplicate submission returns same lead and inserts no duplicate activity")
     void testIdempotencyUnderDuplicateSubmission() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 55433");
 
         String idempKey = "idemp-dup-test-" + UUID.randomUUID();
         UUID firstLeadId;
@@ -307,7 +308,7 @@ class PostgreSqlLeadSecurityClosureTest {
     @Test
     @DisplayName("PostgreSQL: Privilege escalation and schema tampering are strictly rejected")
     void testPrivilegeEscalationPrevented() {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available locally on port 55433");
 
         // 1. Cannot SET ROLE postgres
         assertThrows(SQLException.class, () -> {

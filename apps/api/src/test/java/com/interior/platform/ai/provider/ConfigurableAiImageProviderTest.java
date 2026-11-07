@@ -50,6 +50,19 @@ class ConfigurableAiImageProviderTest {
     private byte[] sampleImageBytes;
     private byte[] sampleMaskBytes;
 
+    @Test
+    void explicitNoneStaysDisabledEvenWithStoredKey() {
+        properties.setProvider("none");
+        assertFalse(provider.isConfigured());
+        assertEquals("none", provider.getProviderKey());
+    }
+
+    @Test
+    void stabilityDoesNotAdvertiseReferenceConditioning() {
+        assertFalse(provider.supportsReferenceImages());
+        assertEquals(0, provider.getMaxReferenceImages());
+    }
+
     @BeforeEach
     void setUp() throws IOException {
         properties = new AiVisualizerProperties();

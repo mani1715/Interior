@@ -22,6 +22,7 @@ export default function WorkspaceVerificationPage() {
 
   // Submission Form State
   const [businessName, setBusinessName] = useState('');
+  const [professionalType, setProfessionalType] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [taxIdentifier, setTaxIdentifier] = useState('');
   const [registeredAddress, setRegisteredAddress] = useState('');
@@ -40,6 +41,7 @@ export default function WorkspaceVerificationPage() {
       const res = await getStudioVerification();
       setData(res);
       setBusinessName(res.businessName || '');
+      setProfessionalType(res.professionalType || '');
       setRegistrationNumber(res.registrationNumber || '');
       setTaxIdentifier(res.taxIdentifier || '');
       setRegisteredAddress(res.registeredAddress || '');
@@ -99,6 +101,7 @@ export default function WorkspaceVerificationPage() {
     try {
       const updated = await submitVerification({
         businessName: businessName.trim(),
+        professionalType: professionalType.trim(),
         registrationNumber: registrationNumber.trim() || null,
         taxIdentifier: taxIdentifier.trim() || null,
         registeredAddress: registeredAddress.trim() || null,
@@ -229,6 +232,14 @@ export default function WorkspaceVerificationPage() {
 
             <div>
               <label className="block text-xs font-medium text-charcoal-700 mb-1">
+                Professional Type *
+              </label>
+              <input aria-label="Professional Type" required maxLength={100} value={professionalType}
+                onChange={(e) => setProfessionalType(e.target.value)} placeholder="e.g. Interior design studio"
+                className="w-full text-xs p-2.5 border border-sand-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-charcoal-700 mb-1">
                 Company Registration / CIN / LLPIN
               </label>
               <input
@@ -255,13 +266,13 @@ export default function WorkspaceVerificationPage() {
 
             <div>
               <label className="block text-xs font-medium text-charcoal-700 mb-1">
-                Registered Office Address
+                Business Verification Notes
               </label>
               <textarea
                 rows={3}
                 value={registeredAddress}
                 onChange={(e) => setRegisteredAddress(e.target.value)}
-                placeholder="Official corporate address as recorded in registration documents..."
+                placeholder="Add context to help the team review your business documents..."
                 className="w-full text-xs p-2.5 border border-sand-300 rounded-lg focus:ring-1 focus:ring-bronze-500"
               />
             </div>

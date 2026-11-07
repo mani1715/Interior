@@ -4,7 +4,7 @@ import { HelpCircle, ArrowLeft, MessageSquare, ShieldCheck, Sparkles, User, Buil
 
 export default function HelpCenterPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-10">
+    <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-10">
       <div>
         <Link
           href="/"
@@ -91,11 +91,11 @@ export default function HelpCenterPage() {
           <ul className="space-y-2.5 text-xs text-charcoal-600">
             <li>
               <strong className="text-charcoal-900 block">Structural preservation:</strong>
-              When structure lock is enabled, room layout, window positions, and perspective are strictly maintained.
+              Structure preservation asks the AI to retain the layout and perspective. It is not a guarantee: inspect geometry, colours and details before sharing or building.
             </li>
             <li>
               <strong className="text-charcoal-900 block">Precision inpainting:</strong>
-              Use the mask tool to brush specific cabinetry or wall finishes without affecting the rest of the room.
+              Paint the cabinetry or wall area you want to edit. The AI targets that selection, but may still change details outside it. For multiple colours, describe each region separately and review the result.
             </li>
             <li>
               <strong className="text-charcoal-900 block">Voice dictation:</strong>
@@ -121,6 +121,6 @@ export default function HelpCenterPage() {
           <span>Send Feedback</span>
         </Link>
       </div>
-    </div>
+    </main>
   );
 }

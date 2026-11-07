@@ -18,19 +18,20 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 12B — PostgreSQL Destructive Backup and Restore Drill")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlDestructiveRestoreDrillTest {
 
     private static final String DRILL_DB = "interior_restore_drill";
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/" + DRILL_DB;
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/" + DRILL_DB;
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
     private PGSimpleDataSource createDataSource(String dbName) {
         PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setURL("jdbc:postgresql://localhost:5433/" + dbName);
+        ds.setURL("jdbc:postgresql://localhost:55433/" + dbName);
         ds.setUser(ADMIN_USER);
         ds.setPassword(ADMIN_PASS);
         return ds;
@@ -47,7 +48,7 @@ class PostgreSqlDestructiveRestoreDrillTest {
     @Test
     @DisplayName("Execute full destructive restore drill: State A -> Backup -> Mutate to State B -> Restore -> Verify State A & RLS")
     void testDestructiveBackupAndRestoreDrill() throws Exception {
-        assumeTrue(isPostgresAvailable(), "PostgreSQL on port 5433 must be available");
+        assertTrue(isPostgresAvailable(), "PostgreSQL on port 55433 must be available");
 
         // 1. Prepare disposable database
         try (Connection adminConn = createDataSource("postgres").getConnection();
@@ -109,11 +110,16 @@ class PostgreSqlDestructiveRestoreDrillTest {
         File rootDir = new File("..\\..").getCanonicalFile();
         File backupScript = new File(rootDir, "scripts\\backup-postgresql.ps1");
         assertThat(backupScript).exists();
+        // Never select or delete an older repository backup during the drill.
+        String backupRelativeDir = "storage/backups/restore-drill-" + UUID.randomUUID();
 
         ProcessBuilder backupPb = new ProcessBuilder(
                 "powershell", "-ExecutionPolicy", "Bypass", "-File", backupScript.getAbsolutePath(),
                 "-Database", DRILL_DB,
-                "-Port", "5433"
+                "-Port", "55433",
+                "-DbHost", "localhost",
+                "-User", ADMIN_USER,
+                "-OutputDir", backupRelativeDir
         );
         backupPb.directory(rootDir);
         backupPb.redirectErrorStream(true);
@@ -134,7 +140,7 @@ class PostgreSqlDestructiveRestoreDrillTest {
         assertThat(backupOutput.toString()).contains("BACKUP COMPLETED SUCCESSFULLY");
 
         // Locate created dump file
-        File backupsDir = new File(rootDir, "storage\\backups");
+        File backupsDir = new File(rootDir, backupRelativeDir);
         File[] dumpFiles = backupsDir.listFiles((dir, name) -> name.startsWith("backup_" + DRILL_DB) && name.endsWith(".dump"));
         assertThat(dumpFiles).isNotNull().isNotEmpty();
         File latestDump = dumpFiles[dumpFiles.length - 1];
@@ -180,7 +186,9 @@ class PostgreSqlDestructiveRestoreDrillTest {
                     "powershell", "-ExecutionPolicy", "Bypass", "-File", restoreScript.getAbsolutePath(),
                     "-BackupFile", latestDump.getAbsolutePath(),
                     "-Database", DRILL_DB,
-                    "-Port", "5433",
+                    "-Port", "55433",
+                    "-DbHost", "localhost",
+                    "-User", ADMIN_USER,
                     "-DropAndRecreate"
             );
             restorePb.directory(rootDir);

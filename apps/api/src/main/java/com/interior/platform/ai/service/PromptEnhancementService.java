@@ -51,8 +51,15 @@ public class PromptEnhancementService {
         KNOWN_MATERIALS.put("acoustic", "vertical slatted acoustic timber panels");
 
         // Colors
-        KNOWN_COLORS.put("white", "warm alabaster white");
-        KNOWN_COLORS.put("black", "deep matte charcoal black");
+        KNOWN_COLORS.put("white", "white");
+        KNOWN_COLORS.put("black", "black");
+        KNOWN_COLORS.put("yellow", "yellow");
+        KNOWN_COLORS.put("blue", "blue");
+        KNOWN_COLORS.put("green", "green");
+        KNOWN_COLORS.put("red", "red");
+        KNOWN_COLORS.put("orange", "orange");
+        KNOWN_COLORS.put("pink", "pink");
+        KNOWN_COLORS.put("purple", "purple");
         KNOWN_COLORS.put("grey", "soft architectural grey");
         KNOWN_COLORS.put("gray", "soft architectural grey");
         KNOWN_COLORS.put("beige", "warm oat beige");
@@ -94,45 +101,10 @@ public class PromptEnhancementService {
             sb.append("Photorealistic architectural interior transformation: ");
         }
 
-        // Room context if available
-        if (request.roomType() != null && !request.roomType().isBlank()) {
-            sb.append("in ").append(request.roomType().toLowerCase(Locale.ROOT)).append(" space. ");
-        }
-
-        // 2. Element and Finishes Synthesis
-        if (!detectedElements.isEmpty() || !detectedMaterials.isEmpty() || !detectedColors.isEmpty()) {
-            sb.append("Update ");
-            if (!detectedElements.isEmpty()) {
-                sb.append(String.join(" and ", detectedElements));
-            } else {
-                sb.append("designated cabinetry surfaces");
-            }
-            sb.append(" to feature ");
-
-            List<String> finishParts = new ArrayList<>();
-            if (!detectedColors.isEmpty()) {
-                finishParts.add(String.join(", ", detectedColors));
-            }
-            if (!detectedMaterials.isEmpty()) {
-                finishParts.add(String.join(", ", detectedMaterials));
-            }
-            if (!detectedHardware.isEmpty()) {
-                finishParts.add("accented with " + String.join(" and ", detectedHardware));
-            }
-
-            if (!finishParts.isEmpty()) {
-                sb.append(String.join(" paired with ", finishParts)).append(". ");
-            } else {
-                sb.append("refined architectural finishes matching natural material references. ");
-            }
-        } else {
-            // Fallback structured expansion of user's exact intent
-            sb.append(raw);
-            if (!raw.endsWith(".")) {
-                sb.append(".");
-            }
-            sb.append(" ");
-        }
+        // Preserve spatial assignments, negations and exact colours verbatim.
+        sb.append(raw);
+        if (!raw.endsWith(".")) sb.append(".");
+        sb.append(" ");
 
         // 3. Style integration
         if (request.architecturalStyle() != null && !request.architecturalStyle().isBlank()) {

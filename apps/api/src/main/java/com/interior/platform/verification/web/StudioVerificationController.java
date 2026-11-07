@@ -87,7 +87,7 @@ public class StudioVerificationController {
                 documentType,
                 file.getOriginalFilename(),
                 file.getContentType(),
-                file.getSize()
+                file.getBytes()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED)

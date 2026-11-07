@@ -12,7 +12,19 @@ import {
 
 export async function fetchTeamOverview(studioId?: string): Promise<TeamOverview> {
   const query = studioId ? `?studioId=${encodeURIComponent(studioId)}` : '';
-  return apiFetch<TeamOverview>(`/workspace/team${query}`);
+  const data = await apiFetch<Omit<TeamOverview, 'members'> & {
+    totalMembers: number;
+    members: (TeamMember & { displayName?: string })[];
+  }>(`/workspace/team${query}`);
+  const role = (value: string) => value === 'Studio Admin' ? 'DESIGNER_ADMIN' as const
+    : value === 'Team Member' ? 'DESIGNER_MEMBER' as const : value as TeamMember['role'];
+  return {
+    ...data,
+    currentUserRole: role(data.currentUserRole),
+    totalActiveMembers: data.totalMembers ?? data.totalActiveMembers,
+    members: data.members.map(member => ({ ...member, role: role(member.role), fullName: member.displayName ?? member.fullName })),
+    pendingInvitations: data.pendingInvitations.map(invite => ({ ...invite, role: role(invite.role) })),
+  };
 }
 
 export async function createInvitation(

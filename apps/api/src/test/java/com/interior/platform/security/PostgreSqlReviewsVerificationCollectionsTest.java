@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 27 — Dedicated PostgreSQL 18 RLS Tenant & User Isolation Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlReviewsVerificationCollectionsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -125,7 +126,7 @@ class PostgreSqlReviewsVerificationCollectionsTest {
     @Test
     @DisplayName("1. User Collections RLS: User A can only see Collection A, not Collection B")
     void testUserCollectionsRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
 
         try (Connection conn = getAdminConnection()) {
             conn.setAutoCommit(false);
@@ -150,7 +151,7 @@ class PostgreSqlReviewsVerificationCollectionsTest {
     @Test
     @DisplayName("2. User Collections RLS: User B can only see Collection B, not Collection A")
     void testUserCollectionsRlsUserB() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
 
         try (Connection conn = getAdminConnection()) {
             conn.setAutoCommit(false);
@@ -175,7 +176,7 @@ class PostgreSqlReviewsVerificationCollectionsTest {
     @Test
     @DisplayName("3. Studio Verification RLS: Studio A can only see Verification A, not Verification B")
     void testStudioVerificationRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
 
         try (Connection conn = getAdminConnection()) {
             conn.setAutoCommit(false);
@@ -200,7 +201,7 @@ class PostgreSqlReviewsVerificationCollectionsTest {
     @Test
     @DisplayName("4. Admin Bypass RLS: app.is_admin = 'true' can view all collections and verifications")
     void testAdminBypassRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is required for RLS testing");
 
         try (Connection conn = getAdminConnection()) {
             conn.setAutoCommit(false);

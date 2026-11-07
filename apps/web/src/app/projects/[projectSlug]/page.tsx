@@ -8,7 +8,7 @@ import { ProjectSpaceShowcase } from '@/components/discovery/ProjectSpaceShowcas
 import { fetchDiscoveryProjects, mapDiscoveryCardToProject } from '@/lib/discovery/api';
 import { fetchPublicProject } from '@/lib/seo/api';
 import { buildProjectMetadata } from '@/lib/seo/metadata';
-import { SafeJsonLd, buildProjectJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/structured-data';
+import { SafeJsonLd, buildProjectJsonLd, buildBreadcrumbJsonLd, buildProjectImageObjects } from '@/lib/seo/structured-data';
 import { PublicTelemetryTracker } from '@/components/analytics/PublicTelemetryTracker';
 import { normalizeProjectSpaceShowcase } from '@/lib/projects/showcase-normalizer';
 import styles from './ProjectStory.module.css';
@@ -80,6 +80,9 @@ export default async function ProjectDetailPage(props: PageProps) {
           entitySlug={project.slug}
         />
         <SafeJsonLd data={buildProjectJsonLd(project, origin)} />
+        {buildProjectImageObjects(project, origin).map((imgJson, idx) => (
+          <SafeJsonLd key={`photo-schema-${idx}`} data={imgJson} />
+        ))}
         <SafeJsonLd
           data={buildBreadcrumbJsonLd(
             [

@@ -15,6 +15,58 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("StabilityPromptBuilder Unit Tests")
 class StabilityPromptBuilderTest {
+    @Test
+    void retainsRegionWhenColourSeparatesPositionFromCupboards() {
+        assertEquals("upper cupboard", StabilityPromptBuilder.extractSelectPrompt("Make upper yellow cupboards"));
+        assertEquals("lower cabinet doors", StabilityPromptBuilder.extractSelectPrompt("Paint lower matte black cabinet doors"));
+        assertEquals("Make upper cupboards yellow.", StabilityPromptBuilder.extractTargetFinish(
+                "Photorealistic architectural interior transformation: in modular kitchen space. Make upper cupboards yellow."));
+    }
+    @Test
+    void ignoresLegacyCategoryPrefixAndRecognizesDownAsLowerRegion() {
+        assertEquals("cupboard", StabilityPromptBuilder.extractSelectPrompt(
+                "Photorealistic architectural interior transformation: in wardrobe space. give me the top white cupboards and down i need black cupboards"));
+        assertEquals("cabinetry", StabilityPromptBuilder.extractSelectPrompt(
+                "Photorealistic architectural interior transformation: in wardrobe space. At top i need the white and down i need the black."));
+        assertEquals("cupboard", StabilityPromptBuilder.extractSelectPrompt(
+                "Paint top cupboards white and down cupboards black"));
+    }
+    @Test
+    void blackAndWhiteCombinationKeepsTheUsersRequestWithoutInventingPositions() {
+        String raw = "give the cupboards in white and black combination";
+        String prompt = StabilityPromptBuilder.buildQuickRecolorPrompt(
+                StabilityPromptBuilder.extractSelectPrompt(raw), raw);
+        assertTrue(prompt.startsWith(raw));
+        assertTrue(prompt.contains("distinct solid white and solid black panels"));
+        assertTrue(prompt.contains("not a grey blend"));
+        assertFalse(prompt.contains("upper white"));
+        assertFalse(prompt.contains("lower black"));
+    }
+
+    @Test
+    void selectsRequestedSurfaceRatherThanPreservedSurface() {
+        assertEquals("cupboard", StabilityPromptBuilder.extractSelectPrompt("Don't change the walls; paint the cupboards white"));
+        assertEquals("upper cabinet doors", StabilityPromptBuilder.extractSelectPrompt("Paint upper cabinet doors black. Preserve lower doors."));
+        assertEquals("cabinet doors", StabilityPromptBuilder.extractSelectPrompt("Paint upper cabinet doors black and lower cabinet doors white"));
+    }
+
+    @Test
+    void preservationDoesNotForbidTheRequestedSurfaceChange() {
+        assertFalse(StabilityPromptBuilder.getPreservationNegativePrompt().contains("changed wall"));
+        assertFalse(StabilityPromptBuilder.getPreservationNegativePrompt().contains("changed furniture"));
+        String prompt = StabilityPromptBuilder.buildQuickRecolorPrompt("walls", "Paint the wall white");
+        assertTrue(prompt.startsWith("Paint the wall white"));
+        assertFalse(prompt.contains("panels to a realistic Paint"));
+    }
+    @Test
+    void preservesSeparateColourAssignmentsAndTarget() {
+        String instruction = "Recolor upper cupboards black and lower cupboards white. Do not change the wall.";
+        assertEquals("cupboard", StabilityPromptBuilder.extractSelectPrompt(instruction));
+        assertEquals("walls", StabilityPromptBuilder.extractSelectPrompt("Paint the wall white, preserve the wardrobe"));
+        assertEquals("TV cabinet", StabilityPromptBuilder.extractSelectPrompt("Recolor the TV cabinet black"));
+        assertTrue(StabilityPromptBuilder.buildQuickRecolorPrompt("cupboard", instruction).contains(instruction));
+        assertTrue(StabilityPromptBuilder.buildInpaintPrompt(instruction).contains(instruction));
+    }
 
     @Test
     @DisplayName("extractSelectPrompt detects wardrobe, kitchen cabinets, TV unit, cupboard and falls back safely")
@@ -46,10 +98,10 @@ class StabilityPromptBuilderTest {
     void testBuildQuickRecolorPrompt() {
         String prompt = StabilityPromptBuilder.buildQuickRecolorPrompt("wardrobe", "matte walnut brown");
         assertNotNull(prompt);
-        assertTrue(prompt.contains("Recolor the selected wardrobe panels to a realistic matte walnut brown"));
-        assertTrue(prompt.contains("Preserve the exact wardrobe geometry, doors, handles, grooves, edges"));
-        assertTrue(prompt.contains("Do not modify walls, ceiling, floor, furniture, lights"));
-        assertTrue(prompt.contains("Maintain realistic interior photography and the original camera perspective"));
+        assertTrue(prompt.startsWith("matte walnut brown"));
+        assertTrue(prompt.contains("selected wardrobe"));
+        assertTrue(prompt.contains("existing geometry, panel divisions"));
+        assertTrue(prompt.contains("lighting and camera perspective"));
     }
 
     @Test
@@ -57,11 +109,10 @@ class StabilityPromptBuilderTest {
     void testBuildInpaintPrompt() {
         String prompt = StabilityPromptBuilder.buildInpaintPrompt("natural oak wood veneer");
         assertNotNull(prompt);
-        assertTrue(prompt.contains("Change ONLY the masked cupboard/wardrobe surface to natural oak wood veneer"));
-        assertTrue(prompt.contains("Preserve handles, hinges, grooves, borders, door divisions, shadows, reflections, lighting"));
-        assertTrue(prompt.contains("Preserve every unmasked pixel and surrounding object"));
-        assertTrue(prompt.contains("Do not add or remove doors, handles, furniture or decorations"));
-        assertTrue(prompt.contains("Keep the result photorealistic and consistent with the original interior photograph"));
+        assertTrue(prompt.startsWith("natural oak wood veneer"));
+        assertTrue(prompt.contains("selected region"));
+        assertTrue(prompt.contains("panel divisions"));
+        assertFalse(prompt.contains("upper/lower"));
     }
 
     @Test
@@ -73,7 +124,7 @@ class StabilityPromptBuilderTest {
         assertTrue(neg.contains("changed geometry"));
         assertTrue(neg.contains("extra handles"));
         assertTrue(neg.contains("missing handles"));
-        assertTrue(neg.contains("changed wall"));
+        assertFalse(neg.contains("changed wall"));
         assertTrue(neg.contains("distorted perspective"));
     }
 

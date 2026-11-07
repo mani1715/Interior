@@ -1,0 +1,107 @@
+[
+  {
+    "Suite": "com.interior.platform.database.PostgreSqlBootstrapVerificationTest",
+    "Tests": 1,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.database.PostgreSqlDestructiveRestoreDrillTest",
+    "Tests": 1,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.leads.PostgreSqlLeadSecurityClosureTest",
+    "Tests": 5,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.operations.PostgreSqlSupportAndOperationsRlsTest",
+    "Tests": 4,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.privacy.PostgreSqlPrivacySecurityTest",
+    "Tests": 3,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlAdminMfaSecurityTest",
+    "Tests": 3,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlAdminOperationalRlsTest",
+    "Tests": 4,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlAiCostLedgerRlsTest",
+    "Tests": 2,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlAnalyticsBillingRlsTest",
+    "Tests": 4,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlCommunicationDeliveryRlsTest",
+    "Tests": 3,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlMediaLifecycleRlsTest",
+    "Tests": 3,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlMediaMalwareSecurityTest",
+    "Tests": 2,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlProjectRoomRlsTest",
+    "Tests": 5,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlReviewsVerificationCollectionsTest",
+    "Tests": 4,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  },
+  {
+    "Suite": "com.interior.platform.security.PostgreSqlStudioTeamRlsTest",
+    "Tests": 3,
+    "Failures": 0,
+    "Errors": 0,
+    "Skipped": 0
+  }
+]

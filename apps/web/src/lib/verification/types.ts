@@ -45,6 +45,7 @@ export interface VerificationEventDto {
 }
 
 export interface StudioVerificationDto {
+  professionalType?: string | null;
   id?: string | null;
   studioId: string;
   status: VerificationStatus;
@@ -63,6 +64,7 @@ export interface StudioVerificationDto {
 }
 
 export interface SubmitVerificationRequest {
+  professionalType: string;
   businessName: string;
   registrationNumber?: string | null;
   taxIdentifier?: string | null;

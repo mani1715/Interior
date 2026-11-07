@@ -28,8 +28,8 @@ const BRONZE_COLOR = 'rgba(184, 138, 90, 0.65)';
 
 export function PrecisionMaskEditor({
   sourceImageUrl,
-  sourceWidth = 1024,
-  sourceHeight = 1024,
+  sourceWidth,
+  sourceHeight,
   onMaskChange,
   onExportReady,
   disabled = false,
@@ -76,6 +76,13 @@ export function PrecisionMaskEditor({
       const ctx = canvas.getContext('2d');
       if (ctx && prevImgData && prevWidth === rect.width && prevHeight === rect.height) {
         ctx.putImageData(prevImgData, 0, 0);
+      } else if (ctx && prevImgData) {
+        const saved = document.createElement('canvas');
+        saved.width = prevWidth;
+        saved.height = prevHeight;
+        saved.getContext('2d')?.putImageData(prevImgData, 0, 0);
+        ctx.drawImage(saved, 0, 0, canvas.width, canvas.height);
+        setUndoStack([]);
       }
     }
   }, []);
@@ -153,8 +160,8 @@ export function PrecisionMaskEditor({
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * canvas.width / rect.width,
+      y: (e.clientY - rect.top) * canvas.height / rect.height,
     };
   };
 
@@ -233,8 +240,10 @@ export function PrecisionMaskEditor({
     const img = imageRef.current;
     if (!canvas) return null;
 
-    const actualSourceWidth = img?.naturalWidth || sourceWidth;
-    const actualSourceHeight = img?.naturalHeight || sourceHeight;
+    // Preview derivatives can be smaller than the original sent to the provider.
+    const actualSourceWidth = sourceWidth || img?.naturalWidth;
+    const actualSourceHeight = sourceHeight || img?.naturalHeight;
+    if (!actualSourceWidth || !actualSourceHeight) return null;
 
     const scaled = scaleCanvasToSource(canvas, actualSourceWidth, actualSourceHeight);
 
@@ -370,7 +379,7 @@ export function PrecisionMaskEditor({
       </div>
 
       {/* Canvas Drawing Surface & Image Overlay */}
-      <div className="relative overflow-hidden rounded-xl border border-[#E7E1D8] bg-[#1F1F1F] select-none flex items-center justify-center">
+      <div className="relative w-fit max-w-full mx-auto overflow-hidden rounded-xl border border-[#E7E1D8] bg-[#1F1F1F] select-none flex items-center justify-center">
         {/* Source Image */}
         <img
           ref={imageRef}

@@ -1,0 +1,31 @@
+.studio { background: #f4f3ef; --studio-ink: #203931; font-family: Arial, Helvetica, sans-serif; }
+.studio button, .studio input, .studio textarea, .studio select { font-family: Arial, Helvetica, sans-serif; }
+.studio button { box-shadow: none; }
+.studio h1, .studio h2, .studio h3 { font-family: Arial, Helvetica, sans-serif; }
+.studio p { font-family: Arial, Helvetica, sans-serif; line-height: 1.55; }
+.generateBar { padding-top: 16px; border-top: 1px solid #e5e8e2; }
+.studio details > summary { list-style-position: inside; padding: 4px 0; }
+.studio details:not([open]) { padding-bottom: 12px; }
+.studio button[disabled] { cursor: not-allowed; }
+.studio h1 { font-family: inherit; font-size: clamp(1.65rem, 2.5vw, 2.25rem); font-weight: 550; line-height: 1.2; }
+.studio h2, .studio h3 { font-family: inherit; letter-spacing: -.025em; }
+.subtitle { color: #69726b; font-size: .875rem; margin-top: .5rem; }
+.workspace { display: grid; grid-template-columns: minmax(300px, 370px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+.controls > * { min-width: 0; }
+.canvasColumn > div > div:first-child { flex-wrap: wrap; }
+.canvasColumn button { white-space: nowrap; }
+.canvasColumn { min-width: 0; display: grid; gap: 20px; position: sticky; top: 24px; }
+.canvasColumn > div { box-shadow: 0 12px 40px #283d3010; }
+.studio select { min-height: 46px; font-size: 14px; background: #fff; }
+.studio textarea { font-size: 15px; min-height: 120px; max-height: 240px; line-height: 1.55; border: 0; border-radius: 12px; }
+.studio button:focus-visible, .studio [role="button"]:focus-visible { outline: 2px solid #256955; outline-offset: 3px; }
+.studio button[type="submit"] { background: #203931; min-height: 52px; font-size: 14px; box-shadow: 0 5px 15px #20393120; }
+.studio button[type="submit"]:hover { background: #305345; }
+.tabs { overflow-x: auto; }
+.tabs button { white-space: nowrap; min-height: 44px; }
+.sourcePreview { background: #e7e7df; border-radius: 16px; overflow: hidden; display: grid; place-items: center; min-height: 320px; }
+.sourcePreview img { width: 100%; max-height: 640px; object-fit: contain; }
+.canvasNote { border-left: 3px solid #9aab91; padding: 12px 16px; background: #eef2eb; color: #3c5145; font-size: 13px; line-height: 1.6; border-radius: 0 10px 10px 0; }
+@media (max-width: 1023px) { .workspace { grid-template-columns: minmax(0, 1fr); } .canvasColumn { position: static; } }
+@media (prefers-reduced-motion: reduce) { .studio *, .studio *::before, .studio *::after { animation: none !important; transition: none !important; } }

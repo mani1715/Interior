@@ -33,6 +33,10 @@ public final class StabilityPromptBuilder {
         OBJECT_SYNONYMS.put("wall cabinet", "wall cabinet");
         OBJECT_SYNONYMS.put("drawers", "drawers");
         OBJECT_SYNONYMS.put("drawer fronts", "drawer fronts");
+        OBJECT_SYNONYMS.put("wall", "walls");
+        OBJECT_SYNONYMS.put("floor", "floor");
+        OBJECT_SYNONYMS.put("ceiling", "ceiling");
+        OBJECT_SYNONYMS.put("pooja", "pooja unit");
 
         // Hex color approximations for plain-language normalization (Part 19)
         HEX_COLOR_MAP.put("#7A5C45", "warm walnut brown approximately #7A5C45");
@@ -57,13 +61,33 @@ public final class StabilityPromptBuilder {
         if (userPrompt == null || userPrompt.isBlank()) {
             return "wardrobe";
         }
-        String lower = userPrompt.toLowerCase(Locale.ROOT);
+        String lower = userPrompt.toLowerCase(Locale.ROOT)
+                // Legacy enhancer prefixes describe project metadata, not the photo's edit target.
+                .replaceFirst("^photorealistic architectural interior transformation:\\s*(?:in [^.]+ space\\.\\s*)?", "")
+                .replaceFirst("^targeted inpainting edit on selected masked area:\\s*(?:in [^.]+ space\\.\\s*)?", "");
+        // Exclude preservation clauses before locating the requested target. Otherwise
+        // "don't change the walls; paint the cupboards" selects the walls.
+        lower = lower.replaceAll("(?i)\\b(?:do not|don't|dont|preserve|leave)\\b[^.;,!]*(?:[.;,!]|$)", " ");
+        // Use the first mentioned object, preferring the most specific phrase at that position.
+        // Preservation clauses often mention other objects later in the instruction.
+        String selected = "cabinetry";
+        int first = Integer.MAX_VALUE;
+        int longest = 0;
         for (Map.Entry<String, String> entry : OBJECT_SYNONYMS.entrySet()) {
-            if (lower.contains(entry.getKey())) {
-                return entry.getValue();
+            Matcher match = Pattern.compile("\\b" + Pattern.quote(entry.getKey()) + "s?\\b").matcher(lower);
+            if (match.find() && (match.start() < first || (match.start() == first && entry.getKey().length() > longest))) {
+                String before = lower.substring(0, match.start());
+                Matcher position = Pattern.compile("\\b(upper|lower|top|bottom|down|left|right)(?:[- ]hand)?(?:\\s+[\\w-]+){0,6}\\s+$").matcher(before);
+                boolean multipleRegions = Pattern.compile("\\b(upper|top)\\b").matcher(lower).find()
+                        && Pattern.compile("\\b(lower|bottom|down)\\b").matcher(lower).find()
+                        || Pattern.compile("\\bleft\\b").matcher(lower).find()
+                        && Pattern.compile("\\bright\\b").matcher(lower).find();
+                selected = (!multipleRegions && position.find() ? position.group(1) + " " : "") + entry.getValue();
+                first = match.start();
+                longest = entry.getKey().length();
             }
         }
-        return "wardrobe";
+        return selected;
     }
 
     /**
@@ -73,7 +97,9 @@ public final class StabilityPromptBuilder {
         if (userPrompt == null || userPrompt.isBlank()) {
             return "matte walnut brown wood finish";
         }
-        String cleaned = userPrompt.trim();
+        String cleaned = userPrompt.trim()
+                .replaceFirst("(?i)^photorealistic architectural interior transformation:\\s*(?:in [^.]+ space\\.\\s*)?", "")
+                .replaceFirst("(?i)^targeted inpainting edit on selected masked area:\\s*(?:in [^.]+ space\\.\\s*)?", "");
 
         // Convert hex colour references if present (Part 19)
         Matcher hexMatcher = Pattern.compile("#([0-9a-fA-F]{6})").matcher(cleaned);
@@ -93,14 +119,20 @@ public final class StabilityPromptBuilder {
         String object = (selectPrompt != null && !selectPrompt.isBlank()) ? selectPrompt : "wardrobe";
         String finish = (targetFinish != null && !targetFinish.isBlank()) ? targetFinish : "matte walnut brown finish";
 
-        return String.format(
-                "Recolor the selected %s panels to a realistic %s. " +
-                "Preserve the exact %s geometry, doors, handles, grooves, edges, proportions, shadows, reflections and surrounding room. " +
-                "Do not redesign, replace or move the %s. " +
-                "Do not modify walls, ceiling, floor, furniture, lights or any other unselected object. " +
-                "Maintain realistic interior photography and the original camera perspective.",
-                object, finish, object, object
-        );
+        return finish + ". Apply this finish instruction to the selected " + object
+                + ". Keep existing geometry, panel divisions, lighting and camera perspective."
+                + combinationGuidance(finish);
+    }
+
+    private static String combinationGuidance(String instruction) {
+        String lower = instruction.toLowerCase(Locale.ROOT);
+        if (Pattern.compile("\\bblack\\b").matcher(lower).find()
+                && Pattern.compile("\\bwhite\\b").matcher(lower).find()
+                && Pattern.compile("\\b(combination|two[- ]tone|dual[- ]tone)\\b").matcher(lower).find()) {
+            return " Use distinct solid white and solid black panels, not a grey blend or a monochrome photograph."
+                    + " Keep the room's other colours. Follow any specified panel positions.";
+        }
+        return "";
     }
 
     /**
@@ -109,26 +141,16 @@ public final class StabilityPromptBuilder {
     public static String buildInpaintPrompt(String targetFinish) {
         String finish = (targetFinish != null && !targetFinish.isBlank()) ? targetFinish : "matte walnut brown wood finish";
 
-        return String.format(
-                "Change ONLY the masked cupboard/wardrobe surface to %s. " +
-                "Preserve the exact physical geometry and structure. " +
-                "Preserve handles, hinges, grooves, borders, door divisions, shadows, reflections, lighting and perspective. " +
-                "Preserve every unmasked pixel and surrounding object as closely as possible. " +
-                "Do not add or remove doors, handles, furniture or decorations. " +
-                "Do not change the room layout. " +
-                "Keep the result photorealistic and consistent with the original interior photograph.",
-                finish
-        );
+        return finish + ". Photorealistic surface finish within the selected region. " +
+                "Retain existing panel divisions, lighting and camera perspective." + combinationGuidance(finish);
     }
-
     /**
      * Furniture-preservation negative prompt (Part 15).
      */
     public static String getPreservationNegativePrompt() {
         return "redesigned furniture, changed geometry, extra handles, missing handles, " +
                "extra doors, missing doors, warped cabinet, distorted perspective, " +
-               "changed wall, changed floor, changed ceiling, changed furniture, " +
-               "additional objects, removed objects, unrealistic texture, cartoon, " +
+               "unrealistic texture, cartoon, " +
                "illustration, CGI appearance, blurry details";
     }
 

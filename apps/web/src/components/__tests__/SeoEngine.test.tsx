@@ -7,7 +7,10 @@ import {
   buildStudioJsonLd,
   buildProjectJsonLd,
   buildBreadcrumbJsonLd,
+  buildProjectImageObjects,
+  buildAggregateRatingJsonLd,
 } from '@/lib/seo/structured-data';
+import { GET as getLlmsTxt } from '@/app/llms.txt/route';
 import {
   buildStudioMetadata,
   buildProjectMetadata,
@@ -73,9 +76,11 @@ describe('SEO Engine — Structured Data & JSON-LD Security', () => {
     const jsonLd = buildStudioJsonLd(mockStudio, 'https://interior.com');
     expect(jsonLd['@context']).toBe('https://schema.org');
     expect(jsonLd['@type']).toBe('ProfessionalService');
+    expect(jsonLd.additionalType).toBe('https://schema.org/HomeAndConstructionBusiness');
     expect(jsonLd.name).toBe('Apex Studio');
     expect(jsonLd.telephone).toBe('+919876543210');
     expect(jsonLd.image).toBe('https://img.com/p.webp');
+    expect((jsonLd.hasOfferCatalog as any)?.itemListElement.length).toBe(1);
   });
 
   it('builds valid CreativeWork schema for projects', () => {
@@ -140,6 +145,75 @@ describe('SEO Engine — Structured Data & JSON-LD Security', () => {
     expect(breadcrumb.itemListElement.length).toBe(3);
     expect(breadcrumb.itemListElement[0].item).toBe('https://interior.com/');
     expect(breadcrumb.itemListElement[2].item).toBe('https://interior.com/projects/modern-villa');
+  });
+
+  it('builds valid ImageObject schema for project photos (Image SEO)', () => {
+    const mockProject: PublicProjectDetailDto = {
+      id: 'p-1',
+      slug: 'modern-villa',
+      title: 'Modern Villa',
+      categoryCode: 'LIVING_ROOM',
+      shortDescription: 'Contemporary luxury villa',
+      fullDescription: 'Complete overhaul',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      country: 'IN',
+      completionYear: 2025,
+      styleCodes: ['CONTEMPORARY'],
+      studio: {
+        studioId: 's-1',
+        name: 'Apex Studio',
+        slug: 'apex-studio',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+      },
+      canonicalUrl: '/projects/modern-villa',
+      metaTitle: 'Modern Villa | Apex Studio',
+      metaDescription: 'Luxury living room project.',
+      media: [
+        {
+          id: 'm-1',
+          mediaType: 'REAL_PROJECT',
+          isAiConcept: false,
+          sortOrder: 0,
+          isCover: true,
+          altText: 'Living room panoramic view',
+          originalWidth: 1920,
+          originalHeight: 1080,
+          thumbnailUrl: 'https://img.com/thumb.webp',
+          mediumUrl: 'https://img.com/med.webp',
+          largeUrl: 'https://img.com/large.webp',
+        },
+      ],
+    };
+
+    const imageObjects = buildProjectImageObjects(mockProject, 'https://interior.com');
+    expect(imageObjects.length).toBe(1);
+    expect(imageObjects[0]['@context']).toBe('https://schema.org');
+    expect(imageObjects[0]['@type']).toBe('ImageObject');
+    expect(imageObjects[0].contentUrl).toBe('https://img.com/large.webp');
+    expect(imageObjects[0].caption).toBe('Living room panoramic view');
+    expect((imageObjects[0].creator as any)?.name).toBe('Apex Studio');
+    expect(imageObjects[0].acquireLicensePage).toBe('https://interior.com/projects/modern-villa');
+  });
+
+  it('builds valid AggregateRating schema for client reviews', () => {
+    const ratingJson = buildAggregateRatingJsonLd({
+      itemName: 'Apex Studio',
+      itemUrl: 'https://interior.com/professionals/apex-studio',
+      ratingValue: 4.9,
+      reviewCount: 24,
+    });
+
+    expect(ratingJson['@type']).toBe('ProfessionalService');
+    expect(ratingJson.name).toBe('Apex Studio');
+    expect(ratingJson.aggregateRating).toEqual({
+      '@type': 'AggregateRating',
+      ratingValue: 4.9,
+      reviewCount: 24,
+      bestRating: 5,
+      worstRating: 1,
+    });
   });
 });
 
@@ -212,6 +286,29 @@ describe('SEO Engine — Robots & Sitemap Configuration', () => {
     expect(items.some((i) => i.url.includes('/categories/living-room'))).toBe(true);
     expect(items.some((i) => i.url.includes('/locations/bengaluru'))).toBe(true);
     expect(items.some((i) => i.url.includes('/professionals/apex-designs'))).toBe(true);
+  });
+
+  it('robots config includes explicit AI agent crawler directives and allows llms.txt', () => {
+    const conf = robots();
+    const rules = conf.rules as any[];
+    expect(rules.length).toBeGreaterThanOrEqual(2);
+    const aiRule = rules[1];
+    expect(aiRule.userAgent).toContain('GPTBot');
+    expect(aiRule.userAgent).toContain('ClaudeBot');
+    expect(aiRule.userAgent).toContain('PerplexityBot');
+    expect(aiRule.allow).toContain('/llms.txt');
+    expect(aiRule.disallow).toContain('/workspace/');
+  });
+
+  it('serves valid llms.txt route for Generative Engine Optimization', async () => {
+    const response = await getLlmsTxt();
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain('# Elégance — Interior Design & Architecture Discovery Platform');
+    expect(text).toContain('## Core Discovery Endpoints');
+    expect(text).toContain('/projects');
+    expect(text).toContain('/professionals');
+    expect(text).toContain('## Canonical Room Categories');
   });
 });
 

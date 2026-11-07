@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("PostgreSQL RLS & Integrity — Project Rooms Tenant Isolation and Composite Boundary Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlProjectRoomRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -141,7 +142,7 @@ class PostgreSqlProjectRoomRlsTest {
     @Test
     @DisplayName("RLS: Studio A cannot view Studio B's project rooms")
     void studioACannotViewStudioBRooms() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on localhost:5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on localhost:55433");
 
         try (Connection conn = getTestTenantConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
@@ -163,7 +164,7 @@ class PostgreSqlProjectRoomRlsTest {
     @Test
     @DisplayName("RLS: Studio A cannot mutate or delete Studio B's project rooms")
     void studioACannotMutateOrDeleteStudioBRooms() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on localhost:5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on localhost:55433");
 
         try (Connection conn = getTestTenantConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
@@ -196,7 +197,7 @@ class PostgreSqlProjectRoomRlsTest {
     @Test
     @DisplayName("Composite Integrity: Media cannot reference a room from a different project or studio")
     void mediaCannotCrossReferenceDifferentProjectOrStudioRoom() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on localhost:5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on localhost:55433");
 
         try (Connection conn = getAdminConnection(); Statement stmt = conn.createStatement()) {
             // Attempt to assign Room B (from Project B / Studio B) to Media in Project A / Studio A
@@ -214,7 +215,7 @@ class PostgreSqlProjectRoomRlsTest {
     @Test
     @DisplayName("Room Cover Invariant: Partial unique index prevents multiple room covers in the same room")
     void roomCannotHaveMultipleActiveCovers() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on localhost:5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on localhost:55433");
 
         try (Connection conn = getAdminConnection(); Statement stmt = conn.createStatement()) {
             UUID secondMediaId = UuidV7.randomUuid();
@@ -232,7 +233,7 @@ class PostgreSqlProjectRoomRlsTest {
     @Test
     @DisplayName("Safe Deletion: Deleting a room sets media room_id to NULL without deleting media")
     void roomDeletionCascadesToNullSafely() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on localhost:5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on localhost:55433");
 
         try (Connection conn = getAdminConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("DELETE FROM project_rooms WHERE id = '%s';", roomAId));

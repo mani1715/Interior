@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 7C — Dedicated PostgreSQL 18 RLS Communication Delivery Isolation Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlCommunicationDeliveryRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -118,7 +119,7 @@ class PostgreSqlCommunicationDeliveryRlsTest {
     @Test
     @DisplayName("RLS: Studio A tenant context cannot select Studio B delivery records")
     void testStudioIsolationOnDeliveries() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on port 55433");
 
         try (Connection conn = getTenantConnection();
              Statement stmt = conn.createStatement()) {
@@ -139,7 +140,7 @@ class PostgreSqlCommunicationDeliveryRlsTest {
     @Test
     @DisplayName("RLS: Studio B tenant context cannot select Studio A delivery records")
     void testStudioBIsolationOnDeliveries() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on port 55433");
 
         try (Connection conn = getTenantConnection();
              Statement stmt = conn.createStatement()) {
@@ -160,7 +161,7 @@ class PostgreSqlCommunicationDeliveryRlsTest {
     @Test
     @DisplayName("RLS: Unset studio context sees zero tenant-scoped delivery records")
     void testEmptyContextSeesNoDeliveries() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL not reachable on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL not reachable on port 55433");
 
         try (Connection conn = getTenantConnection();
              Statement stmt = conn.createStatement()) {

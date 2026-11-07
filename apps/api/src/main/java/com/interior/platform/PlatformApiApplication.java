@@ -81,7 +81,10 @@ public class PlatformApiApplication {
             if (currentProvider == null) {
                 currentProvider = System.getenv("INTERIOR_AI_PROVIDER");
             }
-            if (currentProvider == null || currentProvider.isBlank() || "none".equalsIgnoreCase(currentProvider)) {
+            if (currentProvider == null) {
+                currentProvider = System.getProperty("interior.ai.provider", System.getenv("AI_PROVIDER"));
+            }
+            if (currentProvider == null || currentProvider.isBlank()) {
                 System.setProperty("interior.ai.provider", "stability");
                 System.setProperty("INTERIOR_AI_PROVIDER", "stability");
                 log.info("Auto-configured Stability AI provider from detected API key credential");

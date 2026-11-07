@@ -13,6 +13,31 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Prompt Enhancement Service Unit Tests")
 class PromptEnhancementServiceTest {
+    @Test
+    void yellowAndBlackAreBothReportedWithoutChangingTheirPositions() {
+        String raw = "make the upper as the yellow and down black cupboards";
+        var result = new PromptEnhancementService().enhancePrompt(new PromptEnhanceRequest(
+                raw, "KITCHEN", "FULL_IMAGE", true, null, List.of()));
+        assertTrue(result.enhancedPrompt().contains(raw));
+        assertTrue(result.detectedColors().containsAll(List.of("yellow", "black")));
+    }
+    @Test
+    void projectCategoryMustNotOverrideTheUploadedPhotoOrRequestedColours() {
+        String raw = "give me the top white cupboards and down i need black cupboards";
+        var result = new PromptEnhancementService().enhancePrompt(new PromptEnhanceRequest(
+                raw, "WARDROBE", "FULL_IMAGE", true, null, List.of()));
+        assertTrue(result.enhancedPrompt().contains(raw));
+        assertFalse(result.enhancedPrompt().contains("wardrobe space"));
+        assertEquals(List.of("white", "black"), result.detectedColors());
+        assertEquals("cupboard", com.interior.platform.ai.service.StabilityPromptBuilder.extractSelectPrompt(result.enhancedPrompt()));
+    }
+    @Test
+    void keepsSpatialAssignmentsAndNegationsVerbatim() {
+        String prompt = "Keep upper cupboards black and lower cupboards white. Do not recolor handles.";
+        var result = new PromptEnhancementService().enhancePrompt(new PromptEnhanceRequest(
+                prompt, null, "FULL_IMAGE", true, null, List.of()));
+        assertTrue(result.enhancedPrompt().contains(prompt));
+    }
 
     private PromptEnhancementService promptEnhancementService;
 
@@ -38,7 +63,7 @@ class PromptEnhancementServiceTest {
         assertNotNull(response);
         assertEquals(request.prompt(), response.originalPrompt());
         assertTrue(response.enhancedPrompt().contains("Targeted inpainting edit on selected masked area"));
-        assertTrue(response.enhancedPrompt().contains("bedroom"));
+        assertFalse(response.enhancedPrompt().contains("bedroom space"));
         assertTrue(response.enhancedPrompt().contains("walnut"));
         assertTrue(response.enhancedPrompt().contains("black"));
         assertTrue(response.enhancedPrompt().contains("Surrounding unmasked walls, ceiling, flooring, and adjacent fixtures remain 100% untouched"));
@@ -67,7 +92,7 @@ class PromptEnhancementServiceTest {
 
         assertNotNull(response);
         assertTrue(response.enhancedPrompt().contains("Photorealistic architectural interior transformation"));
-        assertTrue(response.enhancedPrompt().contains("kitchen"));
+        assertFalse(response.enhancedPrompt().contains("kitchen space"));
         assertTrue(response.enhancedPrompt().contains("white"));
         assertTrue(response.enhancedPrompt().contains("gold"));
         assertTrue(response.enhancedPrompt().contains("Warm Minimalist"));

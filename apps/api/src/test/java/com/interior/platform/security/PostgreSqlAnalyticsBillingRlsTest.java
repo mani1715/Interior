@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 28 & Phase 9A — Dedicated PostgreSQL 18 RLS Tenant Isolation for Analytics & Commercial Billing")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlAnalyticsBillingRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -153,7 +154,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
     @Test
     @DisplayName("PostgreSQL RLS: Studio A cannot view Studio B analytics events")
     void testAnalyticsEventsRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 5433, skipping PG-specific RLS test");
+        assertTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 55433, skipping PG-specific RLS test");
 
         try (Connection conn = getNonSuperUserConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
@@ -172,7 +173,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
     @Test
     @DisplayName("PostgreSQL RLS: Studio A cannot view Studio B daily metrics")
     void testDailyMetricsRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 5433, skipping PG-specific RLS test");
+        assertTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 55433, skipping PG-specific RLS test");
 
         try (Connection conn = getNonSuperUserConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
@@ -192,7 +193,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
     @Test
     @DisplayName("PostgreSQL RLS: Studio A cannot view Studio B subscriptions or transactions")
     void testBillingTenantIsolationRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 5433, skipping PG-specific RLS test");
+        assertTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 55433, skipping PG-specific RLS test");
 
         try (Connection conn = getNonSuperUserConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));
@@ -220,7 +221,7 @@ class PostgreSqlAnalyticsBillingRlsTest {
     @Test
     @DisplayName("PostgreSQL RLS: Studio A cannot view Studio B checkout sessions")
     void testCheckoutSessionsTenantIsolationRls() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 5433, skipping PG-specific RLS test");
+        assertTrue(postgresAvailable, "PostgreSQL 18.3 not reachable on port 55433, skipping PG-specific RLS test");
 
         try (Connection conn = getNonSuperUserConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(String.format("SET app.current_studio_id = '%s';", studioAId));

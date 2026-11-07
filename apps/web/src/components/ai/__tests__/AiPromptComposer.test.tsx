@@ -20,6 +20,23 @@ afterEach(() => {
 });
 
 describe('AiPromptComposer & Voice Dictation', () => {
+  it('recognizes yellow as well as black without changing the regional instruction', () => {
+    const prompt = 'make the upper as the yellow and down black cupboards';
+    const result = enhancePromptLocally({ prompt });
+    expect(result.detectedColors).toEqual(expect.arrayContaining(['yellow', 'black']));
+    expect(result.enhancedPrompt).toContain(prompt);
+  });
+  it('does not insert an unverified project category or substitute requested black and white', () => {
+    const prompt = 'give me the top white cupboards and down i need black cupboards';
+    const result = enhancePromptLocally({ prompt, roomType: 'WARDROBE' });
+    expect(result.enhancedPrompt).toContain(prompt);
+    expect(result.enhancedPrompt).not.toContain('wardrobe space');
+    expect(result.detectedColors).toEqual(['white', 'black']);
+  });
+  it('preserves positional colours and negations during local enhancement', () => {
+    const prompt = 'Upper cupboards black; lower cupboards white. Do not recolor handles.';
+    expect(enhancePromptLocally({ prompt }).enhancedPrompt).toContain(prompt);
+  });
   it('renders context pills, character count, and voice button', () => {
     const onPromptChange = vi.fn();
     render(
@@ -36,7 +53,7 @@ describe('AiPromptComposer & Voice Dictation', () => {
 
     // Verify context pills
     expect(screen.getByText(/Precision Mask \(Inpainting\)/i)).toBeDefined();
-    expect(screen.getByText(/Structure Locked/i)).toBeDefined();
+    expect(screen.getByText(/Preserve Structure Requested/i)).toBeDefined();
     expect(screen.getByText(/BEDROOM/i)).toBeDefined();
     expect(screen.getByText(/2 References attached/i)).toBeDefined();
 
@@ -170,7 +187,7 @@ describe('AiPromptComposer & Voice Dictation', () => {
 
     expect(result.originalPrompt).toBe('make cupboards white and handles gold');
     expect(result.enhancedPrompt).toContain('Photorealistic architectural interior transformation');
-    expect(result.enhancedPrompt).toContain('kitchen');
+    expect(result.enhancedPrompt).not.toContain('kitchen space');
     expect(result.enhancedPrompt).toContain('white');
     expect(result.enhancedPrompt).toContain('gold');
     expect(result.enhancedPrompt).toContain('Warm Minimalist');

@@ -31,9 +31,11 @@ export function buildStudioJsonLd(studio: PublicStudioDto, origin: string) {
   const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
+    additionalType: 'https://schema.org/HomeAndConstructionBusiness',
     name: studio.name,
     description: studio.metaDescription,
     url: fullUrl,
+    priceRange: studio.priceRange || '₹₹ - ₹₹₹₹',
   };
 
   if (coverImage) {
@@ -63,6 +65,20 @@ export function buildStudioJsonLd(studio: PublicStudioDto, origin: string) {
 
   if (studio.specialties && studio.specialties.length > 0) {
     jsonLd.knowsAbout = studio.specialties;
+  }
+
+  if (studio.services && studio.services.length > 0) {
+    jsonLd.hasOfferCatalog = {
+      '@type': 'OfferCatalog',
+      name: `${studio.name} Interior & Architectural Services`,
+      itemListElement: studio.services.map((serviceName) => ({
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: serviceName,
+        },
+      })),
+    };
   }
 
   return jsonLd;
@@ -132,3 +148,62 @@ export function buildBreadcrumbJsonLd(
     }),
   };
 }
+
+/**
+ * ImageObject schema for interior room photography.
+ * Powers Google Images rich snippets and visual search attribution (Image SEO).
+ */
+export function buildProjectImageObjects(
+  project: PublicProjectDetailDto,
+  origin: string
+): Array<Record<string, unknown>> {
+  const fullUrl = project.canonicalUrl.startsWith('http')
+    ? project.canonicalUrl
+    : `${origin}${project.canonicalUrl}`;
+
+  return project.media
+    .filter((m) => m.largeUrl || m.mediumUrl)
+    .map((m) => ({
+      '@context': 'https://schema.org',
+      '@type': 'ImageObject',
+      contentUrl: m.largeUrl || m.mediumUrl,
+      caption: m.altText || `${project.title} by ${project.studio.name}`,
+      name: `${project.title} - ${m.altText || 'Interior Space'}`,
+      creator: {
+        '@type': 'Organization',
+        name: project.studio.name,
+      },
+      copyrightHolder: {
+        '@type': 'Organization',
+        name: project.studio.name,
+      },
+      acquireLicensePage: fullUrl,
+    }));
+}
+
+/**
+ * AggregateRating schema for verified client reviews.
+ * Powers star ratings in Google Search organic snippets.
+ */
+export function buildAggregateRatingJsonLd(params: {
+  itemName: string;
+  itemUrl: string;
+  ratingValue: number;
+  reviewCount: number;
+  bestRating?: number;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ProfessionalService',
+    name: params.itemName,
+    url: params.itemUrl,
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: params.ratingValue,
+      reviewCount: params.reviewCount,
+      bestRating: params.bestRating || 5,
+      worstRating: 1,
+    },
+  };
+}
+

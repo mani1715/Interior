@@ -1,4 +1,4 @@
-export type AiJobStatus = 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+export type AiJobStatus = 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT';
 
 export type EditingMode = 'FULL_IMAGE' | 'PRECISION_MASK';
 

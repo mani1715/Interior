@@ -38,13 +38,15 @@ import {
 import { AiJobDetail, AiStudioStatus, ReferenceDetail, EditingMode } from '@/lib/ai/types';
 import { fetchProjects } from '@/lib/projects/api';
 import { ProjectSummaryDto } from '@/lib/projects/types';
-import { fetchProjectMedia, uploadMediaFile } from '@/lib/media/api';
+import { fetchProjectMedia, fetchMediaDetail, uploadMediaFile } from '@/lib/media/api';
+import { regionalColours } from '@/lib/ai/regional-colours';
 import { MediaDetailResponse } from '@/lib/media/types';
 import { ReferenceManager, SelectedReferenceItem } from './ReferenceManager';
 import { PrecisionMaskEditor } from './PrecisionMaskEditor';
 import { AiHistoryView } from './AiHistoryView';
 import { AiReviewsView } from './AiReviewsView';
 import { AiPromptComposer } from './AiPromptComposer';
+import styles from './AiStudio.module.css';
 import { useRealtimeSubscription } from '@/lib/realtime/RealtimeProvider';
 
 const PROMPT_PRESETS = [
@@ -91,6 +93,8 @@ export function AiVisualizerClient() {
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || '');
   const [projectMedia, setProjectMedia] = useState<MediaDetailResponse[]>([]);
+  const [conceptSource, setConceptSource] = useState<MediaDetailResponse | null>(null);
+  const [loadingConceptSource, setLoadingConceptSource] = useState(false);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<string>(initialMediaId || '');
 
@@ -144,6 +148,7 @@ export function AiVisualizerClient() {
 
   // Generation Form
   const [prompt, setPrompt] = useState('');
+  const regionPlan = studioStatus?.providerKey === 'stability' ? regionalColours(prompt) : [];
   const [submitting, setSubmitting] = useState(false);
   const [activeJob, setActiveJob] = useState<AiJobDetail | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -157,19 +162,26 @@ export function AiVisualizerClient() {
   // Editing Mode & Precision Mask State
   const [editingMode, setEditingMode] = useState<EditingMode>('FULL_IMAGE');
   const [hasMask, setHasMask] = useState(false);
+  const [maskSession, setMaskSession] = useState(0);
   const [maskCoverageRatio, setMaskCoverageRatio] = useState(0);
   const [showMaskOverlay, setShowMaskOverlay] = useState(true);
   const exportMaskRef = useRef<(() => Promise<Blob | null>) | null>(null);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    setHasMask(false);
+    setMaskCoverageRatio(0);
+    setSelectedComparisonJob(null);
+  }, [selectedProjectId, selectedMediaId]);
+
   // 1. Initial Load: Status, Projects, Recent Jobs, References Library
   useEffect(() => {
     async function init() {
       try {
         const [status, projList, jobsList, refList] = await Promise.all([
-          fetchAiStudioStatus().catch(() => null),
-          fetchProjects().catch(() => []),
+          fetchAiStudioStatus(),
+          fetchProjects(),
           listAiJobs({ limit: 10 }).catch(() => ({ items: [], total: 0, limit: 10, offset: 0 })),
           (fetchReferences ? fetchReferences() : Promise.resolve([])).catch(() => []),
         ]);
@@ -241,7 +253,7 @@ export function AiVisualizerClient() {
             setSubmitting(false);
             listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
             fetchAiStudioStatus().then(setStudioStatus).catch(() => {});
-          } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED') {
+          } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED' || detail.status === 'TIMED_OUT') {
             setSubmitting(false);
             listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
           }
@@ -254,7 +266,7 @@ export function AiVisualizerClient() {
 
   // 3. Low-frequency safety poll (10s fallback) in case SSE connection drops
   useEffect(() => {
-    if (!activeJob || activeJob.status === 'SUCCEEDED' || activeJob.status === 'FAILED' || activeJob.status === 'CANCELLED') {
+    if (!activeJob || activeJob.status === 'SUCCEEDED' || activeJob.status === 'FAILED' || activeJob.status === 'CANCELLED' || activeJob.status === 'TIMED_OUT') {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -272,7 +284,7 @@ export function AiVisualizerClient() {
           setSubmitting(false);
           listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
           fetchAiStudioStatus().then(setStudioStatus).catch(() => {});
-        } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED') {
+        } else if (detail.status === 'FAILED' || detail.status === 'CANCELLED' || detail.status === 'TIMED_OUT') {
           setSubmitting(false);
           listAiJobs({ limit: 10 }).then((res) => setRecentJobs(res.items)).catch(() => {});
         }
@@ -293,6 +305,10 @@ export function AiVisualizerClient() {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    if (regionPlan.length) {
+      setFormError('Select one colour region below and paint its doors on the photo before generating.');
+      return;
+    }
 
     if (!selectedProjectId) {
       setFormError('Please select a project');
@@ -339,7 +355,7 @@ export function AiVisualizerClient() {
         if (!maskBlob) {
           throw new Error('Failed to export mask drawing. Please try painting the selection again.');
         }
-        const uploadRes = await uploadPrecisionMask(selectedMediaId, maskBlob, selectedProjectId);
+        const uploadRes = await uploadPrecisionMask(selectedMediaId, maskBlob, selectedMediaAsset?.studioId);
         maskStorageKey = uploadRes.maskStorageKey;
       }
 
@@ -376,18 +392,29 @@ export function AiVisualizerClient() {
     }
   };
 
-  const selectedMediaAsset = projectMedia.find((m) => m.id === selectedMediaId);
-  const selectedMediaThumbnail = selectedMediaAsset?.derivatives?.find(
-    (d) => d.variantName === 'MEDIUM' || d.variantName === 'LARGE' || d.variantName === 'THUMBNAIL'
-  )?.publicUrl;
-  const selectedMediaFullUrl =
-    selectedMediaAsset?.derivatives?.find((d) => d.variantName === 'LARGE' || d.variantName === 'MEDIUM')
-      ?.publicUrl || selectedMediaThumbnail;
+  const selectedMediaAsset = conceptSource?.id === selectedMediaId && conceptSource.projectId === selectedProjectId
+    ? conceptSource : projectMedia.find((m) => m.id === selectedMediaId);
+  // Private projects intentionally cannot use public derivative URLs.
+  const previewUrl = (media: MediaDetailResponse) =>
+    `/api/v1/media/${encodeURIComponent(media.id)}/preview?studioId=${encodeURIComponent(media.studioId)}`;
+  const selectedMediaThumbnail = selectedMediaAsset ? previewUrl(selectedMediaAsset) : undefined;
+  const selectedMediaFullUrl = selectedMediaThumbnail;
 
   const isConfigured = studioStatus?.isConfigured ?? false;
+  const generationBlocker = submitting ? 'Your current image is still processing.'
+    : loadingConceptSource ? 'Loading the generated image for your next edit.'
+    : uploadingPhoto ? 'Uploading your photo. Please wait.'
+    : !isConfigured ? 'The AI service is unavailable. Refresh the page to reconnect.'
+    : !selectedProjectId ? 'Choose a project in step 1.'
+    : !selectedMediaId ? 'Upload or select a source photo in step 2.'
+    : prompt.trim().length < 5 ? 'Describe the change you want (at least 5 characters).'
+    : prompt.trim().length > 500 ? `Shorten your instruction by ${prompt.trim().length - 500} characters.`
+    : regionPlan.length ? 'Choose one colour region below, then paint its doors on the photo.'
+    : editingMode === 'PRECISION_MASK' && !hasMask ? 'Paint the area to edit on your photo.'
+    : null;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-8 bg-[#FAF8F5] text-[#1F1F1F] min-h-screen">
+    <div className={`${styles.studio} p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6 text-[#1F1F1F] min-h-screen`}>
       {/* Top Header */}
       <div>
         <Link
@@ -404,11 +431,12 @@ export function AiVisualizerClient() {
             </div>
             <div>
               <span className="text-xs font-semibold uppercase tracking-widest text-bronze-700 block">
-                Generative Interior Design
+                ELÉGANCE / DESIGN LAB
               </span>
               <h1 className="font-serif text-2xl sm:text-3xl text-charcoal-900 tracking-tight">
-                AI Concept Visualizer
+                AI design studio
               </h1>
+              <p className={styles.subtitle}>Your space. A new finish. Explore it before you build.</p>
             </div>
           </div>
 
@@ -435,7 +463,7 @@ export function AiVisualizerClient() {
       </div>
 
       {/* Provider Unconfigured Banner */}
-      {!statusLoading && !isConfigured && (
+      {!statusLoading && studioStatus && !isConfigured && (
         <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 space-y-2">
           <div className="flex items-center gap-2 font-semibold text-sm">
             <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
@@ -448,8 +476,15 @@ export function AiVisualizerClient() {
         </div>
       )}
 
+      {!statusLoading && !studioStatus && (
+        <div role="alert" className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+          <p className="font-semibold">Unable to load AI Studio</p>
+          <p className="text-sm">Check your connection and sign-in session, then reload this page. Provider availability could not be verified.</p>
+        </div>
+      )}
+
       {/* Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-sand-200 pb-3">
+      <div className={`${styles.tabs} flex items-center gap-2 border-b border-sand-200 pb-3`}>
         <button
           type="button"
           onClick={() => setActiveTab('create')}
@@ -518,13 +553,13 @@ export function AiVisualizerClient() {
       )}
 
       {activeTab === 'create' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className={styles.workspace}>
         {/* Left Column: Visualizer Controls & Inputs */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className={styles.controls}>
           <div className="bg-white rounded-2xl border border-sand-200 p-5 sm:p-6 shadow-sm space-y-5">
             <h2 className="font-serif text-lg text-charcoal-900 font-medium flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-bronze-700" />
-              <span>Create AI Concept</span>
+              <span>Design direction</span>
             </h2>
 
             {formError && (
@@ -544,9 +579,10 @@ export function AiVisualizerClient() {
               {/* 1. Project Selection */}
               <div>
                 <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider mb-1.5">
-                  1. Select Project
+                  01 / Project
                 </label>
                 <select
+                  aria-label="Project"
                   value={selectedProjectId}
                   onChange={(e) => {
                     setSelectedProjectId(e.target.value);
@@ -568,7 +604,7 @@ export function AiVisualizerClient() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                    2. Source Room Photo (Architectural Structure)
+                    02 / Your photo
                   </label>
                   {selectedProjectId && (
                     <div className="flex items-center rounded-lg border border-sand-200 bg-[#FAF8F5] p-0.5 text-[11px]">
@@ -619,6 +655,10 @@ export function AiVisualizerClient() {
                         if (file) handlePhotoUpload(file);
                       }}
                       onClick={() => fileInputRef.current?.click()}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Upload source photo"
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
                       className={`p-5 rounded-xl border-2 border-dashed cursor-pointer text-center transition-all ${
                         isDragging
                           ? 'border-bronze-700 bg-bronze-50/40 ring-2 ring-bronze-700/20'
@@ -684,9 +724,7 @@ export function AiVisualizerClient() {
                     ) : (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 bg-[#FAF8F5] rounded-xl border border-sand-200">
                         {projectMedia.map((m) => {
-                          const thumb = m.derivatives?.find(
-                            (d) => d.variantName === 'THUMBNAIL' || d.variantName === 'MEDIUM'
-                          )?.publicUrl;
+                          const thumb = previewUrl(m);
                           const isSelected = selectedMediaId === m.id;
 
                           return (
@@ -733,11 +771,11 @@ export function AiVisualizerClient() {
                           {selectedMediaAsset?.altText || 'Selected room photo'}
                         </span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">
-                          Active Anchor
+                          Source photo
                         </span>
                       </div>
                       <span className="text-[10px] text-charcoal-400 block">
-                        {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px (Preserves spatial architecture)
+                        {selectedMediaAsset?.width} × {selectedMediaAsset?.height} px · Original resolution
                       </span>
                     </div>
                   </div>
@@ -748,7 +786,7 @@ export function AiVisualizerClient() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                    3. Choose Edit Mode
+                    03 / Edit approach
                   </label>
                   <span className="text-[10px] text-charcoal-500">
                     {editingMode === 'PRECISION_MASK' ? 'Precise Edit (Manual Mask)' : 'Quick Recolor (Auto-Detect)'}
@@ -793,43 +831,15 @@ export function AiVisualizerClient() {
 
                     <p className="text-[11px] text-charcoal-500 mt-1 leading-relaxed">
                       {editingMode === 'PRECISION_MASK'
-                        ? 'For maximum precision: Paint only the cupboard doors or panels you want to recolor below.'
-                        : 'For fastest results: Name the object clearly (e.g. cupboard, wardrobe, cabinet) and specify target finish.'}
+                        ? 'Paint one area on the canvas, then describe only its new finish. Use a separate edit for each colour.'
+                        : 'Best for one object and one finish. For different upper and lower colours, use Precise Edit with separate selections.'}
                     </p>
                   </>
                 )}
               </div>
 
-              {/* Precision Mask Region Editor */}
-              {selectedProjectId && selectedMediaId && editingMode === 'PRECISION_MASK' && selectedMediaFullUrl && (
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-charcoal-700 uppercase tracking-wider">
-                      Target Region Selection
-                    </label>
-                    <span className="text-[10px] text-bronze-700 font-medium">
-                      Paint over only the area you want to change
-                    </span>
-                  </div>
-
-                  <PrecisionMaskEditor
-                    sourceImageUrl={selectedMediaFullUrl}
-                    sourceWidth={selectedMediaAsset?.width || 1024}
-                    sourceHeight={selectedMediaAsset?.height || 1024}
-                    onMaskChange={(has, ratio) => {
-                      setHasMask(has);
-                      setMaskCoverageRatio(ratio);
-                    }}
-                    onExportReady={(fn) => {
-                      exportMaskRef.current = fn;
-                    }}
-                    disabled={submitting}
-                  />
-                </div>
-              )}
-
               {/* Reference Images & Structure Preservation Controls */}
-              {selectedProjectId && (
+              {selectedProjectId && studioStatus?.supportsReferenceImages && (
                 <ReferenceManager
                   selectedReferences={selectedReferences}
                   onChangeReferences={setSelectedReferences}
@@ -857,15 +867,65 @@ export function AiVisualizerClient() {
                   disabled={submitting}
                   maxLength={500}
                   presets={
-                    editingMode === 'PRECISION_MASK'
+                    studioStatus?.providerKey === 'stability'
+                      ? [
+                          { label: 'Matte black', prompt: editingMode === 'PRECISION_MASK' ? 'Matte black cupboard doors.' : 'Recolour the cupboard doors matte black.' },
+                          { label: 'Sage kitchen cabinets', prompt: 'Recolor the kitchen cabinet fronts sage green. Preserve handles, geometry and the surrounding room.' },
+                          { label: 'Warm white wall', prompt: 'Recolor the selected wall warm white. Preserve the cabinets, floor, ceiling and furnishings.' },
+                        ]
+                    : editingMode === 'PRECISION_MASK'
                       ? PRECISION_PRESETS
                       : PROMPT_PRESETS.map((p) => ({ label: p.split(' with ')[0], prompt: p }))
                   }
                 />
+                {regionPlan.length > 0 && (
+                  <section aria-label="Separate colour regions" className="mt-3 rounded-lg border border-sand-300 bg-sand-50 p-3 space-y-3">
+                    <h3 className="text-sm font-semibold">Two colours · two selected areas</h3>
+                    <p className="text-sm">Automatic selection can colour the wrong doors. Choose the first area, paint only those doors on the photo, then generate. Use “Edit this result” to apply the second colour. Each edit uses a generation.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {regionPlan.map(({ region, colour }) => (
+                        <button key={region} type="button" disabled={submitting} className="rounded-lg border border-sand-300 bg-white px-3 py-2 text-sm"
+                          onClick={() => {
+                            setEditingMode('PRECISION_MASK');
+                            setSelectedComparisonJob(null);
+                            setHasMask(false);
+                            setMaskSession((value) => value + 1);
+                            setMaskCoverageRatio(0);
+                            setPrompt(`Recolour only the selected ${region} cupboard doors ${colour}. Preserve the handles and panel seams.`);
+                          }}>Select {region} doors · {colour}</button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {/\bblack\b/i.test(prompt) && /\bwhite\b/i.test(prompt) && /\b(combination|two[- ]tone)\b/i.test(prompt) && !/\b(upper|lower|top|bottom|left|right|alternating)\b/i.test(prompt) && (
+                  <fieldset className="mt-3 rounded-lg border border-sand-200 p-3">
+                    <legend className="px-1 text-sm font-medium">Choose your black &amp; white layout</legend>
+                    <p className="text-xs text-charcoal-600 mb-3">Your prompt names two colours. Specify their placement, or leave it open for a design concept.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        ['White upper / black lower', 'Upper cupboard doors white; lower cupboard doors black.'],
+                        ['Black upper / white lower', 'Upper cupboard doors black; lower cupboard doors white.'],
+                        ['Alternating doors', 'Alternate solid white and solid black cupboard doors.'],
+                      ].map(([label, instruction]) => (
+                        <button key={label} type="button" disabled={submitting || prompt.length + instruction.length + 2 > 500}
+                          className="rounded-md border border-sand-300 px-3 py-2 text-xs text-charcoal-800 bg-white"
+                          onClick={() => setPrompt(`${prompt.trim()}. ${instruction}`)}>{label}</button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+                {studioStatus?.providerKey === 'stability' && (
+                  <p className="mt-3 text-sm text-charcoal-600">
+                    Concept preview, not a colour guarantee. Review the image before sharing. For two-tone cabinetry, edit one selected region at a time; Quick Recolor cannot reliably separate upper and lower finishes.
+                  </p>
+                )}
               </div>
 
               {/* 5. Submit & Cancel Actions */}
-              <div className="pt-2">
+              <div className={styles.generateBar}>
+                <p id="generation-readiness" role="status" className="text-sm text-charcoal-600 mb-3">
+                  {generationBlocker || 'Photo and instruction ready. You can generate your concept.'}
+                </p>
                 {submitting && activeJob ? (
                   <div className="space-y-3 p-4 rounded-xl bg-sand-50 border border-sand-200">
                     <div className="flex items-center justify-between">
@@ -886,13 +946,14 @@ export function AiVisualizerClient() {
                       <div className="bg-bronze-600 h-1.5 rounded-full animate-pulse w-2/3" />
                     </div>
                     <p className="text-[10px] text-charcoal-500 italic text-center">
-                      AI conditioning input image and visual references...
+                      Processing your source photo and edit instructions...
                     </p>
                   </div>
                 ) : (
                   <button
                     type="submit"
-                    disabled={!isConfigured || !selectedProjectId || !selectedMediaId || prompt.trim().length < 5}
+                    disabled={Boolean(generationBlocker)}
+                    aria-describedby="generation-readiness"
                     className="w-full py-3 px-4 min-h-[44px] rounded-xl bg-bronze-700 hover:bg-bronze-800 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <Wand2 className="w-4 h-4" />
@@ -983,16 +1044,16 @@ export function AiVisualizerClient() {
         </div>
 
         {/* Right Column: Original vs Concept Comparison Viewer */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={styles.canvasColumn}>
           <div className="bg-white rounded-2xl border border-sand-200 p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-sand-100">
               <div>
                 <span className="text-[10px] font-semibold text-bronze-700 uppercase tracking-wider block">
-                  Comparison Workspace
+                  YOUR DESIGN CANVAS
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-serif text-lg text-charcoal-900 font-medium">
-                    Concept vs. Site Reality
+                    {selectedComparisonJob ? 'Review your concept' : 'Explore your space'}
                   </h3>
                   <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-sand-100 text-charcoal-700 border border-sand-200">
                     <Shield className="w-2.5 h-2.5 text-bronze-700" /> Private Concept
@@ -1006,6 +1067,38 @@ export function AiVisualizerClient() {
               </div>
 
               <div className="flex items-center gap-2 self-start flex-wrap">
+                {selectedComparisonJob?.status === 'SUCCEEDED' && selectedComparisonJob.outputMediaId && (
+                  <button type="button" disabled={submitting || loadingConceptSource}
+                    className="rounded-lg border border-sand-300 bg-white px-3 py-2 text-xs font-medium"
+                    onClick={async () => {
+                      setLoadingConceptSource(true);
+                      setFormError(null);
+                      try {
+                        const source = await fetchMediaDetail(selectedComparisonJob.outputMediaId!, selectedComparisonJob.studioId);
+                        if (source.processingStatus !== 'READY' || source.mediaType === 'CLIENT_PRIVATE') throw new Error('This result is not ready for editing.');
+                        setConceptSource(source);
+                        setSelectedProjectId(source.projectId);
+                        setSelectedMediaId(source.id);
+                        setEditingMode('PRECISION_MASK');
+                        setPhotoSourceMode('gallery');
+                        setPrompt('');
+                        setSelectedComparisonJob(null);
+                      } catch (error) {
+                        setFormError(error instanceof Error ? error.message : 'Unable to open this result.');
+                      } finally {
+                        setLoadingConceptSource(false);
+                      }
+                    }}>{loadingConceptSource ? 'Opening result…' : 'Edit this result'}</button>
+                )}
+                {selectedComparisonJob && selectedComparisonJob.inputMediaId !== selectedMediaId && (
+                  <button type="button" disabled={submitting || uploadingPhoto}
+                    className="rounded-lg border border-sand-300 bg-white px-3 py-2 text-xs font-medium"
+                    onClick={() => {
+                      setSelectedProjectId(selectedComparisonJob.projectId);
+                      setSelectedMediaId(selectedComparisonJob.inputMediaId);
+                      setPhotoSourceMode('gallery');
+                    }}>Edit this original photo</button>
+                )}
                 {selectedComparisonJob?.maskPreviewUrl && (
                   <button
                     type="button"
@@ -1055,7 +1148,21 @@ export function AiVisualizerClient() {
               </div>
             </div>
 
-            {/* Viewer Content */}
+              {/* Precision Mask Region Editor */}
+            {selectedProjectId && selectedMediaId && editingMode === 'PRECISION_MASK' && selectedMediaFullUrl && (
+              <section aria-label="Select area to edit" className="space-y-4">
+                <p className={styles.canvasNote}>Paint the surface you want to change. Describe only its new finish: for example, matte black cupboard doors. Edit one colour region at a time.</p>
+                <PrecisionMaskEditor
+                  key={`${selectedMediaId}-${maskSession}`}
+                  sourceImageUrl={selectedMediaFullUrl}
+                  sourceWidth={selectedMediaAsset?.width}
+                  sourceHeight={selectedMediaAsset?.height}
+                  onMaskChange={(has, ratio) => { setHasMask(has); setMaskCoverageRatio(ratio); }}
+                  onExportReady={(fn) => { exportMaskRef.current = fn; }}
+                  disabled={submitting}
+                />
+              </section>
+            )}
             {selectedComparisonJob && selectedComparisonJob.status === 'SUCCEEDED' ? (
               <div className="space-y-4">
                 {/* Images View */}
@@ -1072,7 +1179,7 @@ export function AiVisualizerClient() {
                           <img
                             src={selectedComparisonJob.inputPreviewUrl}
                             alt="Original site room"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-charcoal-400 text-xs">
@@ -1084,7 +1191,7 @@ export function AiVisualizerClient() {
                           <img
                             src={selectedComparisonJob.maskPreviewUrl}
                             alt="Target precision edit region"
-                            className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-70"
+                            className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-70"
                           />
                         )}
                         <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded bg-charcoal-900/80 text-white backdrop-blur-sm">
@@ -1104,7 +1211,7 @@ export function AiVisualizerClient() {
                           <img
                             src={selectedComparisonJob.outputPreviewUrl}
                             alt="AI Concept Visualization"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-charcoal-400 text-xs">
@@ -1126,7 +1233,7 @@ export function AiVisualizerClient() {
                       <img
                         src={selectedComparisonJob.inputPreviewUrl}
                         alt="Original site photo"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-charcoal-400 text-xs">
@@ -1144,7 +1251,7 @@ export function AiVisualizerClient() {
                       <img
                         src={selectedComparisonJob.outputPreviewUrl}
                         alt="AI Concept Visualization"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-charcoal-400 text-xs">
@@ -1165,7 +1272,7 @@ export function AiVisualizerClient() {
                       Generation Prompt:
                     </span>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-sand-200/60 text-charcoal-800">
-                      Structure: {selectedComparisonJob.preserveStructure !== false ? 'Preserved' : 'Flexible'}
+                      Structure: {selectedComparisonJob.preserveStructure !== false ? 'Preservation requested' : 'Flexible'}
                     </span>
                   </div>
                   <p className="text-charcoal-800 leading-relaxed font-medium">
@@ -1236,13 +1343,13 @@ export function AiVisualizerClient() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : editingMode === 'PRECISION_MASK' && selectedMediaFullUrl ? null : selectedMediaFullUrl ? (<div className={styles.sourcePreview}><img src={selectedMediaFullUrl} alt="Source photo on design canvas" /></div>) : (
               <div className="py-16 text-center rounded-xl border border-dashed border-sand-300 p-8 space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-sand-100 text-bronze-700 flex items-center justify-center mx-auto">
                   <Layers className="w-6 h-6" />
                 </div>
                 <h4 className="font-serif text-base text-charcoal-800 font-medium">
-                  No Concept Selected
+                  Start with your space
                 </h4>
                 <p className="text-xs text-charcoal-500 max-w-sm mx-auto leading-relaxed">
                   Select a room photo and enter a prompt to generate an AI concept, or click on a completed concept in the history list to compare.

@@ -113,13 +113,13 @@ try {
     # --no-owner: portable restore
     # --no-acl: prevent permission errors
     # --exit-on-error: fail immediately on critical errors
-    & $pgRestorePath -h $DbHost -p $Port -U $User -d $Database --no-owner --no-acl $BackupFile
+    & $pgRestorePath -h $DbHost -p $Port -U $User -d $Database --no-owner --no-acl --exit-on-error $BackupFile
     
     $sw.Stop()
     $exitCode = $LASTEXITCODE
     
-    # Note: pg_restore returns 0 for clean success, and 1 for non-critical warnings (e.g. notices).
-    if ($exitCode -gt 1) {
+    # Any non-zero status can mean data or schema was not restored.
+    if ($exitCode -ne 0) {
         Write-Host "ERROR: pg_restore failed with critical error code $exitCode." -ForegroundColor Red
         exit $exitCode
     }

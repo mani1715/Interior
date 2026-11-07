@@ -313,6 +313,9 @@ public class AiVisualizerService {
 
         // 8. Sanitize and validate prompt
         String prompt = request.prompt().trim();
+        if ("stability".equals(aiImageProvider.getProviderKey()) && RegionalColourInstructions.needsSeparateSelections(prompt)) {
+            throw new BadRequestException(RegionalColourInstructions.GUIDANCE);
+        }
         if (prompt.length() > properties.getMaxPromptLength()) {
             throw new BadRequestException("Prompt exceeds maximum allowed length of " + properties.getMaxPromptLength() + " characters.");
         }
@@ -725,7 +728,7 @@ public class AiVisualizerService {
 
     private void submitAsyncJob(UUID jobId) {
         java.util.Map<String, String> mdcContext = org.slf4j.MDC.getCopyOfContextMap();
-        executor.submit(() -> {
+        Runnable dispatch = () -> executor.submit(() -> {
             if (mdcContext != null) {
                 org.slf4j.MDC.setContextMap(mdcContext);
             } else {
@@ -737,6 +740,17 @@ public class AiVisualizerService {
                 org.slf4j.MDC.clear();
             }
         });
+        // The worker uses another connection: it cannot see the new job until commit.
+        // Dispatching before commit can leave a paid/reserved job permanently QUEUED.
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() { dispatch.run(); }
+                    });
+        } else {
+            dispatch.run();
+        }
     }
 
     public void executeJobInternal(UUID jobId) {
@@ -1103,7 +1117,9 @@ public class AiVisualizerService {
     }
 
     private AiJobDetailResponse toJobDetail(AiJobRecord job, UUID studioId) {
-        String inputPreviewUrl = resolvePreviewUrl(job.inputMediaId(), studioId);
+        // Workspace comparisons must work for draft projects whose public derivatives are not served.
+        String inputPreviewUrl = job.inputMediaId() == null ? null
+                : "/api/v1/media/" + job.inputMediaId() + "/preview?studioId=" + studioId;
         String outputPreviewUrl = job.outputMediaId() != null ? resolvePreviewUrl(job.outputMediaId(), studioId) : null;
 
         List<AiJobReferenceRecord> jobRefs = aiReferenceRepository.findReferencesByJobIdAndStudio(studioId, job.id());
@@ -1397,6 +1413,9 @@ public class AiVisualizerService {
         String prompt = (request.prompt() != null && !request.prompt().isBlank())
                 ? request.prompt().trim()
                 : parent.prompt();
+        if ("stability".equals(aiImageProvider.getProviderKey()) && RegionalColourInstructions.needsSeparateSelections(prompt)) {
+            throw new BadRequestException(RegionalColourInstructions.GUIDANCE);
+        }
         if (prompt.length() > properties.getMaxPromptLength()) {
             throw new BadRequestException("Prompt exceeds maximum allowed length of " + properties.getMaxPromptLength() + " characters.");
         }

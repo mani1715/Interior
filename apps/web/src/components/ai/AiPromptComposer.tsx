@@ -55,25 +55,22 @@ export function AiPromptComposer({
   const basePromptBeforeVoiceRef = useRef<string | null>(null);
 
   // Voice transcript handler: maintains base text and accumulates speech continuously without duplicating words
-  const handleVoiceTranscript = (transcriptText: string, isFinal?: boolean) => {
+  const handleVoiceTranscript = (transcriptText: string) => {
     if (!transcriptText.trim()) return;
     if (basePromptBeforeVoiceRef.current === null) {
       basePromptBeforeVoiceRef.current = prompt.trim();
     }
     const base = basePromptBeforeVoiceRef.current;
     const combined = base ? `${base} ${transcriptText.trim()}` : transcriptText.trim();
-    onPromptChange(combined);
-
-    if (isFinal) {
-      basePromptBeforeVoiceRef.current = combined;
-    }
+    // The speech service sends the entire session transcript, not a new chunk.
+    onPromptChange(combined.slice(0, maxLength));
   };
 
   const applyCupboardColor = (colorName: string, hex?: string) => {
     const colorDesc = hex ? `${colorName} (${hex})` : colorName;
     const generatedPrompt = editingMode === 'PRECISION_MASK'
-      ? `Recolor only the selected cupboard/wardrobe shutters in luxurious ${colorDesc} with ultra-matte laminate finish. Maintain exact cupboard doors, handles, grooves, hinges, surrounding walls, floor, ceiling, camera angle, and natural lighting unchanged.`
-      : `Recolor only the empty cupboards and wardrobe in luxurious ${colorDesc} with ultra-matte laminate finish. Maintain exact cupboard doors, handles, grooves, hinges, surrounding walls, floor, ceiling, camera angle, and natural lighting unchanged.`;
+      ? `Recolour the selected cupboard doors ${colorDesc}.`
+      : `Recolour the cupboard doors ${colorDesc}. Keep the room and existing cabinet structure.`;
 
     onPromptChange(generatedPrompt);
     setShowColorPicker(false);
@@ -98,7 +95,8 @@ export function AiPromptComposer({
         referencePurposes,
       });
       setEnhancementResult(res);
-      onPromptChange(res.enhancedPrompt);
+      // Never truncate a spatial instruction or produce an unsendable prompt.
+      onPromptChange(res.enhancedPrompt.length <= maxLength ? res.enhancedPrompt : prompt);
       setShowOptimizationNotice(true);
     } finally {
       setIsEnhancing(false);
@@ -129,13 +127,13 @@ export function AiPromptComposer({
           {/* Mode Pill */}
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-sand-100 text-charcoal-800 border border-sand-200">
             <Layers className="w-3 h-3 text-bronze-700" />
-            {editingMode === 'PRECISION_MASK' ? 'Precision Mask (Inpainting)' : 'Full Space Transform'}
+            {editingMode === 'PRECISION_MASK' ? 'Precision Mask (Inpainting)' : 'Source Photo Edit'}
           </span>
 
           {/* Structure Pill */}
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-sand-100 text-charcoal-800 border border-sand-200">
             <ShieldCheck className="w-3 h-3 text-forest-700" />
-            {preserveStructure ? 'Structure Locked' : 'Structure Flexible'}
+            {preserveStructure ? 'Preserve Structure Requested' : 'Structure Flexible'}
           </span>
 
           {/* Room Pill */}
@@ -175,8 +173,8 @@ export function AiPromptComposer({
           aria-label="AI Prompt Instruction"
           placeholder={
             editingMode === 'PRECISION_MASK'
-              ? "Describe target changes to the selected area (e.g. 'Change wardrobe shutters to walnut wood with matte black handles')..."
-              : "Describe your spatial concept (e.g. 'Transform to warm minimalist aesthetic with fluted oak cabinetry and brushed brass pulls')..."
+              ? "Describe the selected surface: matte black cupboard doors, for example."
+              : "Name one object and its new finish: recolour the kitchen cabinets sage green."
           }
           className="w-full bg-transparent p-3 sm:p-4 text-xs sm:text-sm text-charcoal-900 placeholder:text-charcoal-400 focus:outline-hidden leading-relaxed resize-y min-h-[90px]"
         />
@@ -187,6 +185,7 @@ export function AiPromptComposer({
           <div className="flex items-center gap-2">
             <VoiceDictationButton
               onTranscript={handleVoiceTranscript}
+              onSessionStart={() => { basePromptBeforeVoiceRef.current = prompt.trim(); }}
               disabled={disabled || isEnhancing}
             />
           </div>
@@ -239,7 +238,7 @@ export function AiPromptComposer({
           <div className="flex items-center justify-between font-semibold text-bronze-900">
             <span className="flex items-center gap-1.5">
               <Check className="w-4 h-4 text-forest-600" />
-              Architectural Prompt Optimization Applied
+              {enhancementResult.enhancedPrompt.length <= maxLength ? 'Prompt enhancement applied' : 'Original instructions retained'}
             </span>
             <button
               type="button"
@@ -251,7 +250,9 @@ export function AiPromptComposer({
             </button>
           </div>
           <p className="text-[11px] text-charcoal-600 leading-relaxed">
-            Your informal prompt has been structured into professional architectural directives. You can edit any word in the text box above before generating.
+            {enhancementResult.enhancedPrompt.length <= maxLength
+              ? 'Your instructions are preserved with additional rendering guidance. Review the prompt before generating.'
+              : 'The expanded version exceeded the character limit, so your original instructions were kept without truncation.'}
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1 text-[10px]">
             {enhancementResult.detectedElements.length > 0 && (
@@ -274,7 +275,8 @@ export function AiPromptComposer({
       )}
 
       {/* Primary Architectural Design Starter: Cupboard / Wardrobe Recolor */}
-      <div className="pt-1 space-y-2">
+      <details className="pt-1 space-y-2 rounded-lg border border-sand-200 p-3">
+        <summary className="cursor-pointer text-sm font-medium text-charcoal-700">Colour presets &amp; examples</summary>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-[10px] font-semibold text-charcoal-700 uppercase tracking-wider block">
             {editingMode === 'PRECISION_MASK' ? 'Targeted Edit Starters:' : 'Design Starters:'}
@@ -282,10 +284,11 @@ export function AiPromptComposer({
           <button
             type="button"
             onClick={() => setShowColorPicker(!showColorPicker)}
+            disabled={disabled || isEnhancing}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bronze-50 border border-bronze-300 text-bronze-900 hover:bg-bronze-100 active:bg-bronze-200 text-xs font-semibold shadow-2xs transition-all"
           >
             <Palette className="w-3.5 h-3.5 text-bronze-700" />
-            <span>Colour Empty Cupboards</span>
+            <span>Choose a finish</span>
             {showColorPicker ? <ChevronUp className="w-3 h-3 ml-0.5" /> : <ChevronDown className="w-3 h-3 ml-0.5" />}
           </button>
         </div>
@@ -368,7 +371,7 @@ export function AiPromptComposer({
             ))}
           </div>
         )}
-      </div>
+      </details>
     </div>
   );
 }

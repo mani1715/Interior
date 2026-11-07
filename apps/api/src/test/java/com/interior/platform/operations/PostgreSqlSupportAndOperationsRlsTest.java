@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 9G — PostgreSQL 18 Support & Platform Operations RLS Security Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlSupportAndOperationsRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -121,7 +122,7 @@ class PostgreSqlSupportAndOperationsRlsTest {
     @Test
     @DisplayName("RLS: User A sees only their own support requests, never User B's")
     void testSupportRequestUserIsolation() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available on port 55433");
 
         try (Connection conn = getTenantConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("SET app.current_user_id = '" + userAId + "';");
@@ -138,7 +139,7 @@ class PostgreSqlSupportAndOperationsRlsTest {
     @Test
     @DisplayName("RLS: Non-admin User A cannot see is_internal = true support messages")
     void testSupportMessageInternalMasking() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available on port 55433");
 
         try (Connection conn = getTenantConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("SET app.current_user_id = '" + userAId + "';");
@@ -156,7 +157,7 @@ class PostgreSqlSupportAndOperationsRlsTest {
     @Test
     @DisplayName("RLS: Admin sees all tickets and internal messages")
     void testAdminFullVisibility() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available on port 55433");
 
         try (Connection conn = getTenantConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("SET app.is_admin = 'true';");
@@ -176,7 +177,7 @@ class PostgreSqlSupportAndOperationsRlsTest {
     @Test
     @DisplayName("RLS: Non-admin cannot read or modify platform_operational_state or operational_job_runs")
     void testOperationsTablesAdminIsolation() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 is not available on port 5433");
+        assertTrue(postgresAvailable, "PostgreSQL 18 is not available on port 55433");
 
         // Non-admin attempt
         try (Connection conn = getTenantConnection(); Statement stmt = conn.createStatement()) {

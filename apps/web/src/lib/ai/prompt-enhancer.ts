@@ -56,8 +56,15 @@ const VOCAB_MATERIALS: Record<string, string> = {
 };
 
 const VOCAB_COLORS: Record<string, string> = {
-  white: 'warm alabaster white',
-  black: 'deep matte charcoal black',
+  white: 'white',
+  black: 'black',
+  yellow: 'yellow',
+  blue: 'blue',
+  green: 'green',
+  red: 'red',
+  orange: 'orange',
+  pink: 'pink',
+  purple: 'purple',
   grey: 'soft architectural grey',
   gray: 'soft architectural grey',
   beige: 'warm oat beige',
@@ -114,22 +121,8 @@ export function enhancePromptLocally(ctx: PromptEnhanceContext): PromptEnhanceRe
     parts.push('Photorealistic architectural interior transformation:');
   }
 
-  if (ctx.roomType) {
-    parts.push(`in ${ctx.roomType.toLowerCase()} space.`);
-  }
-
-  if (detectedElements.length > 0 || detectedMaterials.length > 0 || detectedColors.length > 0) {
-    const elementStr = detectedElements.length > 0 ? detectedElements.join(' and ') : 'designated cabinetry surfaces';
-    const finishComponents: string[] = [];
-    if (detectedColors.length > 0) finishComponents.push(detectedColors.join(', '));
-    if (detectedMaterials.length > 0) finishComponents.push(detectedMaterials.join(', '));
-    if (detectedHardware.length > 0) finishComponents.push(`accented with ${detectedHardware.join(' and ')}`);
-
-    const finishStr = finishComponents.length > 0 ? finishComponents.join(' paired with ') : 'refined architectural finishes';
-    parts.push(`Update ${elementStr} to feature ${finishStr}.`);
-  } else {
-    parts.push(`${raw}${raw.endsWith('.') ? '' : '.'}`);
-  }
+  // Keep the exact instruction: a vocabulary list loses upper/lower and negation.
+  parts.push(raw);
 
   if (ctx.architecturalStyle) {
     parts.push(`Aesthetic direction adheres strictly to ${ctx.architecturalStyle} style principles.`);

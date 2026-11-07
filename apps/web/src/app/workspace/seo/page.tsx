@@ -103,6 +103,27 @@ export default function SeoWorkspacePage() {
     status?.metaDescription ||
     'Bespoke architectural and residential interior design practice.';
 
+  // Real-time SEO & GEO (Generative Engine Optimization) heuristics from claude-seo standard
+  const titleLen = effectiveTitle.length;
+  const descLen = effectiveDescription.length;
+
+  const isTitleOptimal = titleLen >= 30 && titleLen <= 60;
+  const isTitleTooShort = titleLen > 0 && titleLen < 30;
+  const isTitleTooLong = titleLen > 60;
+
+  const isDescOptimal = descLen >= 120 && descLen <= 160;
+  const isDescTooShort = descLen > 0 && descLen < 50;
+  const isDescTooLong = descLen > 160;
+
+  // GEO Citability checks: presence of entity, location, and specialization
+  const hasLocationSignal = Boolean(
+    status?.metaTitle?.toLowerCase().match(/bengaluru|mumbai|delhi|hyderabad|chennai|pune|india/) ||
+      effectiveDescription.toLowerCase().match(/bengaluru|mumbai|delhi|hyderabad|chennai|pune|india/)
+  );
+  const hasDisciplineSignal = Boolean(
+    effectiveDescription.toLowerCase().match(/interior|architect|residential|renovation|kitchen|living|villa|space|design/)
+  );
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1F1F1F] p-4 sm:p-6 lg:p-10">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -319,6 +340,21 @@ export default function SeoWorkspacePage() {
               <span>Title Length: {effectiveTitle.length} / 60 chars</span>
               <span>Description: {effectiveDescription.length} / 160 chars</span>
             </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-sand-100 text-[11px]">
+              <div>
+                <span className="font-medium text-charcoal-700 block">Title Health:</span>
+                <span className={isTitleOptimal ? 'text-emerald-700' : isTitleTooLong ? 'text-amber-700' : 'text-charcoal-500'}>
+                  {isTitleOptimal ? '✓ Optimal (30-60 chars)' : isTitleTooLong ? '⚠ Exceeds 60 (may truncate)' : isTitleTooShort ? 'ℹ Under 30 chars' : 'Auto-generated'}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium text-charcoal-700 block">Snippet Health:</span>
+                <span className={isDescOptimal ? 'text-emerald-700' : isDescTooLong ? 'text-amber-700' : 'text-charcoal-500'}>
+                  {isDescOptimal ? '✓ Optimal (120-160 chars)' : isDescTooLong ? '⚠ Exceeds 160 (may truncate)' : isDescTooShort ? 'ℹ Thin snippet (<50)' : 'Auto-generated'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Social Share Preview (OpenGraph) */}
@@ -346,6 +382,62 @@ export default function SeoWorkspacePage() {
                   {effectiveDescription}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Generative Engine Optimization (GEO) & Citability Scorecard */}
+        <div className="p-6 rounded-2xl border border-sand-200 bg-white shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-sand-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-bronze-600" />
+              <div>
+                <h2 className="font-serif text-base font-semibold text-charcoal-900">
+                  AI Search & Citability Optimization (GEO)
+                </h2>
+                <p className="text-xs text-charcoal-500">
+                  Signals evaluated by Google AI Overviews, Perplexity, and ChatGPT for citing your studio.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              Agent Ready
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-xl border border-sand-200 bg-sand-50/50 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal-800">
+                <CheckCircle2 className={`w-3.5 h-3.5 ${hasLocationSignal ? 'text-emerald-600' : 'text-amber-500'}`} />
+                <span>Geographic Clarity</span>
+              </div>
+              <p className="text-[11px] text-charcoal-500 leading-relaxed">
+                {hasLocationSignal
+                  ? 'City and regional intent detected in metadata. Strong signal for local map-pack and regional AI prompts.'
+                  : 'Add your primary city (e.g. Bengaluru, Mumbai) to help AI models associate your studio with local queries.'}
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-sand-200 bg-sand-50/50 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal-800">
+                <CheckCircle2 className={`w-3.5 h-3.5 ${hasDisciplineSignal ? 'text-emerald-600' : 'text-amber-500'}`} />
+                <span>Specialization Signals</span>
+              </div>
+              <p className="text-[11px] text-charcoal-500 leading-relaxed">
+                {hasDisciplineSignal
+                  ? 'Clear discipline keywords found (residential, architectural, turnkey, etc.). Boosts topical authority.'
+                  : 'Specify key project types (e.g. villas, modular kitchens, luxury penthouses) for targeted AI retrieval.'}
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-sand-200 bg-sand-50/50 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal-800">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Schema & Agentic Discovery</span>
+              </div>
+              <p className="text-[11px] text-charcoal-500 leading-relaxed">
+                Published studios automatically output Schema.org ProfessionalService & HomeAndConstructionBusiness JSON-LD plus /llms.txt inclusion.
+              </p>
             </div>
           </div>
         </div>

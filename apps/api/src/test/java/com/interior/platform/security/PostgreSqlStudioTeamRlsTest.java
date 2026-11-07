@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Round 5 — Dedicated PostgreSQL 18 RLS Studio Team & Membership Isolation Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlStudioTeamRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -139,7 +140,7 @@ class PostgreSqlStudioTeamRlsTest {
     @Test
     @DisplayName("RLS: Studio A tenant sees only Studio A members and invitations")
     void testStudioIsolation_Select() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container/instance not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container/instance not available");
 
         try (Connection conn = getTenantConnection(studioAId);
              Statement stmt = conn.createStatement()) {
@@ -167,7 +168,7 @@ class PostgreSqlStudioTeamRlsTest {
     @Test
     @DisplayName("RLS: Studio A tenant cannot update or delete Studio B invitations")
     void testStudioIsolation_MutateBlocked() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container/instance not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container/instance not available");
 
         try (Connection conn = getTenantConnection(studioAId);
              Statement stmt = conn.createStatement()) {
@@ -191,7 +192,7 @@ class PostgreSqlStudioTeamRlsTest {
     @Test
     @DisplayName("RLS Connection Pool: Switching Studio A -> Studio B -> Reset on single connection does NOT leak tenant context")
     void testConnectionReuse_TenantSwitchingIsolation() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container/instance not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container/instance not available");
 
         // Simulate a single physical pooled database connection reused across sequential requests
         try (Connection conn = getTenantConnection(null);

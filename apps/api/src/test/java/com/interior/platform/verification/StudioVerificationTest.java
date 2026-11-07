@@ -34,6 +34,12 @@ class StudioVerificationTest {
     private StudioRepository studioRepository;
 
     @Autowired
+    private com.interior.platform.media.storage.StorageService storage;
+
+    @Autowired
+    private com.interior.platform.verification.repository.VerificationRepository verificationRepository;
+
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     private UUID ownerId;
@@ -97,6 +103,7 @@ class StudioVerificationTest {
 
     @AfterEach
     void tearDown() {
+        verificationRepository.listDocuments(studioId).forEach(doc -> storage.delete(doc.storageKey()));
         jdbcTemplate.execute("DELETE FROM studio_verification_events");
         jdbcTemplate.execute("DELETE FROM studio_verification_documents");
         jdbcTemplate.execute("DELETE FROM studio_verifications");
@@ -148,11 +155,14 @@ class StudioVerificationTest {
                 VerificationDocumentType.BUSINESS_REGISTRATION,
                 "incorporation.pdf",
                 "application/pdf",
-                1024 * 50 // 50 KB
+                new byte[1024 * 50] // 50 KB
         );
         assertNotNull(pdfDoc);
         assertEquals("BUSINESS_REGISTRATION", pdfDoc.documentType());
         assertEquals("incorporation.pdf", pdfDoc.originalFilename());
+        var stored = verificationRepository.listDocuments(studioId).get(0);
+        assertTrue(stored.storageKey().startsWith("private/verification-evidence/"));
+        assertArrayEquals(new byte[1024 * 50], storage.load(stored.storageKey()));
 
         // Invalid MIME type (e.g., executable)
         assertThrows(IllegalArgumentException.class, () ->
@@ -162,7 +172,7 @@ class StudioVerificationTest {
                         VerificationDocumentType.OTHER,
                         "script.sh",
                         "application/x-sh",
-                        1024
+                        new byte[1024]
                 )
         );
 
@@ -174,7 +184,7 @@ class StudioVerificationTest {
                         VerificationDocumentType.GST_CERTIFICATE,
                         "large.pdf",
                         "application/pdf",
-                        11L * 1024L * 1024L
+                        new byte[11 * 1024 * 1024]
                 )
         );
     }

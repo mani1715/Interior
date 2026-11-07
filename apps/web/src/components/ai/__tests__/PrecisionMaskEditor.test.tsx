@@ -2,9 +2,24 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { PrecisionMaskEditor } from '../PrecisionMaskEditor';
+import { scaleCanvasToSource } from '@/lib/ai/coordinates';
+
+vi.mock('@/lib/ai/coordinates', () => ({
+  calculateCoverageRatio: vi.fn(() => 0),
+  scaleCanvasToSource: vi.fn(() => ({ toBlob: (callback: (blob: Blob) => void) => callback(new Blob(['mask'], { type: 'image/png' })) })),
+}));
 
 describe('PrecisionMaskEditor', () => {
   const sampleUrl = 'https://example.com/unfinished-room.jpg';
+
+  it('exports at original dimensions when the preview is smaller', async () => {
+    const ready = vi.fn();
+    render(<PrecisionMaskEditor sourceImageUrl={sampleUrl} sourceWidth={1672} sourceHeight={941} onExportReady={ready} />);
+    const image = screen.getByAltText('Source room image for precision editing selection');
+    Object.defineProperties(image, { naturalWidth: { value: 1200 }, naturalHeight: { value: 675 } });
+    await ready.mock.calls[0][0]();
+    expect(scaleCanvasToSource).toHaveBeenCalledWith(expect.any(HTMLCanvasElement), 1672, 941);
+  });
 
   it('renders toolbar controls, canvas, and truthful disclaimer', () => {
     render(<PrecisionMaskEditor sourceImageUrl={sampleUrl} />);

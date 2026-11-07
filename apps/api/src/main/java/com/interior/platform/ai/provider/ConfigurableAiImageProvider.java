@@ -9,6 +9,7 @@ import com.interior.platform.ai.domain.EditingMode;
 import com.interior.platform.common.exception.AiProviderNotConfiguredException;
 import com.interior.platform.common.service.SsrfProtectionService;
 import com.interior.platform.ai.service.StabilityPromptBuilder;
+import com.interior.platform.ai.service.PrecisionImageComposite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,9 +72,6 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
         if (provider != null && !provider.isBlank() && !"none".equalsIgnoreCase(provider)) {
             return provider.toLowerCase().trim();
         }
-        if (isConfigured()) {
-            return "stability";
-        }
         return "none";
     }
 
@@ -85,19 +83,19 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
         }
         String provider = properties.getProvider();
         if (provider == null || provider.isBlank() || "none".equalsIgnoreCase(provider)) {
-            return true;
+            return false;
         }
         return !"none".equalsIgnoreCase(provider);
     }
 
     @Override
     public boolean supportsReferenceImages() {
-        return properties.isSupportsReferenceImages();
+        return !"stability".equalsIgnoreCase(getProviderKey()) && properties.isSupportsReferenceImages();
     }
 
     @Override
     public int getMaxReferenceImages() {
-        return properties.getMaxReferenceImages();
+        return supportsReferenceImages() ? properties.getMaxReferenceImages() : 0;
     }
 
     @Override
@@ -383,6 +381,9 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
             String maskContentType,
             List<AiGenerationReference> references
     ) {
+        if (references != null && !references.isEmpty()) {
+            return ProviderGenerationResponse.failure("REFERENCE_IMAGES_UNSUPPORTED", "This provider supports source-photo edits, not reference-image conditioning. Remove the references before generating.");
+        }
         String configuredModel = properties.getModel() != null && !properties.getModel().isBlank()
                 ? properties.getModel()
                 : "stability-v2beta";
@@ -495,6 +496,16 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
                         return ProviderGenerationResponse.failure("MALFORMED_PROVIDER_OUTPUT", "Provider returned invalid or malformed image data.");
                     }
                     String usageMeta = "{\"provider\":\"stability\",\"operation\":\"" + operation + "\",\"model\":\"" + escapeJson(configuredModel) + "\",\"credits\":5,\"seed\":\"" + escapeJson(seed) + "\",\"finish_reason\":\"" + escapeJson(finishReason) + "\"}";
+                    if (isMasked) {
+                        try {
+                            BufferedImage source = ImageIO.read(new ByteArrayInputStream(inputImageBytes));
+                            byte[] normalized = StabilityPromptBuilder.normalizeMaskToBinary(maskBytes, source.getWidth(), source.getHeight());
+                            body = PrecisionImageComposite.preserveUnselected(inputImageBytes, body, normalized);
+                            ct = "image/png";
+                        } catch (IOException | IllegalArgumentException e) {
+                            return ProviderGenerationResponse.failure("PRECISION_ALIGNMENT_FAILED", "The provider changed image dimensions. The edit could not be safely aligned with your selection.");
+                        }
+                    }
                     return ProviderGenerationResponse.immediateSuccess(body, ct, usageMeta, costMinor, currency, CostSource.CALCULATED);
                 }
 
@@ -533,7 +544,7 @@ public class ConfigurableAiImageProvider implements AiImageProvider {
                 if (bodyStr.contains("safety") || bodyStr.contains("moderation") || bodyStr.contains("nsfw")) {
                     return ProviderGenerationResponse.failure("AI_SAFETY_REJECTED", "AI generation request rejected by provider safety filters.");
                 }
-                log.warn("Stability AI bad request for job {}: {}", job.id(), bodyStr);
+                log.warn("Stability AI bad request for job {} (status 400)", job.id());
                 return ProviderGenerationResponse.failure("AI_INVALID_REQUEST", "AI generation request rejected by provider (status 400).");
             } else {
                 return ProviderGenerationResponse.failure("GENERATION_REJECTED", "AI generation request rejected by provider (status " + statusCode + ").");

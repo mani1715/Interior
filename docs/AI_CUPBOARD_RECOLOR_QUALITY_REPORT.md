@@ -1,5 +1,7 @@
 # Elégance Platform: AI Cupboard & Cabinet Recolor Quality Inspection Report
 
+> Superseded quality claims (2026-11-06): the historical perfect scores and guarantees below are not evidence for current output quality. User screenshots show upper/lower colour assignments failing. Negative prompts cannot guarantee geometry or colour fidelity. Current two-region automatic recolouring remains unverified; see docs/AI_REGIONAL_RECOLOR_2026-11-06.md for the current investigation.
+
 **Focus:** Interior Architecture & Millwork Integrity  
 **Target Category:** Wardrobes, Closets, Kitchen Cabinets, Vanity Cupboards  
 **Engine:** Stability AI (`search-and-recolor` & `inpaint`)  

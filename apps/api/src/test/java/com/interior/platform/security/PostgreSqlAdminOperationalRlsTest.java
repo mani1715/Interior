@@ -13,12 +13,13 @@ import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 7E — Dedicated PostgreSQL 18 RLS Admin & Moderation Controls Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlAdminOperationalRlsTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -122,7 +123,7 @@ class PostgreSqlAdminOperationalRlsTest {
     @Test
     @DisplayName("RLS strictly isolates private studio projects and prevents cross-tenant mutation")
     void testStudioProjectRlsWithModeration() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection tenantConn = getTenantConnection()) {
             try (Statement stmt = tenantConn.createStatement()) {
@@ -150,7 +151,7 @@ class PostgreSqlAdminOperationalRlsTest {
     @Test
     @DisplayName("Moderated HIDDEN projects are suppressed from public read RLS policy")
     void testModerationHiddenSuppressesPublicRead() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection adminConn = getAdminConnection()) {
             try (Statement stmt = adminConn.createStatement()) {
@@ -190,7 +191,7 @@ class PostgreSqlAdminOperationalRlsTest {
     @Test
     @DisplayName("Admin can update moderation status and suspension reasons on PostgreSQL 18")
     void testAdminModerationAndSuspensionColumns() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection adminConn = getAdminConnection()) {
             try (Statement stmt = adminConn.createStatement()) {
@@ -221,7 +222,7 @@ class PostgreSqlAdminOperationalRlsTest {
     @Test
     @DisplayName("Audit events table enforces append-only performance index on timestamp and action")
     void testAuditLogPerformanceIndex() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
+        assertTrue(postgresAvailable, "PostgreSQL 18 not available for testing");
 
         try (Connection adminConn = getAdminConnection()) {
             try (Statement stmt = adminConn.createStatement()) {

@@ -118,6 +118,7 @@ export interface PublicStudioDto {
   services: string[];
   specialties: string[];
   serviceAreas: string[];
+  priceRange?: string | null;
   projects: Array<{
     id: string;
     title: string;

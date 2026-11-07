@@ -14,12 +14,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Phase 9E — PostgreSQL 18 Privacy, Data Export and Legal Hold RLS Security Tests")
+@org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "interior.tests.postgres", matches = "true")
 class PostgreSqlPrivacySecurityTest {
 
-    private static final String PG_URL = "jdbc:postgresql://localhost:5433/interior_design_dev";
+    private static final String PG_URL = "jdbc:postgresql://localhost:55433/interior_design_rls_test";
     private static final String ADMIN_USER = "postgres";
     private static final String ADMIN_PASS = "postgres";
 
@@ -93,7 +94,7 @@ class PostgreSqlPrivacySecurityTest {
     @Test
     @DisplayName("RLS: User B cannot see Privacy Requests of User A")
     void testUserCannotSeeOtherUsersPrivacyRequests() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container not available");
 
         UUID reqA = UuidV7.randomUuid();
         try (Connection admin = getAdminConnection(); Statement stmt = admin.createStatement()) {
@@ -121,7 +122,7 @@ class PostgreSqlPrivacySecurityTest {
     @Test
     @DisplayName("RLS: User B cannot see Data Export Jobs of User A")
     void testUserCannotSeeOtherUsersExportJobs() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container not available");
 
         UUID reqA = UuidV7.randomUuid();
         UUID jobA = UuidV7.randomUuid();
@@ -149,7 +150,7 @@ class PostgreSqlPrivacySecurityTest {
     @Test
     @DisplayName("RLS: Non-admin users cannot query Privacy Legal Holds table")
     void testNonAdminCannotAccessLegalHolds() throws SQLException {
-        assumeTrue(postgresAvailable, "PostgreSQL test container not available");
+        assertTrue(postgresAvailable, "PostgreSQL test container not available");
 
         UUID holdId = UuidV7.randomUuid();
         try (Connection admin = getAdminConnection(); Statement stmt = admin.createStatement()) {
